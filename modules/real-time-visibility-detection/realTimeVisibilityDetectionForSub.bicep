@@ -1,0 +1,147 @@
+import {
+  RealTimeVisibilityDetectionSettings
+  DiagnosticLogSettings
+} from '../../models/real-time-visibility-detection.bicep'
+
+targetScope = 'subscription'
+
+/*
+  This Bicep template deploys infrastructure to enable CrowdStrike 
+  Indicator of Attack (IOA) assessment.
+
+  Copyright (c) 2024 CrowdStrike, Inc.
+*/
+
+/* Parameters */
+@description('Targetscope of the IOM integration.')
+@allowed([
+  'ManagementGroup'
+  'Subscription'
+])
+param targetScope string
+
+@description('The location for the resources deployed in this solution.')
+param location string = deployment().location
+
+@description('The prefix to be added to the deployment name.')
+param deploymentNamePrefix string = 'cs-ioa'
+
+@description('The suffix to be added to the deployment name.')
+param deploymentNameSuffix string = ''
+
+@description('Tags to be applied to all resources.')
+param tags object = {
+  'cstag-vendor': 'crowdstrike'
+}
+
+param featureSettings RealTimeVisibilityDetectionSettings = {
+  enabled: true
+  deployActivityLogDiagnosticSettings: true
+  deployEntraLogDiagnosticSettings: true 
+  deployActivityLogDiagnosticSettingsPolicy: true
+  enableAppInsights: false
+  resourceGroupName: 'cs-ioa-group' // DO NOT CHANGE - used for registration validation
+}
+
+param randomSuffix string = uniqueString(featureSettings.resourceGroupName, defaultSubscriptionId, deploymentNamePrefix, deploymentNameSuffix)
+
+@minLength(36)
+@maxLength(36)
+param defaultSubscriptionId string // DO NOT CHANGE - used for registration validation
+
+param subscriptionIds array
+
+/* ParameterBag for Activity Logs */
+param activityLogSettings DiagnosticLogSettings = {
+  useExistingEventHub: false
+  eventHubNamespaceName : ''                                // Optional, used only when useExistingEventHub is set to true
+  eventHubName: 'cs-eventhub-monitor-activity-logs'         // Optional, used only when useExistingEventHub is set to true
+  eventHubResourceGroupName: ''                             // Optional, used only when useExistingEventHub is set to true
+  eventHubSubscriptionId: ''                                // Optional, used only when useExistingEventHub is set to true
+  eventHubAuthorizationRuleId: ''                           // Optional, used only when useExistingEventHub is set to true
+  diagnosticSettingsName: 'cs-monitor-activity-to-eventhub' // DO NOT CHANGE - used for registration validation
+}
+
+/* ParameterBag for EntraId Logs */
+param entraLogSettings DiagnosticLogSettings = {
+  useExistingEventHub: false
+  eventHubNamespaceName : ''                   // Optional, used only when useExistingEventHub is set to true
+  eventHubName: 'cs-eventhub-monitor-aad-logs' // Optional, used only when useExistingEventHub is set to true
+  eventHubResourceGroupName: ''                // Optional, used only when useExistingEventHub is set to true
+  eventHubSubscriptionId: ''                   // Optional, used only when useExistingEventHub is set to true
+  eventHubAuthorizationRuleId: ''              // Optional, used only when useExistingEventHub is set to true
+  diagnosticSettingsName: 'cs-aad-to-eventhub' // DO NOT CHANGE - used for registration validation
+}
+
+/* Variables */
+var scope = az.resourceGroup(resourceGroup.name)
+
+/* Resource Deployment */
+resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-03-01' = {
+  name: featureSettings.resourceGroupName
+  location: location
+  tags: tags
+}
+
+// Create EventHub Namespace and Eventhubs used by CrowdStrike
+module eventHub 'eventHub.bicep' = {
+  name: '${deploymentNamePrefix}-eventHubs-${deploymentNameSuffix}'
+  scope: scope
+  params: {
+    defaultSubscriptionId: defaultSubscriptionId
+    activityLogSettings: activityLogSettings
+    entraLogSettings: entraLogSettings
+    tags: tags
+  }
+}
+
+/* Create user-assigned Managed Identity to be used for getting all Azure Subscriptions */
+module activityLogIdentity 'activityLogIdentity.bicep' = if (featureSettings.deployActivityLogDiagnosticSettings && targetScope == 'ManagementGroup') {
+  name: '${deploymentNamePrefix}-activityLogIdentity-${deploymentNameSuffix}'
+  scope: scope
+  params: {
+    activityLogIdentityName: 'cs-activityLogDeployment-${defaultSubscriptionId}'
+    location: location
+    tags: tags
+  }
+}
+
+/* Deploy Activity Log Diagnostic Settings for current Azure subscription */
+module activityDiagnosticSettings 'activityLog.bicep' = [for subId in union(subscriptionIds, [defaultSubscriptionId]): { // make sure the specified infra subscription is in the scope
+  name:  '${deploymentNamePrefix}-activityLog-${deploymentNameSuffix}'
+  scope: subscription(subId)
+  params: {
+      diagnosticSettingsName: activityLogSettings.diagnosticSettingsName
+      eventHubAuthorizationRuleId: eventHub.outputs.eventhubs.activityLog.eventHubAuthorizationRuleId
+      eventHubName: eventHub.outputs.eventhubs.activityLog.eventHubName
+  }
+}]
+
+module entraDiagnosticSettings 'entraLog.bicep' = if (featureSettings.deployEntraLogDiagnosticSettings) {
+  name: '${deploymentNamePrefix}-entraDiagnosticSettings-${deploymentNameSuffix}'
+  params: {
+    diagnosticSettingsName: entraLogSettings.diagnosticSettingsName
+    eventHubName: eventHub.outputs.eventhubs.entraLog.eventHubName
+    eventHubAuthorizationRuleId: eventHub.outputs.eventhubs.entraLog.eventHubAuthorizationRuleId
+  }
+}
+
+/* Set CrowdStrike Falcon Cloud Security Default Azure Subscription */
+// module setAzureDefaultSubscription 'defaultSubscription.bicep' = {
+//   scope: scope
+//   name: '${deploymentNamePrefix}-defaultSubscription-${deploymentNameSuffix}'
+//   params: {
+//     falconClientId: falconClientId
+//     falconClientSecret: falconClientSecret
+//     falconCloudRegion: falconCloudRegion
+//     tags: tags
+//   }
+// }
+
+/* Deployment outputs required for follow-up activities */
+output eventHubAuthorizationRuleIdForActivityLog string = eventHub.outputs.eventhubs.activityLog.eventHubAuthorizationRuleId
+output eventHubAuthorizationRuleIdForEntraLog string = eventHub.outputs.eventhubs.entraLog.eventHubAuthorizationRuleId
+output activityLogEventHubName string = eventHub.outputs.eventhubs.activityLog.eventHubName
+output entraLogEventHubName string = eventHub.outputs.eventhubs.entraLog.eventHubName
+output activityLogIdentityId string = (featureSettings.deployActivityLogDiagnosticSettings && targetScope == 'ManagementGroup') ? activityLogIdentity.outputs.activityLogIdentityId : ''
+output activityLogIdentityPrincipalId string = (featureSettings.deployActivityLogDiagnosticSettings && targetScope == 'ManagementGroup') ? activityLogIdentity.outputs.activityLogIdentityPrincipalId : ''

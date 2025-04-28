@@ -27,26 +27,6 @@ param managementGroupIds array = []
 @description('List of Azure subscription IDs to monitor')
 param subscriptionIds array = []
 
-@minLength(32)
-@maxLength(32)
-@description('CID for the Falcon API.')
-param falconCID string
-
-@description('Client ID for the Falcon API.')
-param falconClientId string
-
-@description('Client secret for the Falcon API.')
-@secure()
-param falconClientSecret string
-
-@description('Falcon cloud region. Defaults to US-1, allowed values are US-1, US-2 or EU-1.')
-@allowed([
-  'US-1'
-  'US-2'
-  'EU-1'
-])
-param falconCloudRegion string = 'US-1'
-
 @description('Azure subscription ID that will host CrowdStrike infrastructure')
 param crowdstrikeInfraSubscriptionId string
 
@@ -93,13 +73,14 @@ param featureSettings FeatureSettings = {
 
 
 // ===========================================================================
-var distinctSubscriptionIds = union(subscriptionIds, []) // remove duplicated values
+var defaultSubscriptionId = length(crowdstrikeInfraSubscriptionId) > 0 ? crowdstrikeInfraSubscriptionId : (length(subscriptionIds) > 0 ? subscriptionIds[0] : '')
+var distinctSubscriptionIds = union(subscriptionIds, [defaultSubscriptionId]) // remove duplicated values
 var distinctManagementGroupIds = union(managementGroupIds, []) // remove duplicated values
 
-
-module assetInventory 'modules/cs-asset-inventory-mg.bicep' = if (featureSettings.assetInventory.enabled) {
+module assetInventory 'modules/cs-asset-inventory-mg.bicep' = {
   name: '${deploymentNamePrefix}-asset-inventory-mg-deployment-${deploymentNameSuffix}'
   params: {
+    defaultSubscriptionId: defaultSubscriptionId
     managementGroupIds: distinctManagementGroupIds
     subscriptionIds: distinctSubscriptionIds
     azurePrincipalId: azurePrincipalId
@@ -117,7 +98,8 @@ module realTimeVisibilityDetection 'modules/cs-real-time-visibility-detection-mg
       targetScope: targetScope
       managementGroupIds: distinctManagementGroupIds
       subscriptionIds: distinctSubscriptionIds
-      defaultSubscriptionId: crowdstrikeInfraSubscriptionId
+      defaultSubscriptionId: defaultSubscriptionId
+      managementGroupsToSubsctiptions: assetInventory.outputs.managementGroupsToSubsctiptions
       featureSettings: featureSettings.realTimeVisibilityDetection
       deploymentNamePrefix: deploymentNamePrefix
       deploymentNameSuffix: deploymentNameSuffix

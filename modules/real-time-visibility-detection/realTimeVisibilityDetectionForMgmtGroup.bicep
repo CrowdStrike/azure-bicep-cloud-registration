@@ -29,8 +29,8 @@ param deploymentNamePrefix string = 'cs'
 @description('The suffix to be added to the deployment name.')
 param deploymentNameSuffix string = ''
 
-@description('Id of the user-assigned Managed Identity with Reader access to all Azure Subscriptions.')
-param activityLogIdentityId string
+@description('Active subscriptions of management groups.')
+param managedSubscriptions array
 
 @description('Event Hub Authorization Rule Id.')
 param eventHubAuthorizationRuleId string
@@ -56,30 +56,11 @@ param tags object = {
   'stack-managed': 'true'
 }
 
-/* Variables */
-var scope = az.resourceGroup(defaultSubscriptionId, resourceGroup.name)
-
-/* Resource Deployment */
-resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-03-01' existing = {
-  name: featureSettings.resourceGroupName
-  scope: subscription(defaultSubscriptionId)
-}
-
-/* Get all enabled Azure subscriptions in the current Entra Id tenant */
-module deploymentScope '../common/resolveDeploymentScope.bicep' = {
-  name: '${deploymentNamePrefix}-deploymentScope-${managementGroup().name}-${deploymentNameSuffix}'
-  scope: scope
-  params: {
-    scriptRunnerIdentityId: activityLogIdentityId
-    managementGroupId: managementGroup().id
-  }
-}
-
 module activityLogDiagnosticSettings 'activityLogDiagnosticSettings.bicep' = if(featureSettings.deployActivityLogDiagnosticSettings) {
   name: '${deploymentNamePrefix}-activityLog-${managementGroup().name}-${deploymentNameSuffix}'
   scope: subscription(defaultSubscriptionId)
   params: {
-    subscriptionIds: deploymentScope.outputs.activeSubscriptions
+    subscriptionIds: managedSubscriptions
     eventHubAuthorizationRuleId: eventHubAuthorizationRuleId
     eventHubName: eventHubName
   }

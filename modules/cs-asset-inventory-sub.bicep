@@ -14,6 +14,8 @@ param deploymentNamePrefix string = 'cs'
 @description('The suffix to be added to the deployment name.')
 param deploymentNameSuffix string = ''
 
+param defaultSubscriptionId string
+
 param subscriptionIds array
 
 @description('Principal Id of the Application Registration in Entra ID.')
@@ -27,20 +29,30 @@ param location string = deployment().location
 
 @description('Tags to be applied to all resources.')
 param tags object = {
-  'cstag-vendor': 'crowdstrike'
+  CSTagVendor: 'CrowdStrike'
 }
 
 @description('Settings of asset inventory')
 param featureSettings AssetInventorySettings = {
-  enabled: true
   assignAzureSubscriptionPermissions: true
   resourceGroupName: 'cs-iom-group' // DO NOT CHANGE
 }
 
+
+module resourceGroup 'common/resourceGroup.bicep' = {
+  name: '${deploymentNameSuffix}-ai-rg-${location}-${deploymentNameSuffix}'
+  scope: subscription(defaultSubscriptionId)
+  params: {
+    resourceGroupName: '${deploymentNameSuffix}-ai-rg-${location}-${deploymentNameSuffix}'
+    location: location
+    tags: tags
+  }
+}
+
 /* Define required permissions at Azure Subscription scope */
-module customRoleForSubs 'asset-inventory/customRoleForSub.bicep' = if (featureSettings.assignAzureSubscriptionPermissions && length(subscriptionIds) > 0) {
+module customRoleForSubs 'asset-inventory/customRoleForSub.bicep' = if (featureSettings.assignAzureSubscriptionPermissions) {
   name: guid('${deploymentNamePrefix}-assetInventorySubscriptionCustomRole-${deploymentNameSuffix}')
-  scope: subscription(subscriptionIds[0])
+  scope: subscription(defaultSubscriptionId)
   params: {
     subscriptionIds: subscriptionIds
     deploymentNamePrefix: deploymentNamePrefix

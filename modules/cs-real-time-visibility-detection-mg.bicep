@@ -22,6 +22,8 @@ param managementGroupIds array
 
 param subscriptionIds array
 
+param managementGroupsToSubsctiptions array
+
 @minLength(36)
 @maxLength(36)
 @description('Subscription Id of the default Azure Subscription.')
@@ -52,7 +54,6 @@ param tags object = {
 }
 
 
-
 // Deployment for subscriptions
 module deploymentForSubs 'real-time-visibility-detection/realTimeVisibilityDetectionForSub.bicep' = {
   name: '${deploymentNamePrefix}-realTimeVisibilityDetectionForSubs-${deploymentNameSuffix}'
@@ -70,12 +71,12 @@ module deploymentForSubs 'real-time-visibility-detection/realTimeVisibilityDetec
 }
 
 // Deployment for management groups
-module realTimeVisibilityDetectionForMG 'real-time-visibility-detection/realTimeVisibilityDetectionForMgmtGroup.bicep' = [for mgmtGroupId in managementGroupIds: if (featureSettings.enabled && targetScope == 'ManagementGroup') {
+module realTimeVisibilityDetectionForMG 'real-time-visibility-detection/realTimeVisibilityDetectionForMgmtGroup.bicep' = [for (mgmtGroupId, i) in managementGroupIds: if (featureSettings.enabled && targetScope == 'ManagementGroup') {
   name: '${deploymentNamePrefix}-ioa-activityLogDiagnosticSettingsDeployment-${deploymentNameSuffix}'
   scope: managementGroup(mgmtGroupId)
   params: {
     targetScope: targetScope
-    activityLogIdentityId: deploymentForSubs.outputs.activityLogIdentityId
+    managedSubscriptions: managementGroupsToSubsctiptions[i]
     defaultSubscriptionId: defaultSubscriptionId
     eventHubName: deploymentForSubs.outputs.activityLogEventHubName
     eventHubAuthorizationRuleId: deploymentForSubs.outputs.eventHubAuthorizationRuleIdForActivityLog

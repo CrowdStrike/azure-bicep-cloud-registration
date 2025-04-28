@@ -95,17 +95,6 @@ module eventHub 'eventHub.bicep' = {
   }
 }
 
-/* Create user-assigned Managed Identity to be used for getting all Azure Subscriptions */
-module activityLogIdentity 'activityLogIdentity.bicep' = if (featureSettings.deployActivityLogDiagnosticSettings && targetScope == 'ManagementGroup') {
-  name: '${deploymentNamePrefix}-activityLogIdentity-${deploymentNameSuffix}'
-  scope: scope
-  params: {
-    activityLogIdentityName: 'cs-activityLogDeployment-${defaultSubscriptionId}'
-    location: location
-    tags: tags
-  }
-}
-
 /* Deploy Activity Log Diagnostic Settings for current Azure subscription */
 module activityDiagnosticSettings 'activityLog.bicep' = [for subId in union(subscriptionIds, [defaultSubscriptionId]): { // make sure the specified infra subscription is in the scope
   name:  '${deploymentNamePrefix}-activityLog-${deploymentNameSuffix}'
@@ -143,5 +132,3 @@ output eventHubAuthorizationRuleIdForActivityLog string = eventHub.outputs.event
 output eventHubAuthorizationRuleIdForEntraLog string = eventHub.outputs.eventhubs.entraLog.eventHubAuthorizationRuleId
 output activityLogEventHubName string = eventHub.outputs.eventhubs.activityLog.eventHubName
 output entraLogEventHubName string = eventHub.outputs.eventhubs.entraLog.eventHubName
-output activityLogIdentityId string = (featureSettings.deployActivityLogDiagnosticSettings && targetScope == 'ManagementGroup') ? activityLogIdentity.outputs.activityLogIdentityId : ''
-output activityLogIdentityPrincipalId string = (featureSettings.deployActivityLogDiagnosticSettings && targetScope == 'ManagementGroup') ? activityLogIdentity.outputs.activityLogIdentityPrincipalId : ''

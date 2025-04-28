@@ -23,26 +23,6 @@ param targetScope string = 'Subscription'
 @description('List of Azure subscription IDs to monitor')
 param subscriptionIds array = []
 
-@minLength(32)
-@maxLength(32)
-@description('CID for the Falcon API.')
-param falconCID string
-
-@description('Client ID for the Falcon API.')
-param falconClientId string
-
-@description('Client secret for the Falcon API.')
-@secure()
-param falconClientSecret string
-
-@description('Falcon cloud region. Defaults to US-1, allowed values are US-1, US-2 or EU-1.')
-@allowed([
-  'US-1'
-  'US-2'
-  'EU-1'
-])
-param falconCloudRegion string = 'US-1'
-
 @description('Azure subscription ID that will host CrowdStrike infrastructure')
 param crowdstrikeInfraSubscriptionId string
 
@@ -88,11 +68,13 @@ param featureSettings FeatureSettings = {
 
 
 // ===========================================================================
-var distinctSubscriptionIds = union(subscriptionIds, []) // remove duplicated values
+var defaultSubscriptionId = length(crowdstrikeInfraSubscriptionId) > 0 ? crowdstrikeInfraSubscriptionId : (length(subscriptionIds) > 0 ? subscriptionIds[0] : '')
+var distinctSubscriptionIds = union(subscriptionIds, [defaultSubscriptionId]) // remove duplicated values
 
 module assetInventory 'modules/cs-asset-inventory-sub.bicep' = if (featureSettings.assetInventory.enabled) {
   name: '${deploymentNamePrefix}-asset-inventory-deployment-${deploymentNameSuffix}'
   params: {
+    defaultSubscriptionId: defaultSubscriptionId
     subscriptionIds: distinctSubscriptionIds
     azurePrincipalId: azurePrincipalId
     deploymentNamePrefix: deploymentNamePrefix
@@ -108,7 +90,7 @@ module realTimeVisibilityDetection 'modules/cs-real-time-visibility-detection-su
   scope: subscription(crowdstrikeInfraSubscriptionId)
   params: {
     targetScope: targetScope
-    defaultSubscriptionId: crowdstrikeInfraSubscriptionId // DO NOT CHANGE
+    defaultSubscriptionId: defaultSubscriptionId // DO NOT CHANGE
     subscriptionIds: distinctSubscriptionIds
     deploymentNamePrefix: deploymentNamePrefix
     deploymentNameSuffix: deploymentNameSuffix

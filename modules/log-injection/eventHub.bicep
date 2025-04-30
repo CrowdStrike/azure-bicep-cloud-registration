@@ -2,20 +2,21 @@ import {DiagnosticLogSettings} from '../../models/real-time-visibility-detection
 
 param activityLogSettings DiagnosticLogSettings
 param entraLogSettings DiagnosticLogSettings
-param authorizationRuleName string = 'cs-li-evh-monitor-auth-rule'
-param deploymentNamePrefix string = 'cs'
-param deploymentNameSuffix string = ''
-param region string = resourceGroup().location
-param tags object = {}
+param authorizationRuleName string = 'rule-cslievhns-${env}-${region}'
+param prefix string
+param suffix string
+param region string
+param env string
+param tags object
 
 var defaultSettings = {
-  eventHubNamespace: 'cs-li-evhns-${region}' // DO NOT CHANGE - used for registration validation
-  activityLogEventHubName: 'cs-li-evh-monitor-activity-logs'
-  entraLogEventHubName: 'cs-li-evh-monitor-aad-logs'
+  eventHubNamespace: 'evhns-csli-${env}-${region}'
+  activityLogEventHubName: 'evh-csliactivity-${env}-${region}'
+  entraLogEventHubName: 'evh-csliaad-${env}-${region}'
 }
 
 resource eventHubNamespace 'Microsoft.EventHub/namespaces@2024-01-01' = if (!activityLogSettings.useExistingEventHub || !entraLogSettings.useExistingEventHub ) {
-  name: '${deploymentNamePrefix}-${defaultSettings.eventHubNamespace}-${deploymentNameSuffix}'
+  name: '${prefix}${defaultSettings.eventHubNamespace}${suffix}'
   location: region
   tags: tags
   sku: {
@@ -46,7 +47,7 @@ resource existingEntraLogEventHubNamespace 'Microsoft.EventHub/namespaces@2024-0
 }
 
 resource activityLogEventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' = if (!activityLogSettings.useExistingEventHub) {
-  name: '${deploymentNamePrefix}-${defaultSettings.activityLogEventHubName}-${deploymentNameSuffix}'
+  name: '${prefix}${defaultSettings.activityLogEventHubName}${suffix}'
   parent: eventHubNamespace
   properties: {
     partitionCount: 16
@@ -63,7 +64,7 @@ resource existingActivityLogEventHub 'Microsoft.EventHub/namespaces/eventhubs@20
 }
 
 resource entraLogEventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' = if (!entraLogSettings.useExistingEventHub) {
-  name: '${deploymentNamePrefix}-${defaultSettings.entraLogEventHubName}-${deploymentNameSuffix}'
+  name: '${prefix}${defaultSettings.entraLogEventHubName}${suffix}'
   parent: eventHubNamespace
   properties: {
     partitionCount: 16
@@ -80,7 +81,7 @@ resource existingEntraLogEventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-
 }
 
 resource authorizationRule 'Microsoft.EventHub/namespaces/authorizationRules@2024-01-01' = if (!activityLogSettings.useExistingEventHub || !entraLogSettings.useExistingEventHub ) {
-  name: '${deploymentNamePrefix}-${authorizationRuleName}-${deploymentNameSuffix}'
+  name: '${prefix}${authorizationRuleName}${suffix}'
   parent: eventHubNamespace
   properties: {
     rights: [

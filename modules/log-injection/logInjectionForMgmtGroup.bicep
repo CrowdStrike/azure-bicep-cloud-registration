@@ -1,4 +1,7 @@
-import {RealTimeVisibilityDetectionSettings} from '../../models/real-time-visibility-detection.bicep'
+import {
+  RealTimeVisibilityDetectionSettings
+  DiagnosticLogSettings
+} from '../../models/real-time-visibility-detection.bicep'
 
 targetScope = 'managementGroup'
 
@@ -16,13 +19,13 @@ targetScope = 'managementGroup'
   'ManagementGroup'
   'Subscription'
 ])
-param targetScope string = 'ManagementGroup'
+param targetScope string
 
 @description('The prefix to be added to the deployment name.')
-param deploymentNamePrefix string = 'cs'
+param prefix string
 
 @description('The suffix to be added to the deployment name.')
-param deploymentNameSuffix string = ''
+param suffix string
 
 @description('Directly specified active subscriptions  ')
 param individualSubscriptionIds array
@@ -36,38 +39,45 @@ param eventHubAuthorizationRuleId string
 @description('Event Hub Name.')
 param eventHubName string
 
-param featureSettings RealTimeVisibilityDetectionSettings = {
-  enabled: true
-  deployActivityLogDiagnosticSettings: true
-  deployEntraLogDiagnosticSettings: true
-  deployActivityLogDiagnosticSettingsPolicy: true
-  enableAppInsights: false
-}
+param featureSettings RealTimeVisibilityDetectionSettings
 
 @description('Location for the resources deployed in this solution.')
 param region string = deployment().location
 
+param env string
+
 @description('Tags to be applied to all resources.')
-param tags object = {
-  CSTagVendor: 'Crowdstrike'
+param tags object
+
+/* ParameterBag for Activity Logs */
+param activityLogSettings DiagnosticLogSettings = {
+  useExistingEventHub: false
+  eventHubNamespaceName : ''                                // Optional, used only when useExistingEventHub is set to true
+  eventHubName: ''        // Optional, used only when useExistingEventHub is set to true
+  eventHubResourceGroupName: ''                             // Optional, used only when useExistingEventHub is set to true
+  eventHubSubscriptionId: ''                                // Optional, used only when useExistingEventHub is set to true
+  eventHubAuthorizationRuleId: ''                           // Optional, used only when useExistingEventHub is set to true
+  diagnosticSettingsName: 'diag-csliactivity-${env}'               // DO NOT CHANGE - used for registration validation
 }
 
 module activityLogDiagnosticSettings 'activityLog.bicep' = [for subId in managedSubscriptions: if(featureSettings.deployActivityLogDiagnosticSettings && indexOf(individualSubscriptionIds, subId) < 0) {
-  name: '${deploymentNamePrefix}-cs-li-monitor-activity-diag-${subId}-${deploymentNameSuffix}'
+  name: '${prefix}cs-li-activity-diag-${subId}${suffix}'
   scope: subscription(subId)
   params: {
     eventHubAuthorizationRuleId: eventHubAuthorizationRuleId
     eventHubName: eventHubName
+    diagnosticSettingsName: '${prefix}${activityLogSettings.diagnosticSettingsName}${suffix}'
   }
 }]
 
 module activityLogDiagnosticSettingsPolicyAssignment 'activityLogPolicy.bicep' = if (featureSettings.deployActivityLogDiagnosticSettingsPolicy) {
-  name: '${deploymentNamePrefix}-cs-li-policy-${region}-${deploymentNameSuffix}'
+  name: '${prefix}cs-li-policy-${region}${suffix}'
   params: {
     eventHubName: eventHubName
     eventHubAuthorizationRuleId: eventHubAuthorizationRuleId
-    deploymentNamePrefix: deploymentNamePrefix
-    deploymentNameSuffix: deploymentNameSuffix
+    prefix: prefix
+    suffix: suffix
     region: region
+    env: env
   }
 }

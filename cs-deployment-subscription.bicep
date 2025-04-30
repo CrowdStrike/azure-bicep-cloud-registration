@@ -44,6 +44,9 @@ param falconUrl string = 'api.crowdstrike.com'
 @description('Principal Id of the Crowdstrike Application in Entra ID')
 param azurePrincipalId string
 
+@description('Principal type of the specified principal Id')
+param azurePrincipalType string = 'ServicePrincipal'
+
 @description('Type of the Azure account to integrate.')
 @allowed([
   'commercial'
@@ -53,13 +56,15 @@ param azureAccountType string = 'commercial'
 @description('Location for the resources deployed in this solution.')
 param region string = deployment().location
 
+param env string = 'prod'
+
 @description('Tags to be applied to all resources.')
 param tags object = {
   CSTagVendor: 'crowdstrike'
 }
 
 @description('The prefix to be added to the deployment name.')
-param deploymentNamePrefix string = 'cs'
+param deploymentNamePrefix string = ''
 
 @description('The suffix to be added to the deployment name.')
 param deploymentNameSuffix string = ''
@@ -78,35 +83,40 @@ param featureSettings FeatureSettings = {
 // ===========================================================================
 var crowdstrikeInfraSubscriptionId = length(defaultSubscriptionId) > 0 ? defaultSubscriptionId : (length(subscriptionIds) > 0 ? subscriptionIds[0] : '')
 var distinctSubscriptionIds = union(subscriptionIds, [defaultSubscriptionId]) // remove duplicated values
+var prefix = length(deploymentNamePrefix) > 0 ? '${deploymentNamePrefix}-' : ''
+var suffix = length(deploymentNameSuffix) > 0 ? '-${deploymentNameSuffix}' : ''
 
 /* Resources used across modules
 1. Role assignments to the Crowdstrike's app service principal
 */
 module global 'modules/cs-global-sub.bicep' = {
-  name: '${deploymentNamePrefix}-cs-sub-deployment-${deploymentNameSuffix}'
+  name: '${prefix}cs-sub-deployment${deploymentNameSuffix}'
   params: {
     defaultSubscriptionId: crowdstrikeInfraSubscriptionId
     subscriptionIds: distinctSubscriptionIds
     azurePrincipalId: azurePrincipalId
-    deploymentNamePrefix: deploymentNamePrefix
-    deploymentNameSuffix: deploymentNameSuffix
+    azurePrincipalType: azurePrincipalType
+    prefix: prefix
+    suffix: suffix
     region: region
+    env: env
     tags: tags
   }
 }
 
 
 module realTimeVisibilityDetection 'modules/cs-log-injection-sub.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled) {
-  name: '${deploymentNamePrefix}-cs-li-sub-deployment-${deploymentNameSuffix}'
+  name: '${prefix}cs-li-sub-deployment${suffix}'
   scope: subscription(crowdstrikeInfraSubscriptionId)
   params: {
     targetScope: targetScope
     defaultSubscriptionId: crowdstrikeInfraSubscriptionId // DO NOT CHANGE
     subscriptionIds: distinctSubscriptionIds
-    deploymentNamePrefix: deploymentNamePrefix
-    deploymentNameSuffix: deploymentNameSuffix
+    prefix: prefix
+    suffix: suffix
     featureSettings: featureSettings.realTimeVisibilityDetection
     region: region
+    env: env
     tags: tags
   }
   dependsOn: [

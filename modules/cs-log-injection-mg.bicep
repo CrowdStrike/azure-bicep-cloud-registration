@@ -16,7 +16,7 @@ targetScope = 'managementGroup'
   'ManagementGroup'
   'Subscription'
 ])
-param targetScope string = 'ManagementGroup'
+param targetScope string
 
 param managementGroupIds array
 
@@ -30,47 +30,42 @@ param managementGroupsToSubsctiptions array
 param defaultSubscriptionId string
 
 @description('The prefix to be added to the deployment name.')
-param deploymentNamePrefix string = 'cs'
+param prefix string
 
 @description('The suffix to be added to the deployment name.')
-param deploymentNameSuffix string = ''
+param suffix string
 
-param featureSettings RealTimeVisibilityDetectionSettings = {
-  enabled: true
-  deployActivityLogDiagnosticSettings: true
-  deployEntraLogDiagnosticSettings: true
-  deployActivityLogDiagnosticSettingsPolicy: true
-  enableAppInsights: false
-}
+param featureSettings RealTimeVisibilityDetectionSettings
 
 @description('Location for the resources deployed in this solution.')
-param region string = deployment().location
+param region string
+
+param env string
 
 @description('Tags to be applied to all resources.')
-param tags object = {
-  CSTagVendor: 'Crowdstrike'
-}
+param tags object
 
 
 // Deployment for subscriptions
 module deploymentForSubs 'log-injection/logInjectionForSub.bicep' = {
-  name: '${deploymentNamePrefix}-cs-li-sub-${deploymentNameSuffix}'
+  name: '${prefix}cs-li-sub${suffix}'
   scope: subscription(defaultSubscriptionId)
   params: {
     targetScope: targetScope
     defaultSubscriptionId: defaultSubscriptionId // DO NOT CHANGE
     subscriptionIds: subscriptionIds
-    deploymentNamePrefix: deploymentNamePrefix
-    deploymentNameSuffix: deploymentNameSuffix
+    prefix: prefix
+    suffix: suffix
     featureSettings: featureSettings
     region: region
+    env: env
     tags: tags
   }
 }
 
 // Deployment for management groups
 module realTimeVisibilityDetectionForMG 'log-injection/logInjectionForMgmtGroup.bicep' = [for (mgmtGroupId, i) in managementGroupIds: if (featureSettings.enabled && targetScope == 'ManagementGroup') {
-  name: '${deploymentNamePrefix}-cs-li-mg-${mgmtGroupId}-${deploymentNameSuffix}'
+  name: '${prefix}cs-li-mg-${mgmtGroupId}${suffix}'
   scope: managementGroup(mgmtGroupId)
   params: {
     targetScope: targetScope
@@ -79,9 +74,10 @@ module realTimeVisibilityDetectionForMG 'log-injection/logInjectionForMgmtGroup.
     eventHubName: deploymentForSubs.outputs.activityLogEventHubName
     eventHubAuthorizationRuleId: deploymentForSubs.outputs.eventHubAuthorizationRuleIdForActivityLog
     featureSettings: featureSettings
-    deploymentNamePrefix: deploymentNamePrefix
-    deploymentNameSuffix: deploymentNameSuffix
+    prefix: prefix
+    suffix: suffix
     region: region
+    env: env
     tags: tags
   }
 }]

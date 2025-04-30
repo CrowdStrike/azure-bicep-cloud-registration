@@ -10,13 +10,15 @@ targetScope = 'managementGroup'
 
 /* Parameters */
 @description('The location for the resources deployed in this solution.')
-param region string = deployment().location
+param region string
+
+param env string
 
 @description('Event Hub Authorization Rule Id.')
 param eventHubAuthorizationRuleId string
 
 @description('Event Hub Name.')
-param eventHubName string = 'cs-eventhub-monitor-activity-logs'
+param eventHubName string
 
 param csIOAPolicySettings object = {
   name: 'Activity Logs must be sent to CrowdStrike for IOA assessment'
@@ -25,9 +27,9 @@ param csIOAPolicySettings object = {
   identity: true
 }
 
-param deploymentNamePrefix string = 'cs'
+param prefix string
 
-param deploymentNameSuffix string = ''
+param suffix string
 
 /* Variables */
 var roleDefinitionIds = [
@@ -51,7 +53,7 @@ resource csIOAPolicyDefinition 'Microsoft.Authorization/policyDefinitions@2023-0
 }
 
 resource csIOAPolicyAssignment 'Microsoft.Authorization/policyAssignments@2024-04-01' = {
-  name: 'cs-li-pas-${region}'
+  name: 'pas-csli-${env}-${region}'
   location: region
   identity: {
     type: 'SystemAssigned'

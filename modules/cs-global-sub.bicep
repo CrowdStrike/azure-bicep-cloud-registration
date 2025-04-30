@@ -7,34 +7,34 @@ targetScope='subscription'
 */
 
 @description('The prefix to be added to the deployment name.')
-param deploymentNamePrefix string = 'cs'
+param prefix string
 
 @description('The suffix to be added to the deployment name.')
-param deploymentNameSuffix string = ''
+param suffix string
 
 param defaultSubscriptionId string
 
 param subscriptionIds array
 
 @description('Principal Id of the Crowdstrike Application in Entra ID')
-param azurePrincipalId string = ''
+param azurePrincipalId string
 
-@description('Type of the Principal, defaults to ServicePrincipal.')
-param azurePrincipalType string = 'ServicePrincipal'
+@description('Type of the Principal')
+param azurePrincipalType string
 
 @description('Location for the resources deployed in this solution.')
-param region string = deployment().location
+param region string
+
+param env string
 
 @description('Tags to be applied to all resources.')
-param tags object = {
-  CSTagVendor: 'CrowdStrike'
-}
+param tags object
 
 module resourceGroup 'common/resourceGroup.bicep' = {
-  name: '${deploymentNamePrefix}-cs-rg-${region}-${deploymentNameSuffix}'
+  name: '${prefix}cs-rg-${env}${suffix}'
   scope: subscription(defaultSubscriptionId)
   params: {
-    resourceGroupName: '${deploymentNamePrefix}-cs-rg-${region}-${deploymentNameSuffix}'
+    resourceGroupName: '${prefix}rg-cs-${env}${suffix}'
     region: region
     tags: tags
   }
@@ -42,24 +42,24 @@ module resourceGroup 'common/resourceGroup.bicep' = {
 
 /* Define required permissions at Azure Subscription scope */
 module customRoleForSubs 'global/customRoleForSub.bicep' = {
-  name: guid('${deploymentNamePrefix}-cs-webiste-reader-role-sub-${deploymentNameSuffix}')
+  name: guid('${prefix}cs-webiste-reader-role-sub${suffix}')
   scope: subscription(defaultSubscriptionId)
   params: {
     subscriptionIds: subscriptionIds
-    deploymentNamePrefix: deploymentNamePrefix
-    deploymentNameSuffix: deploymentNameSuffix
+    prefix: prefix
+    suffix: suffix
   }
 }
 
 module roleAssignmentToSubs 'global/roleAssignmentToSub.bicep' =[for subId in subscriptionIds: {
-  name: guid('${deploymentNamePrefix}-cs-role-assignment-sub-${subId}-${deploymentNameSuffix}')
+  name: guid('${prefix}cs-role-assignment-sub-${subId}${suffix}')
   scope: subscription(subId)
   params: {
     azurePrincipalId: azurePrincipalId
     azurePrincipalType: azurePrincipalType
     customRoleDefinitionId: customRoleForSubs.outputs.id
-    deploymentNamePrefix: deploymentNamePrefix
-    deploymentNameSuffix: deploymentNameSuffix
+    prefix: prefix
+    suffix: suffix
   }
 }]
 

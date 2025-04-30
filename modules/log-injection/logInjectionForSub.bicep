@@ -21,18 +21,18 @@ targetScope = 'subscription'
 param targetScope string
 
 @description('The location for the resources deployed in this solution.')
-param region string = deployment().location
+param region string
+
+param env string
 
 @description('The prefix to be added to the deployment name.')
-param deploymentNamePrefix string = 'cs-ioa'
+param prefix string
 
 @description('The suffix to be added to the deployment name.')
-param deploymentNameSuffix string = ''
+param suffix string
 
 @description('Tags to be applied to all resources.')
-param tags object = {
-  CSTagVendor: 'Crowdstrike'
-}
+param tags object
 
 param featureSettings RealTimeVisibilityDetectionSettings = {
   enabled: true
@@ -48,32 +48,33 @@ param defaultSubscriptionId string // DO NOT CHANGE - used for registration vali
 
 param subscriptionIds array
 
+
 /* ParameterBag for Activity Logs */
 param activityLogSettings DiagnosticLogSettings = {
   useExistingEventHub: false
   eventHubNamespaceName : ''                                // Optional, used only when useExistingEventHub is set to true
-  eventHubName: 'cs-eventhub-monitor-activity-logs'         // Optional, used only when useExistingEventHub is set to true
+  eventHubName: ''        // Optional, used only when useExistingEventHub is set to true
   eventHubResourceGroupName: ''                             // Optional, used only when useExistingEventHub is set to true
   eventHubSubscriptionId: ''                                // Optional, used only when useExistingEventHub is set to true
   eventHubAuthorizationRuleId: ''                           // Optional, used only when useExistingEventHub is set to true
-  diagnosticSettingsName: 'cs-monitor-activity-to-eventhub' // DO NOT CHANGE - used for registration validation
+  diagnosticSettingsName: 'diag-csliactivity-${env}'               // DO NOT CHANGE - used for registration validation
 }
 
 /* ParameterBag for EntraId Logs */
 param entraLogSettings DiagnosticLogSettings = {
   useExistingEventHub: false
-  eventHubNamespaceName : ''                   // Optional, used only when useExistingEventHub is set to true
-  eventHubName: 'cs-eventhub-monitor-aad-logs' // Optional, used only when useExistingEventHub is set to true
-  eventHubResourceGroupName: ''                // Optional, used only when useExistingEventHub is set to true
-  eventHubSubscriptionId: ''                   // Optional, used only when useExistingEventHub is set to true
-  eventHubAuthorizationRuleId: ''              // Optional, used only when useExistingEventHub is set to true
-  diagnosticSettingsName: 'cs-aad-to-eventhub' // DO NOT CHANGE - used for registration validation
+  eventHubNamespaceName : ''                    // Optional, used only when useExistingEventHub is set to true
+  eventHubName: '' // Optional, used only when useExistingEventHub is set to true
+  eventHubResourceGroupName: ''                 // Optional, used only when useExistingEventHub is set to true
+  eventHubSubscriptionId: ''                    // Optional, used only when useExistingEventHub is set to true
+  eventHubAuthorizationRuleId: ''               // Optional, used only when useExistingEventHub is set to true
+  diagnosticSettingsName: 'diag-csliaad-${env}'        // DO NOT CHANGE - used for registration validation
 }
 
 
 
 /* Variables */
-var resourceGroupName = '${deploymentNamePrefix}-cs-li-rg-${region}-${deploymentNameSuffix}'
+var resourceGroupName = '${prefix}rg-csli-${env}${suffix}'
 var scope = az.resourceGroup(resourceGroupName)
 
 /* Resource Deployment */
@@ -85,15 +86,16 @@ resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-03-01' = {
 
 // Create EventHub Namespace and Eventhubs used by CrowdStrike
 module eventHub 'eventHub.bicep' = {
-  name: '${deploymentNamePrefix}-cs-li-eventhub-${region}-${deploymentNameSuffix}'
+  name: '${prefix}cs-li-eventhub${region}${suffix}'
   scope: scope
   params: {
     activityLogSettings: activityLogSettings
     entraLogSettings: entraLogSettings
-    deploymentNamePrefix: deploymentNamePrefix
-    deploymentNameSuffix: deploymentNameSuffix
+    prefix: prefix
+    suffix: suffix
     tags: tags
     region: region
+    env: env
   }
   dependsOn: [
     resourceGroup
@@ -102,10 +104,10 @@ module eventHub 'eventHub.bicep' = {
 
 /* Deploy Activity Log Diagnostic Settings for current Azure subscription */
 module activityDiagnosticSettings 'activityLog.bicep' = [for subId in union(subscriptionIds, [defaultSubscriptionId]): { // make sure the specified infra subscription is in the scope
-  name:  '${deploymentNamePrefix}-cs-li-monitor-activity-diag-${deploymentNameSuffix}'
+  name:  '${prefix}cs-li-activity-diag${suffix}'
   scope: subscription(subId)
   params: {
-      diagnosticSettingsName: activityLogSettings.diagnosticSettingsName
+      diagnosticSettingsName: '${prefix}${activityLogSettings.diagnosticSettingsName}${suffix}'
       eventHubAuthorizationRuleId: eventHub.outputs.eventhubs.activityLog.eventHubAuthorizationRuleId
       eventHubName: eventHub.outputs.eventhubs.activityLog.eventHubName
   }
@@ -115,9 +117,9 @@ module activityDiagnosticSettings 'activityLog.bicep' = [for subId in union(subs
 }]
 
 module entraDiagnosticSettings 'entraLog.bicep' = if (featureSettings.deployEntraLogDiagnosticSettings) {
-  name: '${deploymentNamePrefix}-cs-li-monitor-aad-diag-${deploymentNameSuffix}'
+  name: '${prefix}cs-li-aad-diag${suffix}'
   params: {
-    diagnosticSettingsName: entraLogSettings.diagnosticSettingsName
+    diagnosticSettingsName: '${prefix}${entraLogSettings.diagnosticSettingsName}${suffix}'
     eventHubName: eventHub.outputs.eventhubs.entraLog.eventHubName
     eventHubAuthorizationRuleId: eventHub.outputs.eventhubs.entraLog.eventHubAuthorizationRuleId
   }

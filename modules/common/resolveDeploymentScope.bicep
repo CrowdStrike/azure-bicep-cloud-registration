@@ -5,13 +5,15 @@ param managementGroupId string
 
 param region string = resourceGroup().location
 
+param env string = 'prod'
+
 @description('Tags to be applied to all resources.')
 param tags object = {
   CSTagVendor: 'Crowdstrike'
 }
 
 resource resolveManagementGroupToSubscription 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
-  name: guid('resolveManagementGroupToSubscription', managementGroupId, resourceGroup().id)
+  name: guid('resolveManagementGroupToSubscription', managementGroupId, resourceGroup().id, env)
   location: region
   kind: 'AzurePowerShell'
   tags: tags

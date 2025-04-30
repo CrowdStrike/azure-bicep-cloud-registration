@@ -6,10 +6,10 @@ targetScope='subscription'
 */
 
 @description('The prefix to be added to the deployment name.')
-param deploymentNamePrefix string = 'cs'
+param prefix string
 
 @description('The suffix to be added to the deployment name.')
-param deploymentNameSuffix string = ''
+param suffix string
 
 param subscriptionIds array
 
@@ -37,7 +37,7 @@ resource customRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-0
         notActions: []
       }
     ]
-    roleName: '${deploymentNamePrefix}-${customRole.roleName}-sub-${deploymentNameSuffix}'
+    roleName: '${prefix}${customRole.roleName}-sub${suffix}'
     type: 'CustomRole'
   }
 }

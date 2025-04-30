@@ -1,10 +1,10 @@
 targetScope='subscription'
 
 @description('The prefix to be added to the deployment name.')
-param deploymentNamePrefix string = 'cs'
+param prefix string
 
 @description('The suffix to be added to the deployment name.')
-param deploymentNameSuffix string = ''
+param suffix string
 
 param customRoleDefinitionId string
 
@@ -12,7 +12,7 @@ param customRoleDefinitionId string
 param azurePrincipalId string
 
 @description('Type of the Principal, defaults to ServicePrincipal.')
-param azurePrincipalType string = 'ServicePrincipal'
+param azurePrincipalType string
 
 var defaultRoleIds = [
   'acdd72a7-3385-48ef-bd42-f606fba81ae7' // Reader

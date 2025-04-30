@@ -10,7 +10,7 @@ param customRoleDefinitionId string
 
 param scriptRunnerIdentityId string
 
-@description('Principal Id of the Application Registration in Entra ID.')
+@description('Principal Id of the Crowdstrike Application in Entra ID')
 param azurePrincipalId string
 
 @description('Type of the Principal, defaults to ServicePrincipal.')

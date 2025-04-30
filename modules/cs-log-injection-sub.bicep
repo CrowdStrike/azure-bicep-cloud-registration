@@ -21,7 +21,7 @@ targetScope = 'subscription'
 param targetScope string
 
 @description('The location for the resources deployed in this solution.')
-param location string = deployment().location
+param region string = deployment().location
 
 @description('The prefix to be added to the deployment name.')
 param deploymentNamePrefix string = 'cs-ioa'
@@ -31,7 +31,7 @@ param deploymentNameSuffix string = ''
 
 @description('Tags to be applied to all resources.')
 param tags object = {
-  'cstag-vendor': 'crowdstrike'
+  CSTagVendor: 'Crowdstrike'
 }
 
 param featureSettings RealTimeVisibilityDetectionSettings = {
@@ -40,7 +40,6 @@ param featureSettings RealTimeVisibilityDetectionSettings = {
   deployEntraLogDiagnosticSettings: true 
   deployActivityLogDiagnosticSettingsPolicy: true
   enableAppInsights: false
-  resourceGroupName: 'cs-ioa-group' // DO NOT CHANGE - used for registration validation
 }
 
 @minLength(36)
@@ -49,7 +48,7 @@ param defaultSubscriptionId string // DO NOT CHANGE - used for registration vali
 
 param subscriptionIds array
 
-module deploymentForSubs 'real-time-visibility-detection/realTimeVisibilityDetectionForSub.bicep' = {
+module deploymentForSubs 'log-injection/logInjectionForSub.bicep' = {
   name: '${deploymentNamePrefix}-realTimeVisibilityDetectionForSubs-${deploymentNameSuffix}'
   params: {
     targetScope: targetScope
@@ -58,7 +57,7 @@ module deploymentForSubs 'real-time-visibility-detection/realTimeVisibilityDetec
     deploymentNamePrefix: deploymentNamePrefix
     deploymentNameSuffix: deploymentNameSuffix
     featureSettings: featureSettings
-    location: location
+    region: region
     tags: tags
   }
 }

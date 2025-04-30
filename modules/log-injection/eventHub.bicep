@@ -1,21 +1,22 @@
 import {DiagnosticLogSettings} from '../../models/real-time-visibility-detection.bicep'
 
-param defaultSubscriptionId string
 param activityLogSettings DiagnosticLogSettings
 param entraLogSettings DiagnosticLogSettings
-param authorizationRuleName string = 'cs-eventhub-monitor-auth-rule'
-param location string = resourceGroup().location
+param authorizationRuleName string = 'cs-li-evh-monitor-auth-rule'
+param deploymentNamePrefix string = 'cs'
+param deploymentNameSuffix string = ''
+param region string = resourceGroup().location
 param tags object = {}
 
 var defaultSettings = {
-  eventHubNamespace: 'cs-horizon-ns-${defaultSubscriptionId}' // DO NOT CHANGE - used for registration validation
-  activityLogEventHubName: 'cs-eventhub-monitor-activity-logs'
-  entraLogEventHubName: 'cs-eventhub-monitor-aad-logs'
+  eventHubNamespace: 'cs-li-evhns-${region}' // DO NOT CHANGE - used for registration validation
+  activityLogEventHubName: 'cs-li-evh-monitor-activity-logs'
+  entraLogEventHubName: 'cs-li-evh-monitor-aad-logs'
 }
 
 resource eventHubNamespace 'Microsoft.EventHub/namespaces@2024-01-01' = if (!activityLogSettings.useExistingEventHub || !entraLogSettings.useExistingEventHub ) {
-  name: defaultSettings.eventHubNamespace
-  location: location
+  name: '${deploymentNamePrefix}-${defaultSettings.eventHubNamespace}-${deploymentNameSuffix}'
+  location: region
   tags: tags
   sku: {
     capacity: 2
@@ -44,19 +45,8 @@ resource existingEntraLogEventHubNamespace 'Microsoft.EventHub/namespaces@2024-0
   scope: resourceGroup(entraLogSettings.eventHubSubscriptionId, entraLogSettings.eventHubResourceGroupName)
 }
 
-// resource eventHubNamespaceNetworkRuleSet 'Microsoft.EventHub/namespaces/networkRuleSets@2024-01-01' = if (!activityLogSettings.useExistingEventHub || !entraLogSettings.useExistingEventHub ) {
-//   name: 'default'
-//   parent: eventHubNamespace
-//   properties: {
-//     defaultAction: 'Deny'
-//     ipRules: []
-//     publicNetworkAccess: 'Enabled'
-//     trustedServiceAccessEnabled: true
-//   }
-// }
-
 resource activityLogEventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' = if (!activityLogSettings.useExistingEventHub) {
-  name: defaultSettings.activityLogEventHubName
+  name: '${deploymentNamePrefix}-${defaultSettings.activityLogEventHubName}-${deploymentNameSuffix}'
   parent: eventHubNamespace
   properties: {
     partitionCount: 16
@@ -73,7 +63,7 @@ resource existingActivityLogEventHub 'Microsoft.EventHub/namespaces/eventhubs@20
 }
 
 resource entraLogEventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' = if (!entraLogSettings.useExistingEventHub) {
-  name: defaultSettings.entraLogEventHubName
+  name: '${deploymentNamePrefix}-${defaultSettings.entraLogEventHubName}-${deploymentNameSuffix}'
   parent: eventHubNamespace
   properties: {
     partitionCount: 16
@@ -90,7 +80,7 @@ resource existingEntraLogEventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-
 }
 
 resource authorizationRule 'Microsoft.EventHub/namespaces/authorizationRules@2024-01-01' = if (!activityLogSettings.useExistingEventHub || !entraLogSettings.useExistingEventHub ) {
-  name: authorizationRuleName
+  name: '${deploymentNamePrefix}-${authorizationRuleName}-${deploymentNameSuffix}'
   parent: eventHubNamespace
   properties: {
     rights: [

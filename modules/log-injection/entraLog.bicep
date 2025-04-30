@@ -11,10 +11,10 @@ targetScope = 'subscription'
 param eventHubAuthorizationRuleId string
 
 @description('Event Hub Name.')
-param eventHubName string = 'cs-eventhub-monitor-aad-logs'
+param eventHubName string
 
 @description('Entra ID Diagnostic Settings Name.')
-param diagnosticSettingsName string = 'cs-aad-to-eventhub'
+param diagnosticSettingsName string = 'cs-li-aad-to-eventhub'
 
 /* 
   Deploy Diagnostic Settings for Microsoft Entra ID Logs

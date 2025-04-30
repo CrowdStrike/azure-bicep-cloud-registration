@@ -41,22 +41,20 @@ param featureSettings RealTimeVisibilityDetectionSettings = {
   deployEntraLogDiagnosticSettings: true
   deployActivityLogDiagnosticSettingsPolicy: true
   enableAppInsights: false
-  resourceGroupName: 'ca-ioa-group' // DO NOT CHANGE
 }
 
 @description('Location for the resources deployed in this solution.')
-param location string = deployment().location
+param region string = deployment().location
 
 @description('Tags to be applied to all resources.')
 param tags object = {
-  'cstag-vendor': 'crowdstrike'
-  'stack-managed': 'true'
+  CSTagVendor: 'Crowdstrike'
 }
 
 
 // Deployment for subscriptions
-module deploymentForSubs 'real-time-visibility-detection/realTimeVisibilityDetectionForSub.bicep' = {
-  name: '${deploymentNamePrefix}-realTimeVisibilityDetectionForSubs-${deploymentNameSuffix}'
+module deploymentForSubs 'log-injection/logInjectionForSub.bicep' = {
+  name: '${deploymentNamePrefix}-cs-li-sub-${deploymentNameSuffix}'
   scope: subscription(defaultSubscriptionId)
   params: {
     targetScope: targetScope
@@ -65,23 +63,25 @@ module deploymentForSubs 'real-time-visibility-detection/realTimeVisibilityDetec
     deploymentNamePrefix: deploymentNamePrefix
     deploymentNameSuffix: deploymentNameSuffix
     featureSettings: featureSettings
-    location: location
+    region: region
     tags: tags
   }
 }
 
 // Deployment for management groups
-module realTimeVisibilityDetectionForMG 'real-time-visibility-detection/realTimeVisibilityDetectionForMgmtGroup.bicep' = [for (mgmtGroupId, i) in managementGroupIds: if (featureSettings.enabled && targetScope == 'ManagementGroup') {
-  name: '${deploymentNamePrefix}-ioa-activityLogDiagnosticSettingsDeployment-${deploymentNameSuffix}'
+module realTimeVisibilityDetectionForMG 'log-injection/logInjectionForMgmtGroup.bicep' = [for (mgmtGroupId, i) in managementGroupIds: if (featureSettings.enabled && targetScope == 'ManagementGroup') {
+  name: '${deploymentNamePrefix}-cs-li-mg-${mgmtGroupId}-${deploymentNameSuffix}'
   scope: managementGroup(mgmtGroupId)
   params: {
     targetScope: targetScope
     managedSubscriptions: managementGroupsToSubsctiptions[i]
-    defaultSubscriptionId: defaultSubscriptionId
+    individualSubscriptionIds: subscriptionIds
     eventHubName: deploymentForSubs.outputs.activityLogEventHubName
     eventHubAuthorizationRuleId: deploymentForSubs.outputs.eventHubAuthorizationRuleIdForActivityLog
     featureSettings: featureSettings
-    location: location
+    deploymentNamePrefix: deploymentNamePrefix
+    deploymentNameSuffix: deploymentNameSuffix
+    region: region
     tags: tags
   }
 }]

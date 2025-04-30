@@ -14,7 +14,7 @@ param eventHubAuthorizationRuleId string
 param eventHubName string
 
 @description('Entra ID Diagnostic Settings Name.')
-param diagnosticSettingsName string = 'cs-monitor-activity-to-eventhub'
+param diagnosticSettingsName string = 'cs-li-monitor-activity-to-eventhub'
 
 /*
   Deploy Diagnostic Settings for Azure Activity Logs - current Azure subscription

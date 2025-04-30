@@ -11,7 +11,7 @@ param eventHubName string
 
 module activityDiagnosticSettings 'activityLog.bicep' = [
   for subscriptionId in subscriptionIds: {
-    name: 'cs-ioa-activityLogDiagnosticSettings'
+    name: 'cs-li-activityLogDiagnosticSettings'
     scope: subscription(subscriptionId)
     params: {
       eventHubAuthorizationRuleId: eventHubAuthorizationRuleId

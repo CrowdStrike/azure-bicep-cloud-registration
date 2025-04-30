@@ -1,5 +1,3 @@
-import {AssetInventorySettings} from '../models/asset-inventory.bicep'
-
 targetScope='subscription'
 
 /*
@@ -18,40 +16,33 @@ param defaultSubscriptionId string
 
 param subscriptionIds array
 
-@description('Principal Id of the Application Registration in Entra ID.')
+@description('Principal Id of the Crowdstrike Application in Entra ID')
 param azurePrincipalId string = ''
 
 @description('Type of the Principal, defaults to ServicePrincipal.')
 param azurePrincipalType string = 'ServicePrincipal'
 
 @description('Location for the resources deployed in this solution.')
-param location string = deployment().location
+param region string = deployment().location
 
 @description('Tags to be applied to all resources.')
 param tags object = {
   CSTagVendor: 'CrowdStrike'
 }
 
-@description('Settings of asset inventory')
-param featureSettings AssetInventorySettings = {
-  assignAzureSubscriptionPermissions: true
-  resourceGroupName: 'cs-iom-group' // DO NOT CHANGE
-}
-
-
 module resourceGroup 'common/resourceGroup.bicep' = {
-  name: '${deploymentNameSuffix}-ai-rg-${location}-${deploymentNameSuffix}'
+  name: '${deploymentNameSuffix}-cs-rg-${region}-${deploymentNameSuffix}'
   scope: subscription(defaultSubscriptionId)
   params: {
-    resourceGroupName: '${deploymentNameSuffix}-ai-rg-${location}-${deploymentNameSuffix}'
-    location: location
+    resourceGroupName: '${deploymentNameSuffix}-cs-rg-${region}-${deploymentNameSuffix}'
+    region: region
     tags: tags
   }
 }
 
 /* Define required permissions at Azure Subscription scope */
-module customRoleForSubs 'asset-inventory/customRoleForSub.bicep' = if (featureSettings.assignAzureSubscriptionPermissions) {
-  name: guid('${deploymentNamePrefix}-assetInventorySubscriptionCustomRole-${deploymentNameSuffix}')
+module customRoleForSubs 'global/customRoleForSub.bicep' = {
+  name: guid('${deploymentNamePrefix}-cs-webiste-reader-role-sub-${deploymentNameSuffix}')
   scope: subscription(defaultSubscriptionId)
   params: {
     subscriptionIds: subscriptionIds
@@ -60,8 +51,8 @@ module customRoleForSubs 'asset-inventory/customRoleForSub.bicep' = if (featureS
   }
 }
 
-module roleAssignmentToSubs 'asset-inventory/roleAssignmentToSub.bicep' =[for subId in subscriptionIds: if (featureSettings.assignAzureSubscriptionPermissions) {
-  name: guid('${deploymentNamePrefix}-assetInventorySubscriptionRoleAssignment-${subId}-${deploymentNameSuffix}')
+module roleAssignmentToSubs 'global/roleAssignmentToSub.bicep' =[for subId in subscriptionIds: {
+  name: guid('${deploymentNamePrefix}-cs-role-assignment-sub-${subId}-${deploymentNameSuffix}')
   scope: subscription(subId)
   params: {
     azurePrincipalId: azurePrincipalId

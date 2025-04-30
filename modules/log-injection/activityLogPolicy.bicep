@@ -10,7 +10,7 @@ targetScope = 'managementGroup'
 
 /* Parameters */
 @description('The location for the resources deployed in this solution.')
-param location string = deployment().location
+param region string = deployment().location
 
 @description('Event Hub Authorization Rule Id.')
 param eventHubAuthorizationRuleId string
@@ -25,14 +25,16 @@ param csIOAPolicySettings object = {
   identity: true
 }
 
+param deploymentNamePrefix string = 'cs'
+
+param deploymentNameSuffix string = ''
+
 /* Variables */
 var roleDefinitionIds = [
   '749f88d5-cbae-40b8-bcfc-e573ddc772fa' // Monitoring Contributor
   '2a5c394f-5eb7-4d4f-9c8e-e8eae39faebc' // Lab Services Reader
   'f526a384-b230-433a-b45c-95f59c4a2dec' // Azure Event Hubs Data Owner
 ]
-
-var csIOAPolicyAssignmentName = 'cs-ioa-assignment'
 
 /* Resources */
 resource csIOAPolicyDefinition 'Microsoft.Authorization/policyDefinitions@2023-04-01' = {
@@ -49,8 +51,8 @@ resource csIOAPolicyDefinition 'Microsoft.Authorization/policyDefinitions@2023-0
 }
 
 resource csIOAPolicyAssignment 'Microsoft.Authorization/policyAssignments@2024-04-01' = {
-  name: csIOAPolicyAssignmentName
-  location: location
+  name: 'cs-li-pas-${region}'
+  location: region
   identity: {
     type: 'SystemAssigned'
   }

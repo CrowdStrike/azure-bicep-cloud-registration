@@ -3,17 +3,16 @@ param scriptRunnerIdentityId string
 @description('Management group ID to resolve')
 param managementGroupId string
 
-param location string = resourceGroup().location
+param region string = resourceGroup().location
 
 @description('Tags to be applied to all resources.')
 param tags object = {
-  'cstag-vendor': 'crowdstrike'
-  'stack-managed': 'true'
+  CSTagVendor: 'Crowdstrike'
 }
 
 resource resolveManagementGroupToSubscription 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
   name: guid('resolveManagementGroupToSubscription', managementGroupId, resourceGroup().id)
-  location: location
+  location: region
   kind: 'AzurePowerShell'
   tags: tags
   identity: {

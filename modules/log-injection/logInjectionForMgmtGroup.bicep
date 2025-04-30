@@ -18,18 +18,16 @@ targetScope = 'managementGroup'
 ])
 param targetScope string = 'ManagementGroup'
 
-@minLength(36)
-@maxLength(36)
-@description('Subscription Id of the default Azure Subscription.')
-param defaultSubscriptionId string
-
 @description('The prefix to be added to the deployment name.')
 param deploymentNamePrefix string = 'cs'
 
 @description('The suffix to be added to the deployment name.')
 param deploymentNameSuffix string = ''
 
-@description('Active subscriptions of management groups.')
+@description('Directly specified active subscriptions  ')
+param individualSubscriptionIds array
+
+@description('Active subscriptions under management groups.')
 param managedSubscriptions array
 
 @description('Event Hub Authorization Rule Id.')
@@ -44,33 +42,32 @@ param featureSettings RealTimeVisibilityDetectionSettings = {
   deployEntraLogDiagnosticSettings: true
   deployActivityLogDiagnosticSettingsPolicy: true
   enableAppInsights: false
-  resourceGroupName: 'cs-ioa-group'
 }
 
 @description('Location for the resources deployed in this solution.')
-param location string = deployment().location
+param region string = deployment().location
 
 @description('Tags to be applied to all resources.')
 param tags object = {
-  'cstag-vendor': 'crowdstrike'
-  'stack-managed': 'true'
+  CSTagVendor: 'Crowdstrike'
 }
 
-module activityLogDiagnosticSettings 'activityLogDiagnosticSettings.bicep' = if(featureSettings.deployActivityLogDiagnosticSettings) {
-  name: '${deploymentNamePrefix}-activityLog-${managementGroup().name}-${deploymentNameSuffix}'
-  scope: subscription(defaultSubscriptionId)
+module activityLogDiagnosticSettings 'activityLog.bicep' = [for subId in managedSubscriptions: if(featureSettings.deployActivityLogDiagnosticSettings && indexOf(individualSubscriptionIds, subId) < 0) {
+  name: '${deploymentNamePrefix}-cs-li-monitor-activity-diag-${subId}-${deploymentNameSuffix}'
+  scope: subscription(subId)
   params: {
-    subscriptionIds: managedSubscriptions
     eventHubAuthorizationRuleId: eventHubAuthorizationRuleId
     eventHubName: eventHubName
   }
-}
+}]
 
 module activityLogDiagnosticSettingsPolicyAssignment 'activityLogPolicy.bicep' = if (featureSettings.deployActivityLogDiagnosticSettingsPolicy) {
-  name: '${deploymentNamePrefix}-azurePolicyAssignment-${deploymentNameSuffix}'
+  name: '${deploymentNamePrefix}-cs-li-policy-${region}-${deploymentNameSuffix}'
   params: {
     eventHubName: eventHubName
     eventHubAuthorizationRuleId: eventHubAuthorizationRuleId
-    location: location
+    deploymentNamePrefix: deploymentNamePrefix
+    deploymentNameSuffix: deploymentNameSuffix
+    region: region
   }
 }

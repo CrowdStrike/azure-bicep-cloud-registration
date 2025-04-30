@@ -76,4 +76,4 @@ temp/
 
 # Bicep parameter files
 *.bicepparam
-*.parameters.json
+/*.parameters.json

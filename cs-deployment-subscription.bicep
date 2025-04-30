@@ -24,9 +24,24 @@ param targetScope string = 'Subscription'
 param subscriptionIds array = []
 
 @description('Azure subscription ID that will host CrowdStrike infrastructure')
-param crowdstrikeInfraSubscriptionId string
+param defaultSubscriptionId string
 
-@description('Principal Id of the Application Registration in Entra ID. Only used with parameter useExistingAppRegistration.')
+@minLength(32)
+@maxLength(32)
+@description('CID for the Falcon API.')
+param falconCID string
+
+@description('Client ID for the Falcon API.')
+param falconClientId string
+
+@description('Client secret for the Falcon API.')
+@secure()
+param falconClientSecret string
+
+@description('Falcon cloud API url')
+param falconUrl string = 'api.crowdstrike.com'
+
+@description('Principal Id of the Crowdstrike Application in Entra ID')
 param azurePrincipalId string
 
 @description('Type of the Azure account to integrate.')
@@ -36,12 +51,11 @@ param azurePrincipalId string
 param azureAccountType string = 'commercial'
 
 @description('Location for the resources deployed in this solution.')
-param location string = deployment().location
+param region string = deployment().location
 
 @description('Tags to be applied to all resources.')
 param tags object = {
-  'cstag-vendor': 'crowdstrike'
-  'stack-managed': 'true'
+  CSTagVendor: 'crowdstrike'
 }
 
 @description('The prefix to be added to the deployment name.')
@@ -51,51 +65,51 @@ param deploymentNamePrefix string = 'cs'
 param deploymentNameSuffix string = ''
 
 param featureSettings FeatureSettings = {
-  assetInventory: {
-    enabled: true
-    assignAzureSubscriptionPermissions: true 
-    resourceGroupName: 'cs-iom-group' // DO NOT CHANGE. 
-  }
   realTimeVisibilityDetection: {
     enabled: true
     deployActivityLogDiagnosticSettings: true       
     deployActivityLogDiagnosticSettingsPolicy: true 
     deployEntraLogDiagnosticSettings: true          
-    enableAppInsights: false                        
-    resourceGroupName: 'cs-ioa-group' // DO NOT CHANGE. 
+    enableAppInsights: false
   }
 }
 
 
 // ===========================================================================
-var defaultSubscriptionId = length(crowdstrikeInfraSubscriptionId) > 0 ? crowdstrikeInfraSubscriptionId : (length(subscriptionIds) > 0 ? subscriptionIds[0] : '')
+var crowdstrikeInfraSubscriptionId = length(defaultSubscriptionId) > 0 ? defaultSubscriptionId : (length(subscriptionIds) > 0 ? subscriptionIds[0] : '')
 var distinctSubscriptionIds = union(subscriptionIds, [defaultSubscriptionId]) // remove duplicated values
 
-module assetInventory 'modules/cs-asset-inventory-sub.bicep' = if (featureSettings.assetInventory.enabled) {
-  name: '${deploymentNamePrefix}-asset-inventory-deployment-${deploymentNameSuffix}'
+/* Resources used across modules
+1. Role assignments to the Crowdstrike's app service principal
+*/
+module global 'modules/cs-global-sub.bicep' = {
+  name: '${deploymentNamePrefix}-cs-sub-deployment-${deploymentNameSuffix}'
   params: {
-    defaultSubscriptionId: defaultSubscriptionId
+    defaultSubscriptionId: crowdstrikeInfraSubscriptionId
     subscriptionIds: distinctSubscriptionIds
     azurePrincipalId: azurePrincipalId
     deploymentNamePrefix: deploymentNamePrefix
     deploymentNameSuffix: deploymentNameSuffix
-    location: location
+    region: region
     tags: tags
   }
 }
 
 
-module realTimeVisibilityDetection 'modules/cs-real-time-visibility-detection-sub.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled) {
-  name: '${deploymentNamePrefix}-real-time-visibility-detection-sub-deployment-${deploymentNameSuffix}'
+module realTimeVisibilityDetection 'modules/cs-log-injection-sub.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled) {
+  name: '${deploymentNamePrefix}-cs-li-sub-deployment-${deploymentNameSuffix}'
   scope: subscription(crowdstrikeInfraSubscriptionId)
   params: {
     targetScope: targetScope
-    defaultSubscriptionId: defaultSubscriptionId // DO NOT CHANGE
+    defaultSubscriptionId: crowdstrikeInfraSubscriptionId // DO NOT CHANGE
     subscriptionIds: distinctSubscriptionIds
     deploymentNamePrefix: deploymentNamePrefix
     deploymentNameSuffix: deploymentNameSuffix
     featureSettings: featureSettings.realTimeVisibilityDetection
-    location: location
+    region: region
     tags: tags
   }
+  dependsOn: [
+    global
+  ]
 }

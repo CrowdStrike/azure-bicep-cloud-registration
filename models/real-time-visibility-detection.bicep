@@ -15,9 +15,6 @@ type RealTimeVisibilityDetectionSettings = {
 
   @description('Enable Application Insights for additional logging of Function Apps. Defaults to false')
   enableAppInsights: bool
-
-  @description('The name of the resource group for real time visibility and detection resources')
-  resourceGroupName: string
 }
 
 @export()

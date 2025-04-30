@@ -1,5 +1,3 @@
-import {AssetInventorySettings} from '../models/asset-inventory.bicep'
-
 targetScope='managementGroup'
 
 /*
@@ -20,49 +18,43 @@ param managementGroupIds array
 
 param subscriptionIds array
 
-@description('Principal Id of the Application Registration in Entra ID.')
+@description('Principal Id of the Crowdstrike Application in Entra ID')
 param azurePrincipalId string = ''
 
 @description('Type of the Principal, defaults to ServicePrincipal.')
 param azurePrincipalType string = 'ServicePrincipal'
 
 @description('Location for the resources deployed in this solution.')
-param location string = deployment().location
+param region string = deployment().location
 
 @description('Tags to be applied to all resources.')
 param tags object = {
-  'cstag-vendor': 'crowdstrike'
-}
-
-@description('Settings of asset inventory')
-param featureSettings AssetInventorySettings = {
-  assignAzureSubscriptionPermissions: true
-  resourceGroupName: 'cs-iom-group' // DO NOT CHANGE
+  CSTagVendor: 'Crowdstrike'
 }
 
 module resourceGroup 'common/resourceGroup.bicep' = {
-  name: '${deploymentNamePrefix}-ai-rg-${location}-${deploymentNameSuffix}'
+  name: '${deploymentNamePrefix}-cs-rg-${region}-${deploymentNameSuffix}'
   scope: subscription(defaultSubscriptionId)
   params: {
-    resourceGroupName: '${deploymentNamePrefix}-ai-rg-${location}-${deploymentNameSuffix}'
-    location: location
+    resourceGroupName: '${deploymentNamePrefix}-cs-rg-${region}-${deploymentNameSuffix}'
+    region: region
     tags: tags
   }
 }
 
-module scriptRunnerIdentity 'asset-inventory/scriptRunnerIdentity.bicep' = {
-  name: '${deploymentNamePrefix}-ai-script-runner-mi-${deploymentNameSuffix}'
+module scriptRunnerIdentity 'common/managedIdentity.bicep' = {
+  name: '${deploymentNamePrefix}-cs-id-script-runner-${region}-${deploymentNameSuffix}'
   scope: az.resourceGroup(defaultSubscriptionId, resourceGroup.name)
   params: {
-    name: '${deploymentNamePrefix}-ai-script-runner-mi-${deploymentNameSuffix}'
-    location: location
+    name: '${deploymentNamePrefix}-cs-id-script-runner-${region}-${deploymentNameSuffix}'
+    region: region
     tags: tags
   }
 }
 
 /* Define required permissions at Azure Subscription scope */
-module customRoleForSubs 'asset-inventory/customRoleForSub.bicep' = if (featureSettings.assignAzureSubscriptionPermissions) {
-  name: guid('${deploymentNamePrefix}-assetInventorySubscriptionCustomRole-${deploymentNameSuffix}')
+module customRoleForSubs 'global/customRoleForSub.bicep' = {
+  name: guid('${deploymentNamePrefix}-cs-webiste-reader-role-sub-${deploymentNameSuffix}')
   scope: subscription(defaultSubscriptionId)
   params: {
     subscriptionIds: subscriptionIds
@@ -71,8 +63,8 @@ module customRoleForSubs 'asset-inventory/customRoleForSub.bicep' = if (featureS
   }
 }
 
-module roleAssignmentToSubs 'asset-inventory/roleAssignmentToSub.bicep' =[for subId in subscriptionIds: if (featureSettings.assignAzureSubscriptionPermissions) {
-  name: guid('${deploymentNamePrefix}-assetInventorySubscriptionRoleAssignment-${subId}-${deploymentNameSuffix}')
+module roleAssignmentToSubs 'global/roleAssignmentToSub.bicep' =[for subId in subscriptionIds: {
+  name: guid('${deploymentNamePrefix}-cs-role-assignment-sub-${subId}-${deploymentNameSuffix}')
   scope: subscription(subId)
   params: {
     azurePrincipalId: azurePrincipalId
@@ -84,8 +76,8 @@ module roleAssignmentToSubs 'asset-inventory/roleAssignmentToSub.bicep' =[for su
 }]
 
 /* Define required permissions at Azure Management Group scope */
-module customRoleForMGs 'asset-inventory/customRoleForMgmtGroup.bicep' = [for mgmtGroupId in managementGroupIds: if(featureSettings.assignAzureSubscriptionPermissions) {
-  name: guid('${deploymentNamePrefix}-assetInventoryManagementGroupCustomRole-${deploymentNameSuffix}')
+module customRoleForMGs 'global/customRoleForMgmtGroup.bicep' = [for mgmtGroupId in managementGroupIds: {
+  name: guid('${deploymentNamePrefix}-cs-website-reader-role-mg-${mgmtGroupId}-${deploymentNameSuffix}')
   scope: managementGroup(mgmtGroupId)
   params: {
     deploymentNamePrefix: deploymentNamePrefix
@@ -93,8 +85,8 @@ module customRoleForMGs 'asset-inventory/customRoleForMgmtGroup.bicep' = [for mg
   }
 }]
 
-module roleAssignmentToMGs 'asset-inventory/roleAssignmentToMgmtGroup.bicep' =[for (mgmtGroupId, i) in managementGroupIds: if (featureSettings.assignAzureSubscriptionPermissions) {
-  name: guid('${deploymentNamePrefix}-assetInventoryManagementGroupRoleAssignment-${mgmtGroupId}-${deploymentNameSuffix}')
+module roleAssignmentToMGs 'global/roleAssignmentToMgmtGroup.bicep' =[for (mgmtGroupId, i) in managementGroupIds: {
+  name: guid('${deploymentNamePrefix}-cs-role-assignment-mg-${mgmtGroupId}-${deploymentNameSuffix}')
   scope: managementGroup(mgmtGroupId)
   params: {
     scriptRunnerIdentityId:scriptRunnerIdentity.outputs.principalId
@@ -108,8 +100,8 @@ module roleAssignmentToMGs 'asset-inventory/roleAssignmentToMgmtGroup.bicep' =[f
 
 /* Get all enabled Azure subscriptions in the current specified management groups */
 module deploymentScope 'common/resolveDeploymentScope.bicep' = [for mgmtGroupId in managementGroupIds: {
-  name: '${deploymentNamePrefix}-ai-deployment-scope-${mgmtGroupId}-${deploymentNameSuffix}'
-  scope: az.resourceGroup(defaultSubscriptionId, featureSettings.resourceGroupName)
+  name: '${deploymentNamePrefix}-cs-deployment-scope-${mgmtGroupId}-${deploymentNameSuffix}'
+  scope: az.resourceGroup(defaultSubscriptionId, resourceGroup.name)
   params: {
     scriptRunnerIdentityId: scriptRunnerIdentity.outputs.id
     managementGroupId: managementGroup().id

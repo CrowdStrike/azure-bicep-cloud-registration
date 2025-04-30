@@ -21,7 +21,7 @@ targetScope = 'subscription'
 param targetScope string
 
 @description('The location for the resources deployed in this solution.')
-param location string = deployment().location
+param region string = deployment().location
 
 @description('The prefix to be added to the deployment name.')
 param deploymentNamePrefix string = 'cs-ioa'
@@ -31,7 +31,7 @@ param deploymentNameSuffix string = ''
 
 @description('Tags to be applied to all resources.')
 param tags object = {
-  'cstag-vendor': 'crowdstrike'
+  CSTagVendor: 'Crowdstrike'
 }
 
 param featureSettings RealTimeVisibilityDetectionSettings = {
@@ -40,10 +40,7 @@ param featureSettings RealTimeVisibilityDetectionSettings = {
   deployEntraLogDiagnosticSettings: true 
   deployActivityLogDiagnosticSettingsPolicy: true
   enableAppInsights: false
-  resourceGroupName: 'cs-ioa-group' // DO NOT CHANGE - used for registration validation
 }
-
-param randomSuffix string = uniqueString(featureSettings.resourceGroupName, defaultSubscriptionId, deploymentNamePrefix, deploymentNameSuffix)
 
 @minLength(36)
 @maxLength(36)
@@ -73,59 +70,61 @@ param entraLogSettings DiagnosticLogSettings = {
   diagnosticSettingsName: 'cs-aad-to-eventhub' // DO NOT CHANGE - used for registration validation
 }
 
+
+
 /* Variables */
-var scope = az.resourceGroup(resourceGroup.name)
+var resourceGroupName = '${deploymentNamePrefix}-cs-li-rg-${region}-${deploymentNameSuffix}'
+var scope = az.resourceGroup(resourceGroupName)
 
 /* Resource Deployment */
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-03-01' = {
-  name: featureSettings.resourceGroupName
-  location: location
+  name: resourceGroupName
+  location: region
   tags: tags
 }
 
 // Create EventHub Namespace and Eventhubs used by CrowdStrike
 module eventHub 'eventHub.bicep' = {
-  name: '${deploymentNamePrefix}-eventHubs-${deploymentNameSuffix}'
+  name: '${deploymentNamePrefix}-cs-li-eventhub-${region}-${deploymentNameSuffix}'
   scope: scope
   params: {
-    defaultSubscriptionId: defaultSubscriptionId
     activityLogSettings: activityLogSettings
     entraLogSettings: entraLogSettings
+    deploymentNamePrefix: deploymentNamePrefix
+    deploymentNameSuffix: deploymentNameSuffix
     tags: tags
+    region: region
   }
+  dependsOn: [
+    resourceGroup
+  ]
 }
 
 /* Deploy Activity Log Diagnostic Settings for current Azure subscription */
 module activityDiagnosticSettings 'activityLog.bicep' = [for subId in union(subscriptionIds, [defaultSubscriptionId]): { // make sure the specified infra subscription is in the scope
-  name:  '${deploymentNamePrefix}-activityLog-${deploymentNameSuffix}'
+  name:  '${deploymentNamePrefix}-cs-li-monitor-activity-diag-${deploymentNameSuffix}'
   scope: subscription(subId)
   params: {
       diagnosticSettingsName: activityLogSettings.diagnosticSettingsName
       eventHubAuthorizationRuleId: eventHub.outputs.eventhubs.activityLog.eventHubAuthorizationRuleId
       eventHubName: eventHub.outputs.eventhubs.activityLog.eventHubName
   }
+  dependsOn: [
+    resourceGroup
+  ]
 }]
 
 module entraDiagnosticSettings 'entraLog.bicep' = if (featureSettings.deployEntraLogDiagnosticSettings) {
-  name: '${deploymentNamePrefix}-entraDiagnosticSettings-${deploymentNameSuffix}'
+  name: '${deploymentNamePrefix}-cs-li-monitor-aad-diag-${deploymentNameSuffix}'
   params: {
     diagnosticSettingsName: entraLogSettings.diagnosticSettingsName
     eventHubName: eventHub.outputs.eventhubs.entraLog.eventHubName
     eventHubAuthorizationRuleId: eventHub.outputs.eventhubs.entraLog.eventHubAuthorizationRuleId
   }
+  dependsOn: [
+    resourceGroup
+  ]
 }
-
-/* Set CrowdStrike Falcon Cloud Security Default Azure Subscription */
-// module setAzureDefaultSubscription 'defaultSubscription.bicep' = {
-//   scope: scope
-//   name: '${deploymentNamePrefix}-defaultSubscription-${deploymentNameSuffix}'
-//   params: {
-//     falconClientId: falconClientId
-//     falconClientSecret: falconClientSecret
-//     falconCloudRegion: falconCloudRegion
-//     tags: tags
-//   }
-// }
 
 /* Deployment outputs required for follow-up activities */
 output eventHubAuthorizationRuleIdForActivityLog string = eventHub.outputs.eventhubs.activityLog.eventHubAuthorizationRuleId

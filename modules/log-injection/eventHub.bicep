@@ -12,7 +12,7 @@ param tags object
 var defaultSettings = {
   eventHubNamespace: 'evhns-csli-${env}-${region}'
   activityLogEventHubName: 'evh-csliactivity-${env}-${region}'
-  entraLogEventHubName: 'evh-csliaad-${env}-${region}'
+  entraLogEventHubName: 'evh-cslientid-${env}-${region}'
 }
 
 resource eventHubNamespace 'Microsoft.EventHub/namespaces@2024-01-01' = if (!activityLogSettings.useExistingEventHub || !entraLogSettings.useExistingEventHub ) {

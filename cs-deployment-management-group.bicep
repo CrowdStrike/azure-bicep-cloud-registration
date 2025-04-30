@@ -28,7 +28,7 @@ param managementGroupIds array = []
 param subscriptionIds array = []
 
 @description('Azure subscription ID that will host CrowdStrike infrastructure')
-param defaultSubscriptionId string
+param csInfraSubscriptionId string
 
 @description('Principal Id of the Crowdstrike Application in Entra ID')
 param azurePrincipalId string
@@ -36,17 +36,15 @@ param azurePrincipalId string
 @description('Principal type of the specified principal Id')
 param azurePrincipalType string = 'ServicePrincipal'
 
-@minLength(32)
-@maxLength(32)
 @description('CID for the Falcon API.')
-param falconCID string
+param falconCID string = ''
 
 @description('Client ID for the Falcon API.')
-param falconClientId string
+param falconClientId string=''
 
 @description('Client secret for the Falcon API.')
 @secure()
-param falconClientSecret string
+param falconClientSecret string=''
 
 @description('Falcon cloud API url')
 param falconUrl string = 'api.crowdstrike.com'
@@ -86,8 +84,8 @@ param featureSettings FeatureSettings = {
 
 
 // ===========================================================================
-var crowdstrikeInfraSubscriptionId = length(defaultSubscriptionId) > 0 ? defaultSubscriptionId : (length(subscriptionIds) > 0 ? subscriptionIds[0] : '')
-var distinctSubscriptionIds = union(subscriptionIds, [defaultSubscriptionId]) // remove duplicated values
+var crowdstrikeInfraSubscriptionId = length(csInfraSubscriptionId) > 0 ? csInfraSubscriptionId : (length(subscriptionIds) > 0 ? subscriptionIds[0] : '')
+var distinctSubscriptionIds = union(subscriptionIds, [csInfraSubscriptionId]) // remove duplicated values
 var distinctManagementGroupIds = union(managementGroupIds, []) // remove duplicated values
 var prefix = length(deploymentNamePrefix) > 0 ? '${deploymentNamePrefix}-' : ''
 var suffix = length(deploymentNameSuffix) > 0 ? '-${deploymentNameSuffix}' : ''

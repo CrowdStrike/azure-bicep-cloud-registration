@@ -68,7 +68,7 @@ param entraLogSettings DiagnosticLogSettings = {
   eventHubResourceGroupName: ''                 // Optional, used only when useExistingEventHub is set to true
   eventHubSubscriptionId: ''                    // Optional, used only when useExistingEventHub is set to true
   eventHubAuthorizationRuleId: ''               // Optional, used only when useExistingEventHub is set to true
-  diagnosticSettingsName: 'diag-csliaad-${env}'        // DO NOT CHANGE - used for registration validation
+  diagnosticSettingsName: 'diag-cslientid-${env}'        // DO NOT CHANGE - used for registration validation
 }
 
 
@@ -117,7 +117,7 @@ module activityDiagnosticSettings 'activityLog.bicep' = [for subId in union(subs
 }]
 
 module entraDiagnosticSettings 'entraLog.bicep' = if (featureSettings.deployEntraLogDiagnosticSettings) {
-  name: '${prefix}cs-li-aad-diag${suffix}'
+  name: '${prefix}cs-li-entid-diag${suffix}'
   params: {
     diagnosticSettingsName: '${prefix}${entraLogSettings.diagnosticSettingsName}${suffix}'
     eventHubName: eventHub.outputs.eventhubs.entraLog.eventHubName

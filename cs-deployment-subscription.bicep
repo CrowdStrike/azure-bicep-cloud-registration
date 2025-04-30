@@ -24,7 +24,7 @@ param targetScope string = 'Subscription'
 param subscriptionIds array = []
 
 @description('Azure subscription ID that will host CrowdStrike infrastructure')
-param defaultSubscriptionId string
+param csInfraSubscriptionId string
 
 @minLength(32)
 @maxLength(32)
@@ -81,8 +81,8 @@ param featureSettings FeatureSettings = {
 
 
 // ===========================================================================
-var crowdstrikeInfraSubscriptionId = length(defaultSubscriptionId) > 0 ? defaultSubscriptionId : (length(subscriptionIds) > 0 ? subscriptionIds[0] : '')
-var distinctSubscriptionIds = union(subscriptionIds, [defaultSubscriptionId]) // remove duplicated values
+var crowdstrikeInfraSubscriptionId = length(csInfraSubscriptionId) > 0 ? csInfraSubscriptionId : (length(subscriptionIds) > 0 ? subscriptionIds[0] : '')
+var distinctSubscriptionIds = union(subscriptionIds, [csInfraSubscriptionId]) // remove duplicated values
 var prefix = length(deploymentNamePrefix) > 0 ? '${deploymentNamePrefix}-' : ''
 var suffix = length(deploymentNameSuffix) > 0 ? '-${deploymentNameSuffix}' : ''
 

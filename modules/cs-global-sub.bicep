@@ -31,10 +31,10 @@ param tags object = {
 }
 
 module resourceGroup 'common/resourceGroup.bicep' = {
-  name: '${deploymentNameSuffix}-cs-rg-${region}-${deploymentNameSuffix}'
+  name: '${deploymentNamePrefix}-cs-rg-${region}-${deploymentNameSuffix}'
   scope: subscription(defaultSubscriptionId)
   params: {
-    resourceGroupName: '${deploymentNameSuffix}-cs-rg-${region}-${deploymentNameSuffix}'
+    resourceGroupName: '${deploymentNamePrefix}-cs-rg-${region}-${deploymentNameSuffix}'
     region: region
     tags: tags
   }

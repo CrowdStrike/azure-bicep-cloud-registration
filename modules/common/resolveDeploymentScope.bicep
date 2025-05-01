@@ -1,0 +1,35 @@
+param scriptRunnerIdentityId string
+
+@description('Management group ID to resolve')
+param managementGroupId string
+
+param region string = resourceGroup().location
+
+param env string = 'prod'
+
+@description('Tags to be applied to all resources.')
+param tags object = {
+  CSTagVendor: 'Crowdstrike'
+}
+
+resource resolveManagementGroupToSubscription 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
+  name: guid('resolveManagementGroupToSubscription', managementGroupId, resourceGroup().id, env)
+  location: region
+  kind: 'AzurePowerShell'
+  tags: tags
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${scriptRunnerIdentityId}': {}
+    }
+  }
+  properties: {
+    azPowerShellVersion: '12.3'
+    arguments: '-AzureTenantId ${tenant().tenantId} -ManagementGroupId "${managementGroupId}"'
+    scriptContent: loadTextContent('../../scripts/Resolve-Deployment-Scope.ps1')
+    retentionInterval: 'PT1H'
+    cleanupPreference: 'OnSuccess'
+  }
+}
+
+output activeSubscriptions array = resolveManagementGroupToSubscription.properties.outputs.activeSubscriptions

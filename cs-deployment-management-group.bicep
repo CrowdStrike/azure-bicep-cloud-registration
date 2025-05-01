@@ -49,6 +49,14 @@ param falconClientSecret string=''
 @description('Falcon cloud API url')
 param falconUrl string = 'api.crowdstrike.com'
 
+@description('IP addresses of Crowdstrike Falcon. Please refer to https://falcon.crowdstrike.com/documentation/page/re07d589/add-crowdstrike-ip-addresses-to-cloud-provider-allowlists-0 for the IP address list of your Falcon region.')
+param falconIpAddresses array = [
+  '13.52.148.107'
+  '52.52.20.134'
+  '54.176.76.126'
+  '54.176.197.246'
+]
+
 @description('Type of the Azure account to integrate.')
 @allowed([
   'commercial'
@@ -58,6 +66,7 @@ param azureAccountType string = 'commercial'
 @description('Location for the resources deployed in this solution.')
 param region string = deployment().location
 
+@description('Custom label indicating the environment to be monitored, such as prod, stag or dev.')
 param env string = 'prod'
 
 @description('Tags to be applied to all resources.')
@@ -97,7 +106,7 @@ var suffix = length(deploymentNameSuffix) > 0 ? '-${deploymentNameSuffix}' : ''
 module global 'modules/cs-global-mg.bicep' = {
   name: '${prefix}cs-ai-mg-deployment${suffix}'
   params: {
-    defaultSubscriptionId: crowdstrikeInfraSubscriptionId
+    csInfraSubscriptionId: crowdstrikeInfraSubscriptionId
     managementGroupIds: distinctManagementGroupIds
     subscriptionIds: distinctSubscriptionIds
     azurePrincipalId: azurePrincipalId
@@ -110,15 +119,16 @@ module global 'modules/cs-global-mg.bicep' = {
   }
 }
 
-module realTimeVisibilityDetection 'modules/cs-log-injection-mg.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled && targetScope == 'ManagementGroup') {
+module logInjection 'modules/cs-log-injection-mg.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled && targetScope == 'ManagementGroup') {
     name: '${prefix}cs-li-mg-deployment${suffix}'
     params: {
       targetScope: targetScope
       managementGroupIds: distinctManagementGroupIds
       subscriptionIds: distinctSubscriptionIds
-      defaultSubscriptionId: crowdstrikeInfraSubscriptionId
+      csInfraSubscriptionId: crowdstrikeInfraSubscriptionId
       managementGroupsToSubsctiptions: global.outputs.managementGroupsToSubsctiptions
-      featureSettings: featureSettings.realTimeVisibilityDetection
+      featureSettings: featureSettings
+      falconIpAddresses: falconIpAddresses
       prefix: prefix
       suffix: suffix
       region: region

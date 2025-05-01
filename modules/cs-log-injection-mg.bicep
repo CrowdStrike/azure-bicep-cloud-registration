@@ -1,4 +1,4 @@
-import {RealTimeVisibilityDetectionSettings} from '../models/real-time-visibility-detection.bicep'
+import {FeatureSettings} from '../models/common.bicep'
 
 targetScope = 'managementGroup'
 
@@ -27,7 +27,9 @@ param managementGroupsToSubsctiptions array
 @minLength(36)
 @maxLength(36)
 @description('Subscription Id of the default Azure Subscription.')
-param defaultSubscriptionId string
+param csInfraSubscriptionId string
+
+param falconIpAddresses array
 
 @description('The prefix to be added to the deployment name.')
 param prefix string
@@ -35,7 +37,7 @@ param prefix string
 @description('The suffix to be added to the deployment name.')
 param suffix string
 
-param featureSettings RealTimeVisibilityDetectionSettings
+param featureSettings FeatureSettings
 
 @description('Location for the resources deployed in this solution.')
 param region string
@@ -49,14 +51,15 @@ param tags object
 // Deployment for subscriptions
 module deploymentForSubs 'log-injection/logInjectionForSub.bicep' = {
   name: '${prefix}cs-li-sub${suffix}'
-  scope: subscription(defaultSubscriptionId)
+  scope: subscription(csInfraSubscriptionId)
   params: {
     targetScope: targetScope
-    defaultSubscriptionId: defaultSubscriptionId // DO NOT CHANGE
+    csInfraSubscriptionId: csInfraSubscriptionId // DO NOT CHANGE
     subscriptionIds: subscriptionIds
     prefix: prefix
     suffix: suffix
     featureSettings: featureSettings
+    falconIpAddresses: falconIpAddresses
     region: region
     env: env
     tags: tags
@@ -64,7 +67,7 @@ module deploymentForSubs 'log-injection/logInjectionForSub.bicep' = {
 }
 
 // Deployment for management groups
-module realTimeVisibilityDetectionForMG 'log-injection/logInjectionForMgmtGroup.bicep' = [for (mgmtGroupId, i) in managementGroupIds: if (featureSettings.enabled && targetScope == 'ManagementGroup') {
+module realTimeVisibilityDetectionForMG 'log-injection/logInjectionForMgmtGroup.bicep' = [for (mgmtGroupId, i) in managementGroupIds: if (featureSettings.realTimeVisibilityDetection.enabled && targetScope == 'ManagementGroup') {
   name: '${prefix}cs-li-mg-${mgmtGroupId}${suffix}'
   scope: managementGroup(mgmtGroupId)
   params: {

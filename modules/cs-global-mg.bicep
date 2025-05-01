@@ -12,7 +12,7 @@ param prefix string
 @description('The suffix to be added to the deployment name.')
 param suffix string
 
-param defaultSubscriptionId string
+param csInfraSubscriptionId string
 
 param managementGroupIds array
 
@@ -34,7 +34,7 @@ param tags object
 
 module resourceGroup 'common/resourceGroup.bicep' = {
   name: '${prefix}cs-rg-${env}${suffix}'
-  scope: subscription(defaultSubscriptionId)
+  scope: subscription(csInfraSubscriptionId)
   params: {
     resourceGroupName: '${prefix}rg-cs-${env}${suffix}'
     region: region
@@ -44,7 +44,7 @@ module resourceGroup 'common/resourceGroup.bicep' = {
 
 module scriptRunnerIdentity 'common/managedIdentity.bicep' = {
   name: '${prefix}cs-id-script-runner-${env}-${region}${suffix}'
-  scope: az.resourceGroup(defaultSubscriptionId, resourceGroup.name)
+  scope: az.resourceGroup(csInfraSubscriptionId, resourceGroup.name)
   params: {
     name: '${prefix}id-csscriptrunner-${env}-${region}${suffix}'
     region: region
@@ -55,7 +55,7 @@ module scriptRunnerIdentity 'common/managedIdentity.bicep' = {
 /* Define required permissions at Azure Subscription scope */
 module customRoleForSubs 'global/customRoleForSub.bicep' = {
   name: guid('${prefix}cs-website-reader-role-sub${suffix}')
-  scope: subscription(defaultSubscriptionId)
+  scope: subscription(csInfraSubscriptionId)
   params: {
     subscriptionIds: subscriptionIds
     prefix: prefix
@@ -101,7 +101,7 @@ module roleAssignmentToMGs 'global/roleAssignmentToMgmtGroup.bicep' =[for (mgmtG
 /* Get all enabled Azure subscriptions in the current specified management groups */
 module deploymentScope 'common/resolveDeploymentScope.bicep' = [for mgmtGroupId in managementGroupIds: {
   name: '${prefix}cs-deployment-scope-${mgmtGroupId}${suffix}'
-  scope: az.resourceGroup(defaultSubscriptionId, resourceGroup.name)
+  scope: az.resourceGroup(csInfraSubscriptionId, resourceGroup.name)
   params: {
     scriptRunnerIdentityId: scriptRunnerIdentity.outputs.id
     managementGroupId: managementGroup().id

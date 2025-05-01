@@ -1,7 +1,5 @@
-import {
-  RealTimeVisibilityDetectionSettings
-  DiagnosticLogSettings
-} from '../../models/real-time-visibility-detection.bicep'
+import { DiagnosticLogSettings } from '../../models/real-time-visibility-detection.bicep'
+import { FeatureSettings } from '../../models/common.bicep'
 
 targetScope = 'managementGroup'
 
@@ -39,7 +37,7 @@ param eventHubAuthorizationRuleId string
 @description('Event Hub Name.')
 param eventHubName string
 
-param featureSettings RealTimeVisibilityDetectionSettings
+param featureSettings FeatureSettings
 
 @description('Location for the resources deployed in this solution.')
 param region string = deployment().location
@@ -60,7 +58,7 @@ param activityLogSettings DiagnosticLogSettings = {
   diagnosticSettingsName: 'diag-csliactivity-${env}'               // DO NOT CHANGE - used for registration validation
 }
 
-module activityLogDiagnosticSettings 'activityLog.bicep' = [for subId in managedSubscriptions: if(featureSettings.deployActivityLogDiagnosticSettings && indexOf(individualSubscriptionIds, subId) < 0) {
+module activityLogDiagnosticSettings 'activityLog.bicep' = [for subId in managedSubscriptions: if(featureSettings.realTimeVisibilityDetection.deployActivityLogDiagnosticSettings && indexOf(individualSubscriptionIds, subId) < 0) {
   name: '${prefix}cs-li-activity-diag-${subId}${suffix}'
   scope: subscription(subId)
   params: {
@@ -70,7 +68,7 @@ module activityLogDiagnosticSettings 'activityLog.bicep' = [for subId in managed
   }
 }]
 
-module activityLogDiagnosticSettingsPolicyAssignment 'activityLogPolicy.bicep' = if (featureSettings.deployActivityLogDiagnosticSettingsPolicy) {
+module activityLogDiagnosticSettingsPolicyAssignment 'activityLogPolicy.bicep' = if (featureSettings.realTimeVisibilityDetection.deployActivityLogDiagnosticSettingsPolicy) {
   name: '${prefix}cs-li-policy-${region}${suffix}'
   params: {
     eventHubName: eventHubName

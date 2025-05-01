@@ -12,7 +12,7 @@ param prefix string
 @description('The suffix to be added to the deployment name.')
 param suffix string
 
-param defaultSubscriptionId string
+param csInfraSubscriptionId string
 
 param subscriptionIds array
 
@@ -32,7 +32,7 @@ param tags object
 
 module resourceGroup 'common/resourceGroup.bicep' = {
   name: '${prefix}cs-rg-${env}${suffix}'
-  scope: subscription(defaultSubscriptionId)
+  scope: subscription(csInfraSubscriptionId)
   params: {
     resourceGroupName: '${prefix}rg-cs-${env}${suffix}'
     region: region
@@ -43,7 +43,7 @@ module resourceGroup 'common/resourceGroup.bicep' = {
 /* Define required permissions at Azure Subscription scope */
 module customRoleForSubs 'global/customRoleForSub.bicep' = {
   name: guid('${prefix}cs-webiste-reader-role-sub${suffix}')
-  scope: subscription(defaultSubscriptionId)
+  scope: subscription(csInfraSubscriptionId)
   params: {
     subscriptionIds: subscriptionIds
     prefix: prefix

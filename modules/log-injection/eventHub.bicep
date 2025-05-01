@@ -3,6 +3,7 @@ import {DiagnosticLogSettings} from '../../models/real-time-visibility-detection
 param activityLogSettings DiagnosticLogSettings
 param entraLogSettings DiagnosticLogSettings
 param authorizationRuleName string = 'rule-cslievhns-${env}-${region}'
+param falconIpAddresses array
 param prefix string
 param suffix string
 param region string
@@ -33,6 +34,22 @@ resource eventHubNamespace 'Microsoft.EventHub/namespaces@2024-01-01' = if (!act
     maximumThroughputUnits: 10
     minimumTlsVersion: '1.2'
     publicNetworkAccess: 'Enabled'
+  }
+}
+
+// Allow Crowdstrike Falcon to access the Eventhub
+resource eventHubNamespaceNetworkRuleSet 'Microsoft.EventHub/namespaces/networkRuleSets@2024-01-01' = if (!activityLogSettings.useExistingEventHub || !entraLogSettings.useExistingEventHub ) {
+  name: 'default'
+  parent: eventHubNamespace
+  properties: {
+    defaultAction: 'Deny'
+    ipRules: [for ip in falconIpAddresses: {
+        action: 'Allow'
+        ipMask: '${ip}'
+      }
+    ]
+    publicNetworkAccess: 'Enabled'
+    trustedServiceAccessEnabled: true
   }
 }
 

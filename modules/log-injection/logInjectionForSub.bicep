@@ -1,7 +1,5 @@
-import {
-  RealTimeVisibilityDetectionSettings
-  DiagnosticLogSettings
-} from '../../models/real-time-visibility-detection.bicep'
+import { DiagnosticLogSettings } from '../../models/real-time-visibility-detection.bicep'
+import { FeatureSettings } from '../../models/common.bicep'
 
 targetScope = 'subscription'
 
@@ -34,17 +32,13 @@ param suffix string
 @description('Tags to be applied to all resources.')
 param tags object
 
-param featureSettings RealTimeVisibilityDetectionSettings = {
-  enabled: true
-  deployActivityLogDiagnosticSettings: true
-  deployEntraLogDiagnosticSettings: true 
-  deployActivityLogDiagnosticSettingsPolicy: true
-  enableAppInsights: false
-}
+param featureSettings FeatureSettings
+
+param falconIpAddresses array
 
 @minLength(36)
 @maxLength(36)
-param defaultSubscriptionId string // DO NOT CHANGE - used for registration validation
+param csInfraSubscriptionId string // DO NOT CHANGE - used for registration validation
 
 param subscriptionIds array
 
@@ -91,6 +85,7 @@ module eventHub 'eventHub.bicep' = {
   params: {
     activityLogSettings: activityLogSettings
     entraLogSettings: entraLogSettings
+    falconIpAddresses: falconIpAddresses
     prefix: prefix
     suffix: suffix
     tags: tags
@@ -103,7 +98,7 @@ module eventHub 'eventHub.bicep' = {
 }
 
 /* Deploy Activity Log Diagnostic Settings for current Azure subscription */
-module activityDiagnosticSettings 'activityLog.bicep' = [for subId in union(subscriptionIds, [defaultSubscriptionId]): { // make sure the specified infra subscription is in the scope
+module activityDiagnosticSettings 'activityLog.bicep' = [for subId in union(subscriptionIds, [csInfraSubscriptionId]): { // make sure the specified infra subscription is in the scope
   name:  '${prefix}cs-li-activity-diag${suffix}'
   scope: subscription(subId)
   params: {
@@ -116,7 +111,7 @@ module activityDiagnosticSettings 'activityLog.bicep' = [for subId in union(subs
   ]
 }]
 
-module entraDiagnosticSettings 'entraLog.bicep' = if (featureSettings.deployEntraLogDiagnosticSettings) {
+module entraDiagnosticSettings 'entraLog.bicep' = if (featureSettings.realTimeVisibilityDetection.deployEntraLogDiagnosticSettings) {
   name: '${prefix}cs-li-entid-diag${suffix}'
   params: {
     diagnosticSettingsName: '${prefix}${entraLogSettings.diagnosticSettingsName}${suffix}'

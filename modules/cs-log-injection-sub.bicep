@@ -1,7 +1,5 @@
-import {
-  RealTimeVisibilityDetectionSettings
-  DiagnosticLogSettings
-} from '../models/real-time-visibility-detection.bicep'
+import { DiagnosticLogSettings } from '../models/real-time-visibility-detection.bicep'
+import { FeatureSettings } from '../models/common.bicep'
 
 targetScope = 'subscription'
 
@@ -34,11 +32,13 @@ param suffix string
 @description('Tags to be applied to all resources.')
 param tags object
 
-param featureSettings RealTimeVisibilityDetectionSettings
+param featureSettings FeatureSettings
+
+param falconIpAddresses array
 
 @minLength(36)
 @maxLength(36)
-param defaultSubscriptionId string // DO NOT CHANGE - used for registration validation
+param csInfraSubscriptionId string // DO NOT CHANGE - used for registration validation
 
 param subscriptionIds array
 
@@ -46,11 +46,12 @@ module deploymentForSubs 'log-injection/logInjectionForSub.bicep' = {
   name: '${prefix}realTimeVisibilityDetectionForSubs${suffix}'
   params: {
     targetScope: targetScope
-    defaultSubscriptionId: defaultSubscriptionId // DO NOT CHANGE
+    csInfraSubscriptionId: csInfraSubscriptionId // DO NOT CHANGE
     subscriptionIds: subscriptionIds
     prefix: prefix
     suffix: suffix
     featureSettings: featureSettings
+    falconIpAddresses: falconIpAddresses
     region: region
     env: env
     tags: tags

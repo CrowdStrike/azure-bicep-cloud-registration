@@ -16,9 +16,6 @@ param azurePrincipalType string
 
 var defaultRoleIds = [
   'acdd72a7-3385-48ef-bd42-f606fba81ae7' // Reader
-  '39bc4728-0917-49c7-9d2c-d95423bc2eb4' // Security Reader
-  '21090545-7ca7-4776-b22c-e363652d74d2' // Key Vault Reader
-  '7f6c6a51-bcf8-42ba-9220-52d62157d7db' // Azure Kubernetes Service RBAC Reader
 ]
 
 var defaultRoleDefinitionIds = [for roleId in defaultRoleIds: resourceId('Microsoft.Authorization/roleDefinitions', roleId)]

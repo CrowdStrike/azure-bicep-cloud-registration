@@ -41,6 +41,14 @@ param falconClientSecret string
 @description('Falcon cloud API url')
 param falconUrl string = 'api.crowdstrike.com'
 
+@description('IP addresses of Falcon')
+param falconIpAddresses array = [
+  '13.52.148.107'
+  '52.52.20.134'
+  '54.176.76.126'
+  '54.176.197.246'
+]
+
 @description('Principal Id of the Crowdstrike Application in Entra ID')
 param azurePrincipalId string
 
@@ -56,6 +64,7 @@ param azureAccountType string = 'commercial'
 @description('Location for the resources deployed in this solution.')
 param region string = deployment().location
 
+@description('Custom label indicating the environment to be monitored, such as prod, stag or dev.')
 param env string = 'prod'
 
 @description('Tags to be applied to all resources.')
@@ -92,7 +101,7 @@ var suffix = length(deploymentNameSuffix) > 0 ? '-${deploymentNameSuffix}' : ''
 module global 'modules/cs-global-sub.bicep' = {
   name: '${prefix}cs-sub-deployment${deploymentNameSuffix}'
   params: {
-    defaultSubscriptionId: crowdstrikeInfraSubscriptionId
+    csInfraSubscriptionId: crowdstrikeInfraSubscriptionId
     subscriptionIds: distinctSubscriptionIds
     azurePrincipalId: azurePrincipalId
     azurePrincipalType: azurePrincipalType
@@ -105,16 +114,17 @@ module global 'modules/cs-global-sub.bicep' = {
 }
 
 
-module realTimeVisibilityDetection 'modules/cs-log-injection-sub.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled) {
+module logInjection 'modules/cs-log-injection-sub.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled) {
   name: '${prefix}cs-li-sub-deployment${suffix}'
   scope: subscription(crowdstrikeInfraSubscriptionId)
   params: {
     targetScope: targetScope
-    defaultSubscriptionId: crowdstrikeInfraSubscriptionId // DO NOT CHANGE
+    csInfraSubscriptionId: crowdstrikeInfraSubscriptionId // DO NOT CHANGE
     subscriptionIds: distinctSubscriptionIds
+    falconIpAddresses: falconIpAddresses
     prefix: prefix
     suffix: suffix
-    featureSettings: featureSettings.realTimeVisibilityDetection
+    featureSettings: featureSettings
     region: region
     env: env
     tags: tags

@@ -24,15 +24,12 @@ The Bicep files in this repo register an Azure management group (and all Subscri
 - Makes the API calls necessary to register the management group/subscription with Falcon Cloud Security
 - Assigns the following Azure RBAC permissions to the created app registration with a scope of either the management group or individual Subscription, depending on which bicep file is being used:
   - Reader
-  - Security Reader
-  - Key Vault Reader
-  - Azure Kubernetes Service RBAC Reader
 - Assigns the **cs-website-reader** custom role on the management group/subscription with the following actions:
   - Microsoft.Web/sites/Read
   - Microsoft.Web/sites/config/Read
   - Microsoft.Web/sites/config/list/Action
 - If the `deployIOA` parameter is set to true, the file also:
-   - Deploys an Event Hub Namespace, two Event Hubs, two App Service Plans, and additional infrastructure to the subscription that has been designated as the default subscription (which is done via the `defaultSubscriptionId` parameter). This infrastructure is used to stream Entra ID Sign In and Audit Logs, as well as Azure Activity logs, to Falcon Cloud Security.
+   - Deploys an Event Hub Namespace, two Event Hubs, two App Service Plans, and additional infrastructure to the subscription that has been designated as the default subscription (which is done via the `csInfraSubscriptionId` parameter). This infrastructure is used to stream Entra ID Sign In and Audit Logs, as well as Azure Activity logs, to Falcon Cloud Security.
    - Creates a Microsoft Entra ID diagnostic setting that forwards Sign In and Audit Logs to the newly-created Event Hub
    - Individual subscription deployments only:
       - Creates an Azure Activity Log diagnostic setting in the subscription being registered with Falcon Cloud Security that forwards Activity Logs to the newly-created Event Hub
@@ -80,7 +77,7 @@ You can use any of these methods to pass parameters:
 
 | Parameter name                          | Required | Description                                                                                                                    |
 |-----------------------------------------|----------|--------------------------------------------------------------------------------------------------------------------------------|
-| `defaultSubscriptionId`                 | yes      | Subscription Id of the default Azure Subscription.                                                                             |
+| `csInfraSubscriptionId`                 | yes      | Subscription Id of the default Azure Subscription.                                                                             |
 | `falconCID`                             | yes      | CID for the Falcon API.                                                                                                        |
 | `falconClientId`                        | yes      | Client ID for the Falcon API.                                                                                                  |
 | `falconClientSecret`                    | yes      | Client secret for the Falcon API.                                                                                              |

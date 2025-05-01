@@ -88,7 +88,7 @@ You can use any of these methods to pass parameters:
 | `azureClientSecret`                     | no       | Application Secret of an existing Application Registration in Entra ID. Only used with parameter `useExistingAppRegistration`. |
 | `azurePrincipalId`                      | no       | Principal Id of the Application Registration in Entra ID. Only used with parameter `useExistingAppRegistration`.               |
 | `azureAccountType`                      | no       | Type of the Azure account to integrate.                                                                                        |
-| `region`                              | no       | Location for the resources deployed in this solution.                                                                          |
+| `region`                              | no       | Azure region the resources deployed in this solution.                                                                          |
 | `tags`                                  | no       | Tags to be applied to all resources.                                                                                           |
 | `deployIOM`                             | no       | Deploy Indicator of Misconfiguration (IOM) integration. Defaults to `true`.                                                    |
 | `assignAzureSubscriptionPermissions`    | no       | Assign required permissions on Azure Default Subscription automatically. Defaults to `false` when deploying to Management Group, defaults to `true` when deploying to indidvidual Subscription.|

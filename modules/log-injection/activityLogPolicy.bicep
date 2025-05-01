@@ -9,7 +9,7 @@ targetScope = 'managementGroup'
 */
 
 /* Parameters */
-@description('The location for the resources deployed in this solution.')
+@description('The Azure region for the resources deployed in this solution.')
 param region string
 
 param env string

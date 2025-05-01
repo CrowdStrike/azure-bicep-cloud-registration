@@ -39,7 +39,7 @@ param suffix string
 
 param featureSettings FeatureSettings
 
-@description('Location for the resources deployed in this solution.')
+@description('Azure region for the resources deployed in this solution.')
 param region string
 
 param env string

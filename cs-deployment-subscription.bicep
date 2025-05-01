@@ -61,7 +61,7 @@ param azurePrincipalType string = 'ServicePrincipal'
 ])
 param azureAccountType string = 'commercial'
 
-@description('Location for the resources deployed in this solution.')
+@description('Azure region for the resources deployed in this solution.')
 param region string = deployment().location
 
 @description('Custom label indicating the environment to be monitored, such as prod, stag or dev.')

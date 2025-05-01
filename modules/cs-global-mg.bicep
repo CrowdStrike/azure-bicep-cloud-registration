@@ -33,7 +33,7 @@ param env string
 param tags object 
 
 module resourceGroup 'common/resourceGroup.bicep' = {
-  name: '${prefix}cs-rg-${env}${suffix}'
+  name: '${prefix}rg-cs-${env}${suffix}'
   scope: subscription(csInfraSubscriptionId)
   params: {
     resourceGroupName: '${prefix}rg-cs-${env}${suffix}'
@@ -50,6 +50,9 @@ module scriptRunnerIdentity 'common/managedIdentity.bicep' = {
     region: region
     tags: tags
   }
+  dependsOn: [
+    resourceGroup
+  ]
 }
 
 /* Define required permissions at Azure Subscription scope */
@@ -104,9 +107,12 @@ module deploymentScope 'common/resolveDeploymentScope.bicep' = [for mgmtGroupId 
   scope: az.resourceGroup(csInfraSubscriptionId, resourceGroup.name)
   params: {
     scriptRunnerIdentityId: scriptRunnerIdentity.outputs.id
-    managementGroupId: managementGroup().id
+    managementGroupId: mgmtGroupId
     env: env
   }
+  dependsOn: [
+    resourceGroup
+  ]
 }]
 
 output managementGroupsToSubsctiptions array = [for (mgmtGroupId, i) in managementGroupIds: deploymentScope[i].outputs.activeSubscriptions]

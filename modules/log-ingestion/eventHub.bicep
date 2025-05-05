@@ -1,13 +1,36 @@
 import {DiagnosticLogSettings} from '../../models/real-time-visibility-detection.bicep'
 
+@description('Settings for configuring Event Hub for activity log')
 param activityLogSettings DiagnosticLogSettings
+
+@description('Settings for configuring Event Hub for Entra ID log')
 param entraLogSettings DiagnosticLogSettings
+
+@description('Name of authorization rule allowing sending activity and Entra ID logs to Event Hub')
 param authorizationRuleName string = 'rule-cslievhns-${env}-${region}'
+
+@description('List of IP addresses of Crowdstrike Falcon service. Please refer to https://falcon.crowdstrike.com/documentation/page/re07d589/add-crowdstrike-ip-addresses-to-cloud-provider-allowlists-0 for the IP address list of your Falcon region.')
 param falconIpAddresses array
+
+@description('Principal Id of the Crowdstrike Application in Entra ID')
+param azurePrincipalId string
+
+@description('Type of the Principal')
+param azurePrincipalType string
+
+@description('The prefix to be added to the deployment name.')
 param prefix string
+
+@description('The suffix to be added to the deployment name.')
 param suffix string
+
+@description('Azure region for the resources deployed in this solution.')
 param region string
+
+@description('Custom label indicating the environment to be monitored, such as prod, stag or dev.')
 param env string
+
+@description('Tags to be applied to all resources.')
 param tags object
 
 var defaultSettings = {
@@ -39,7 +62,7 @@ resource eventHubNamespace 'Microsoft.EventHub/namespaces@2024-01-01' = if (!act
 
 // Allow Crowdstrike Falcon to access the Eventhub
 resource eventHubNamespaceNetworkRuleSet 'Microsoft.EventHub/namespaces/networkRuleSets@2024-01-01' = if (!activityLogSettings.useExistingEventHub || !entraLogSettings.useExistingEventHub ) {
-  name: 'default'
+  name: 'default' // This is fixed
   parent: eventHubNamespace
   properties: {
     defaultAction: 'Deny'
@@ -50,6 +73,17 @@ resource eventHubNamespaceNetworkRuleSet 'Microsoft.EventHub/namespaces/networkR
     ]
     publicNetworkAccess: 'Enabled'
     trustedServiceAccessEnabled: true
+  }
+}
+
+// Azure Event Hubs Data Receiver
+var eventHubsDataReceiverRole = 'a638d3c7-ab3a-418d-83e6-5f17a39d4fde'
+resource activityLogIdentityRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!activityLogSettings.useExistingEventHub || !entraLogSettings.useExistingEventHub ) {
+  name: guid(azurePrincipalId, eventHubsDataReceiverRole, resourceGroup().id)
+  properties: {
+    roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', eventHubsDataReceiverRole)
+    principalId: azurePrincipalId
+    principalType: azurePrincipalType
   }
 }
 
@@ -111,12 +145,14 @@ output eventhubs object = {
   activityLog: {
     eventHubNamespaceName: activityLogSettings.useExistingEventHub ? existingActivityLogEventHubNamespace.name : eventHubNamespace.name
     eventHubName: activityLogSettings.useExistingEventHub ? existingActivityLogEventHub.name : activityLogEventHub.name
+    eventHubId: activityLogSettings.useExistingEventHub ? existingActivityLogEventHub.id : activityLogEventHub.id
     eventHubNamespaceServiceBusEndpoint: activityLogSettings.useExistingEventHub ? existingActivityLogEventHubNamespace.properties.serviceBusEndpoint : eventHubNamespace.properties.serviceBusEndpoint
     eventHubAuthorizationRuleId: activityLogSettings.useExistingEventHub ? activityLogSettings.eventHubAuthorizationRuleId : authorizationRule.id
   }
   entraLog: {
     eventHubNamespaceName: activityLogSettings.useExistingEventHub ? existingEntraLogEventHubNamespace.name : eventHubNamespace.name
     eventHubName: activityLogSettings.useExistingEventHub ? existingEntraLogEventHub.name : activityLogEventHub.name
+    eventHubId: activityLogSettings.useExistingEventHub ? existingEntraLogEventHub.id : activityLogEventHub.id
     eventHubNamespaceServiceBusEndpoint: activityLogSettings.useExistingEventHub ? existingEntraLogEventHubNamespace.properties.serviceBusEndpoint : eventHubNamespace.properties.serviceBusEndpoint
     eventHubAuthorizationRuleId: entraLogSettings.useExistingEventHub ? entraLogSettings.eventHubAuthorizationRuleId : authorizationRule.id
   }

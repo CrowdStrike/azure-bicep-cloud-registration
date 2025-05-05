@@ -6,8 +6,10 @@ param prefix string
 @description('The suffix to be added to the deployment name.')
 param suffix string
 
+@description('Role definition Id of the custom Crowdstrike reader role')
 param customRoleDefinitionId string
 
+@description('Managed identity Id of the script runner')
 param scriptRunnerIdentityId string
 
 @description('Principal Id of the Crowdstrike Application in Entra ID')

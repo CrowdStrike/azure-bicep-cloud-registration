@@ -37,11 +37,13 @@ param eventHubAuthorizationRuleId string
 @description('Event Hub Name.')
 param eventHubName string
 
+@description('Settings of feature modules')
 param featureSettings FeatureSettings
 
 @description('Azure region for the resources deployed in this solution.')
-param region string = deployment().location
+param region string
 
+@description('Custom label indicating the environment to be monitored, such as prod, stag or dev.')
 param env string
 
 @description('Tags to be applied to all resources.')
@@ -58,8 +60,8 @@ param activityLogSettings DiagnosticLogSettings = {
   diagnosticSettingsName: 'diag-csliactivity-${env}'               // DO NOT CHANGE - used for registration validation
 }
 
-module activityLogDiagnosticSettings 'activityLog.bicep' = [for subId in managedSubscriptions: if(featureSettings.realTimeVisibilityDetection.deployActivityLogDiagnosticSettings && indexOf(individualSubscriptionIds, subId) < 0) {
-  name: '${prefix}cs-li-activity-diag-${subId}${suffix}'
+module activityLogDiagnosticSettings 'activityLog.bicep' = [for subId in managedSubscriptions: if((featureSettings.realTimeVisibilityDetection.deployActivityLogDiagnosticSettings && !activityLogSettings.useExistingEventHub) && indexOf(individualSubscriptionIds, subId) < 0) {
+  name: '${prefix}cs-li-activity-diag-${subId}-${env}${suffix}'
   scope: subscription(subId)
   params: {
     eventHubAuthorizationRuleId: eventHubAuthorizationRuleId

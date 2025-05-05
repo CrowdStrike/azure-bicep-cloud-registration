@@ -1,6 +1,6 @@
-targetScope='managementGroup'
+targetScope='subscription'
 /*
-  This Bicep template defines the required permissions at Azure management group scope to enable CrowdStrike
+  This Bicep template defines the required permissions at Azure Subscription scope to enable CrowdStrike
   Indicator of Misconfiguration (IOM)
   Copyright (c) 2024 CrowdStrike, Inc.
 */
@@ -11,8 +11,14 @@ param prefix string
 @description('The suffix to be added to the deployment name.')
 param suffix string
 
+@description('List of Azure subscription IDs to monitor')
+param subscriptionIds array
+
+@description('Custom label indicating the environment to be monitored, such as prod, stag or dev.')
+param env string
+
 var customRole = {
-  roleName: 'cs-website-reader'
+  roleName: 'role-csreader'
   roleDescription: 'CrowdStrike custom role to allow read access to App Service and Function.'
   roleActions: [
     'Microsoft.Web/sites/Read'
@@ -21,10 +27,13 @@ var customRole = {
   ]
 }
 
+var fullPathSubscriptionIds = [for subId in subscriptionIds: '/subscriptions/${subId}']
+
+
 resource customRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
-  name: guid(customRole.roleName, tenant().tenantId, managementGroup().id)
+  name: guid(customRole.roleName, tenant().tenantId, subscription().id)
   properties: {
-    assignableScopes: [managementGroup().id]
+    assignableScopes: fullPathSubscriptionIds
     description: customRole.roleDescription
     permissions: [
       {
@@ -32,9 +41,10 @@ resource customRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-0
         notActions: []
       }
     ]
-    roleName: '${prefix}${customRole.roleName}-${managementGroup().name}${suffix}'
+    roleName: '${prefix}${customRole.roleName}-sub${suffix}'
     type: 'CustomRole'
   }
 }
 
 output id string = customRoleDefinition.id
+output name string = customRoleDefinition.name

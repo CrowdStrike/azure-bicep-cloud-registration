@@ -3,14 +3,14 @@ param scriptRunnerIdentityId string
 @description('Management group ID to resolve')
 param managementGroupId string
 
-param region string = resourceGroup().location
+@description('Azure region for the resources deployed in this solution.')
+param region string
 
-param env string = 'prod'
+@description('Custom label indicating the environment to be monitored, such as prod, stag or dev.')
+param env string
 
 @description('Tags to be applied to all resources.')
-param tags object = {
-  CSTagVendor: 'Crowdstrike'
-}
+param tags object
 
 resource resolveManagementGroupToSubscription 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
   name: guid('resolveManagementGroupToSubscription', managementGroupId, resourceGroup().id, env)

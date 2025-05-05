@@ -23,7 +23,9 @@ param targetScope string = 'Subscription'
 @description('List of Azure subscription IDs to monitor')
 param subscriptionIds array = []
 
-@description('Azure subscription ID that will host CrowdStrike infrastructure')
+@minLength(36)
+@maxLength(36)
+@description('Subscription Id of the default Azure Subscription.')
 param csInfraSubscriptionId string
 
 @minLength(32)
@@ -41,7 +43,7 @@ param falconClientSecret string
 @description('Falcon cloud API url')
 param falconUrl string = 'api.crowdstrike.com'
 
-@description('IP addresses of Falcon')
+@description('List of IP addresses of Crowdstrike Falcon service. Please refer to https://falcon.crowdstrike.com/documentation/page/re07d589/add-crowdstrike-ip-addresses-to-cloud-provider-allowlists-0 for the IP address list of your Falcon region.')
 param falconIpAddresses array = [
   '13.52.148.107'
   '52.52.20.134'
@@ -98,8 +100,8 @@ var suffix = length(deploymentNameSuffix) > 0 ? '-${deploymentNameSuffix}' : ''
 /* Resources used across modules
 1. Role assignments to the Crowdstrike's app service principal
 */
-module global 'modules/cs-global-sub.bicep' = {
-  name: '${prefix}cs-sub-deployment${deploymentNameSuffix}'
+module assetInventory 'modules/cs-asset-inventory-sub.bicep' = {
+  name: '${prefix}cs-ai-sub-deployment-${env}${suffix}'
   params: {
     csInfraSubscriptionId: crowdstrikeInfraSubscriptionId
     subscriptionIds: distinctSubscriptionIds
@@ -114,8 +116,8 @@ module global 'modules/cs-global-sub.bicep' = {
 }
 
 
-module logInjection 'modules/cs-log-injection-sub.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled) {
-  name: '${prefix}cs-li-sub-deployment${suffix}'
+module logIngestion 'modules/cs-log-ingestion-sub.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled) {
+  name: '${prefix}cs-li-sub-deployment-${env}${suffix}'
   scope: subscription(crowdstrikeInfraSubscriptionId)
   params: {
     targetScope: targetScope
@@ -124,12 +126,18 @@ module logInjection 'modules/cs-log-injection-sub.bicep' = if (featureSettings.r
     falconIpAddresses: falconIpAddresses
     prefix: prefix
     suffix: suffix
+    azurePrincipalId: azurePrincipalId
+    azurePrincipalType: azurePrincipalType
     featureSettings: featureSettings
     region: region
     env: env
     tags: tags
   }
   dependsOn: [
-    global
+    assetInventory
   ]
 }
+
+output csCustomReaderRoleName string = assetInventory.outputs.customRoleName
+output activityLogEventHubId string = logIngestion.outputs.activityLogEventHubId
+output entraIDLogEventHubId string = logIngestion.outputs.entraIdLogEventHubId

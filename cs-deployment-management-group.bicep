@@ -27,7 +27,9 @@ param managementGroupIds array = []
 @description('List of Azure subscription IDs to monitor')
 param subscriptionIds array = []
 
-@description('Azure subscription ID that will host CrowdStrike infrastructure')
+@minLength(36)
+@maxLength(36)
+@description('Subscription Id of the default Azure Subscription.')
 param csInfraSubscriptionId string
 
 @description('Principal Id of the Crowdstrike Application in Entra ID')
@@ -49,7 +51,7 @@ param falconClientSecret string=''
 @description('Falcon cloud API url')
 param falconUrl string = 'api.crowdstrike.com'
 
-@description('IP addresses of Crowdstrike Falcon. Please refer to https://falcon.crowdstrike.com/documentation/page/re07d589/add-crowdstrike-ip-addresses-to-cloud-provider-allowlists-0 for the IP address list of your Falcon region.')
+@description('List of IP addresses of Crowdstrike Falcon service. Please refer to https://falcon.crowdstrike.com/documentation/page/re07d589/add-crowdstrike-ip-addresses-to-cloud-provider-allowlists-0 for the IP address list of your Falcon region.')
 param falconIpAddresses array = [
   '13.52.148.107'
   '52.52.20.134'
@@ -103,8 +105,8 @@ var suffix = length(deploymentNameSuffix) > 0 ? '-${deploymentNameSuffix}' : ''
 1. Role assignments to the Crowdstrike's app service principal
 2. Discover subscriptions of the specified management groups
 */
-module global 'modules/cs-global-mg.bicep' = {
-  name: '${prefix}cs-ai-mg-deployment${suffix}'
+module assetInventory 'modules/cs-asset-inventory-mg.bicep' = {
+  name: '${prefix}cs-ai-mg-deployment-${env}${suffix}'
   params: {
     csInfraSubscriptionId: crowdstrikeInfraSubscriptionId
     managementGroupIds: distinctManagementGroupIds
@@ -119,23 +121,30 @@ module global 'modules/cs-global-mg.bicep' = {
   }
 }
 
-module logInjection 'modules/cs-log-injection-mg.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled && targetScope == 'ManagementGroup') {
-    name: '${prefix}cs-li-mg-deployment${suffix}'
+module logIngestion 'modules/cs-log-ingestion-mg.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled && targetScope == 'ManagementGroup') {
+    name: '${prefix}cs-li-mg-deployment-${env}${suffix}'
     params: {
       targetScope: targetScope
       managementGroupIds: distinctManagementGroupIds
       subscriptionIds: distinctSubscriptionIds
       csInfraSubscriptionId: crowdstrikeInfraSubscriptionId
-      managementGroupsToSubsctiptions: global.outputs.managementGroupsToSubsctiptions
+      managementGroupsToSubscriptions: assetInventory.outputs.managementGroupsToSubscriptions
       featureSettings: featureSettings
       falconIpAddresses: falconIpAddresses
       prefix: prefix
       suffix: suffix
+      azurePrincipalId: azurePrincipalId
+      azurePrincipalType: azurePrincipalType
       region: region
       env: env
       tags: tags
     }
     dependsOn: [
-      global
+      assetInventory
     ]
 }
+
+output customReaderRoleNameForSubs string = assetInventory.outputs.customRoleNameForSubs
+output customReaderRoleNameForMGs array = assetInventory.outputs.customRoleNameForMGs
+output activityLogEventHubId string = logIngestion.outputs.activityLogEventHubId
+output entraIDLogEventHubId string = logIngestion.outputs.entraIdLogEventHubId

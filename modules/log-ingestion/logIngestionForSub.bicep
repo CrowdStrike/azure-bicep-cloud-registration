@@ -21,6 +21,7 @@ param targetScope string
 @description('The Azure region for the resources deployed in this solution.')
 param region string
 
+@description('Custom label indicating the environment to be monitored, such as prod, stag or dev.')
 param env string
 
 @description('The prefix to be added to the deployment name.')
@@ -29,17 +30,27 @@ param prefix string
 @description('The suffix to be added to the deployment name.')
 param suffix string
 
+@description('Principal Id of the Crowdstrike Application in Entra ID')
+param azurePrincipalId string
+
+@description('Type of the Principal')
+param azurePrincipalType string
+
 @description('Tags to be applied to all resources.')
 param tags object
 
+@description('Settings of feature modules')
 param featureSettings FeatureSettings
 
+@description('List of IP addresses of Crowdstrike Falcon service. Please refer to https://falcon.crowdstrike.com/documentation/page/re07d589/add-crowdstrike-ip-addresses-to-cloud-provider-allowlists-0 for the IP address list of your Falcon region.')
 param falconIpAddresses array
 
 @minLength(36)
 @maxLength(36)
+@description('Subscription Id of the default Azure Subscription.')
 param csInfraSubscriptionId string // DO NOT CHANGE - used for registration validation
 
+@description('List of Azure subscription IDs to monitor')
 param subscriptionIds array
 
 
@@ -80,12 +91,14 @@ resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-03-01' = {
 
 // Create EventHub Namespace and Eventhubs used by CrowdStrike
 module eventHub 'eventHub.bicep' = {
-  name: '${prefix}cs-li-eventhub${region}${suffix}'
+  name: '${prefix}cs-li-eventhub-${env}-${region}${suffix}'
   scope: scope
   params: {
     activityLogSettings: activityLogSettings
     entraLogSettings: entraLogSettings
     falconIpAddresses: falconIpAddresses
+    azurePrincipalId: azurePrincipalId
+    azurePrincipalType: azurePrincipalType
     prefix: prefix
     suffix: suffix
     tags: tags
@@ -98,8 +111,8 @@ module eventHub 'eventHub.bicep' = {
 }
 
 /* Deploy Activity Log Diagnostic Settings for current Azure subscription */
-module activityDiagnosticSettings 'activityLog.bicep' = [for subId in union(subscriptionIds, [csInfraSubscriptionId]): { // make sure the specified infra subscription is in the scope
-  name:  '${prefix}cs-li-activity-diag${suffix}'
+module activityDiagnosticSettings 'activityLog.bicep' = [for subId in union(subscriptionIds, [csInfraSubscriptionId]): if(featureSettings.realTimeVisibilityDetection.deployActivityLogDiagnosticSettings && !activityLogSettings.useExistingEventHub) { // make sure the specified infra subscription is in the scope
+  name:  '${prefix}cs-li-activity-diag-${env}${suffix}'
   scope: subscription(subId)
   params: {
       diagnosticSettingsName: '${prefix}${activityLogSettings.diagnosticSettingsName}${suffix}'
@@ -111,8 +124,8 @@ module activityDiagnosticSettings 'activityLog.bicep' = [for subId in union(subs
   ]
 }]
 
-module entraDiagnosticSettings 'entraLog.bicep' = if (featureSettings.realTimeVisibilityDetection.deployEntraLogDiagnosticSettings) {
-  name: '${prefix}cs-li-entid-diag${suffix}'
+module entraDiagnosticSettings 'entraLog.bicep' = if (featureSettings.realTimeVisibilityDetection.deployEntraLogDiagnosticSettings && !entraLogSettings.useExistingEventHub) {
+  name: '${prefix}cs-li-entid-diag-${env}${suffix}'
   params: {
     diagnosticSettingsName: '${prefix}${entraLogSettings.diagnosticSettingsName}${suffix}'
     eventHubName: eventHub.outputs.eventhubs.entraLog.eventHubName
@@ -128,3 +141,5 @@ output eventHubAuthorizationRuleIdForActivityLog string = eventHub.outputs.event
 output eventHubAuthorizationRuleIdForEntraLog string = eventHub.outputs.eventhubs.entraLog.eventHubAuthorizationRuleId
 output activityLogEventHubName string = eventHub.outputs.eventhubs.activityLog.eventHubName
 output entraLogEventHubName string = eventHub.outputs.eventhubs.entraLog.eventHubName
+output activityLogEventHubId string = eventHub.outputs.eventhubs.activityLog.eventHubId
+output entraLogEventHubId string = eventHub.outputs.eventhubs.entraLog.eventHubId

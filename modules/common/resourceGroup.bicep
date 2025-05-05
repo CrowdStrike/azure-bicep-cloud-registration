@@ -2,11 +2,13 @@ targetScope='subscription'
 
 param resourceGroupName string
 
+@description('Azure region for the resources deployed in this solution.')
 param region string
 
-param tags object = {}
+@description('Tags to be applied to all resources.')
+param tags object
 
-resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-11-01' = {
+resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-03-01' = {
   name: resourceGroupName
   location: region
   tags: tags

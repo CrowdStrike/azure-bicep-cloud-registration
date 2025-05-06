@@ -18,6 +18,12 @@ param azurePrincipalId string
 @description('Type of the Principal')
 param azurePrincipalType string
 
+@description('Toggle if the eventhub for activity log should be deployed')
+param activityLogEnabled bool
+
+@description('Toggle if the eventhub for Entra ID log should be deployed')
+param entraLogEnabled bool
+
 @description('The prefix to be added to the deployment name.')
 param prefix string
 
@@ -38,8 +44,10 @@ var defaultSettings = {
   activityLogEventHubName: 'evh-csliactivity-${env}-${region}'
   entraLogEventHubName: 'evh-cslientid-${env}-${region}'
 }
+var shouldDeployActivityLog = activityLogEnabled && !activityLogSettings.useExistingEventHub
+var shouldDeployEntraLog = entraLogEnabled && !entraLogSettings.useExistingEventHub
 
-resource eventHubNamespace 'Microsoft.EventHub/namespaces@2024-01-01' = if (!activityLogSettings.useExistingEventHub || !entraLogSettings.useExistingEventHub ) {
+resource eventHubNamespace 'Microsoft.EventHub/namespaces@2024-01-01' = if (shouldDeployActivityLog || shouldDeployEntraLog) {
   name: '${prefix}${defaultSettings.eventHubNamespace}${suffix}'
   location: region
   tags: tags
@@ -61,7 +69,7 @@ resource eventHubNamespace 'Microsoft.EventHub/namespaces@2024-01-01' = if (!act
 }
 
 // Allow Crowdstrike Falcon to access the Eventhub
-resource eventHubNamespaceNetworkRuleSet 'Microsoft.EventHub/namespaces/networkRuleSets@2024-01-01' = if (!activityLogSettings.useExistingEventHub || !entraLogSettings.useExistingEventHub ) {
+resource eventHubNamespaceNetworkRuleSet 'Microsoft.EventHub/namespaces/networkRuleSets@2024-01-01' = if (shouldDeployActivityLog || shouldDeployEntraLog) {
   name: 'default' // This is fixed
   parent: eventHubNamespace
   properties: {
@@ -78,7 +86,7 @@ resource eventHubNamespaceNetworkRuleSet 'Microsoft.EventHub/namespaces/networkR
 
 // Azure Event Hubs Data Receiver
 var eventHubsDataReceiverRole = 'a638d3c7-ab3a-418d-83e6-5f17a39d4fde'
-resource activityLogIdentityRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!activityLogSettings.useExistingEventHub || !entraLogSettings.useExistingEventHub ) {
+resource activityLogIdentityRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (shouldDeployActivityLog || shouldDeployEntraLog) {
   name: guid(azurePrincipalId, eventHubsDataReceiverRole, resourceGroup().id)
   properties: {
     roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', eventHubsDataReceiverRole)
@@ -87,17 +95,17 @@ resource activityLogIdentityRoleAssignment 'Microsoft.Authorization/roleAssignme
   }
 }
 
-resource existingActivityLogEventHubNamespace 'Microsoft.EventHub/namespaces@2024-01-01' existing = if (activityLogSettings.useExistingEventHub) {
+resource existingActivityLogEventHubNamespace 'Microsoft.EventHub/namespaces@2024-01-01' existing = if (!shouldDeployActivityLog) {
   name: activityLogSettings.eventHubNamespaceName
   scope: resourceGroup(activityLogSettings.eventHubSubscriptionId, activityLogSettings.eventHubResourceGroupName)
 }
 
-resource existingEntraLogEventHubNamespace 'Microsoft.EventHub/namespaces@2024-01-01' existing = if (entraLogSettings.useExistingEventHub) {
+resource existingEntraLogEventHubNamespace 'Microsoft.EventHub/namespaces@2024-01-01' existing = if (!shouldDeployEntraLog) {
   name: entraLogSettings.eventHubNamespaceName
   scope: resourceGroup(entraLogSettings.eventHubSubscriptionId, entraLogSettings.eventHubResourceGroupName)
 }
 
-resource activityLogEventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' = if (!activityLogSettings.useExistingEventHub) {
+resource activityLogEventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' = if (shouldDeployActivityLog) {
   name: '${prefix}${defaultSettings.activityLogEventHubName}${suffix}'
   parent: eventHubNamespace
   properties: {
@@ -109,12 +117,12 @@ resource activityLogEventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01
   }
 }
 
-resource existingActivityLogEventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' existing = if (activityLogSettings.useExistingEventHub) {
+resource existingActivityLogEventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' existing = if (!shouldDeployActivityLog) {
   name: activityLogSettings.eventHubName
   parent: existingActivityLogEventHubNamespace
 }
 
-resource entraLogEventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' = if (!entraLogSettings.useExistingEventHub) {
+resource entraLogEventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' = if (shouldDeployEntraLog) {
   name: '${prefix}${defaultSettings.entraLogEventHubName}${suffix}'
   parent: eventHubNamespace
   properties: {
@@ -126,12 +134,12 @@ resource entraLogEventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' =
   }
 }
 
-resource existingEntraLogEventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' existing = if (entraLogSettings.useExistingEventHub) {
+resource existingEntraLogEventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' existing = if (!shouldDeployEntraLog) {
   name: entraLogSettings.eventHubName
   parent: existingEntraLogEventHubNamespace
 }
 
-resource authorizationRule 'Microsoft.EventHub/namespaces/authorizationRules@2024-01-01' = if (!activityLogSettings.useExistingEventHub || !entraLogSettings.useExistingEventHub ) {
+resource authorizationRule 'Microsoft.EventHub/namespaces/authorizationRules@2024-01-01' = if (shouldDeployActivityLog || shouldDeployEntraLog) {
   name: '${prefix}${authorizationRuleName}${suffix}'
   parent: eventHubNamespace
   properties: {
@@ -143,17 +151,17 @@ resource authorizationRule 'Microsoft.EventHub/namespaces/authorizationRules@202
 
 output eventhubs object = {
   activityLog: {
-    eventHubNamespaceName: activityLogSettings.useExistingEventHub ? existingActivityLogEventHubNamespace.name : eventHubNamespace.name
-    eventHubName: activityLogSettings.useExistingEventHub ? existingActivityLogEventHub.name : activityLogEventHub.name
-    eventHubId: activityLogSettings.useExistingEventHub ? existingActivityLogEventHub.id : activityLogEventHub.id
-    eventHubNamespaceServiceBusEndpoint: activityLogSettings.useExistingEventHub ? existingActivityLogEventHubNamespace.properties.serviceBusEndpoint : eventHubNamespace.properties.serviceBusEndpoint
-    eventHubAuthorizationRuleId: activityLogSettings.useExistingEventHub ? activityLogSettings.eventHubAuthorizationRuleId : authorizationRule.id
+    eventHubNamespaceName: activityLogEnabled ? (activityLogSettings.useExistingEventHub ? existingActivityLogEventHubNamespace.name : eventHubNamespace.name) : ''
+    eventHubName: activityLogEnabled ? (activityLogSettings.useExistingEventHub ? existingActivityLogEventHub.name : activityLogEventHub.name) : ''
+    eventHubId: activityLogEnabled ? (activityLogSettings.useExistingEventHub ? existingActivityLogEventHub.id : activityLogEventHub.id) : ''
+    eventHubNamespaceServiceBusEndpoint: activityLogEnabled ? (activityLogSettings.useExistingEventHub ? existingActivityLogEventHubNamespace.properties.serviceBusEndpoint : eventHubNamespace.properties.serviceBusEndpoint) : ''
+    eventHubAuthorizationRuleId: activityLogEnabled ? (activityLogSettings.useExistingEventHub ? activityLogSettings.eventHubAuthorizationRuleId : authorizationRule.id) : ''
   }
   entraLog: {
-    eventHubNamespaceName: activityLogSettings.useExistingEventHub ? existingEntraLogEventHubNamespace.name : eventHubNamespace.name
-    eventHubName: activityLogSettings.useExistingEventHub ? existingEntraLogEventHub.name : activityLogEventHub.name
-    eventHubId: activityLogSettings.useExistingEventHub ? existingEntraLogEventHub.id : activityLogEventHub.id
-    eventHubNamespaceServiceBusEndpoint: activityLogSettings.useExistingEventHub ? existingEntraLogEventHubNamespace.properties.serviceBusEndpoint : eventHubNamespace.properties.serviceBusEndpoint
-    eventHubAuthorizationRuleId: entraLogSettings.useExistingEventHub ? entraLogSettings.eventHubAuthorizationRuleId : authorizationRule.id
+    eventHubNamespaceName: entraLogEnabled ? (entraLogSettings.useExistingEventHub ? existingEntraLogEventHubNamespace.name : eventHubNamespace.name) : ''
+    eventHubName: entraLogEnabled ? (entraLogSettings.useExistingEventHub ? existingEntraLogEventHub.name : activityLogEventHub.name) : ''
+    eventHubId: entraLogEnabled ? (entraLogSettings.useExistingEventHub ? existingEntraLogEventHub.id : activityLogEventHub.id) : ''
+    eventHubNamespaceServiceBusEndpoint: entraLogEnabled ? (entraLogSettings.useExistingEventHub ? existingEntraLogEventHubNamespace.properties.serviceBusEndpoint : eventHubNamespace.properties.serviceBusEndpoint) : ''
+    eventHubAuthorizationRuleId: entraLogEnabled ? (entraLogSettings.useExistingEventHub ? entraLogSettings.eventHubAuthorizationRuleId : authorizationRule.id) : ''
   }
 }

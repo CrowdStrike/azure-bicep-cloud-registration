@@ -99,6 +99,8 @@ module eventHub 'eventHub.bicep' = {
     falconIpAddresses: falconIpAddresses
     azurePrincipalId: azurePrincipalId
     azurePrincipalType: azurePrincipalType
+    activityLogEnabled: featureSettings.realTimeVisibilityDetection.deployActivityLogDiagnosticSettings
+    entraLogEnabled: featureSettings.realTimeVisibilityDetection.deployEntraLogDiagnosticSettings
     prefix: prefix
     suffix: suffix
     tags: tags

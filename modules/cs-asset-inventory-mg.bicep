@@ -38,7 +38,7 @@ param env string
 @description('Tags to be applied to all resources.')
 param tags object 
 
-var resourceGroupName = '${prefix}rg-cs-${env}${suffix}'
+var resourceGroupName = '${prefix}rg-csai-${env}${suffix}'
 
 module resourceGroup 'common/resourceGroup.bicep' = {
   name: '${prefix}cs-ai-rg-${env}${suffix}'
@@ -54,7 +54,7 @@ module scriptRunnerIdentity 'common/managedIdentity.bicep' = {
   name: '${prefix}cs-ai-id-script-runner-${env}${suffix}'
   scope: az.resourceGroup(csInfraSubscriptionId, resourceGroupName)
   params: {
-    name: '${prefix}id-csaiscriptrunner-${env}${suffix}'
+    name: '${prefix}id-csscriptrunner-${env}${suffix}'
     region: region
     tags: tags
   }

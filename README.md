@@ -95,11 +95,11 @@ You can use any of these methods to pass parameters:
 ## Resource Names
 Do not change the names of the following Azure resources as they are used for registration validation and must remain unchanged. Other resource names in the files can be changed according to your internal naming convention.
 - Diagnostic Setting in Entra ID:
-   - Default name: diag-cslientid-[env]
+   - Default name: diag-cslientid
 - Diagnostic Setting in subscription:
    - Default name: diag-csliactivity-[env]
 - Resource Groups:
-   - Default name: rg-cs-[env]
+   - Default name: rg-csai-[env]
    - Default name: rg-csli-[env]
 - Event Hub Namespace:
    - Default name: evhns-csli-[env]-[region]

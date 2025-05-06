@@ -44,7 +44,7 @@ var roleDefinitionIds = [
 
 /* Resources */
 resource csRTVDPolicyDefinition 'Microsoft.Authorization/policyDefinitions@2023-04-01' = {
-  name: guid(csRTVDPolicySettings.name)
+  name: '${prefix}policy-csliactivity${suffix}'
   properties: {
     displayName: csRTVDPolicySettings.policyDefinition.properties.displayName
     description: csRTVDPolicySettings.policyDefinition.properties.description
@@ -57,7 +57,7 @@ resource csRTVDPolicyDefinition 'Microsoft.Authorization/policyDefinitions@2023-
 }
 
 resource csRTVDPolicyAssignment 'Microsoft.Authorization/policyAssignments@2024-04-01' = {
-  name: '${prefix}pas-csli-${env}${suffix}' // The maximum length is 24 characters
+  name: 'pas-csliactivity' // The maximum length is 24 characters
   location: region
   identity: {
     type: 'SystemAssigned'
@@ -92,7 +92,7 @@ resource csRTVDPolicyRoleAssignment 'Microsoft.Authorization/roleAssignments@202
 
 /* Create remediation task for the IOA policy assignment */
 resource csRTVDPolicyRemediation 'Microsoft.PolicyInsights/remediations@2021-10-01' = {
-  name: guid('Remediate', csRTVDPolicyDefinition.id, managementGroup().id)
+  name: '${prefix}remediate-csliactivity${suffix}'
   properties: {
     failureThreshold: {
       percentage: 1

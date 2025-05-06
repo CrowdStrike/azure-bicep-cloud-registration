@@ -35,7 +35,7 @@ param env string
 @description('Tags to be applied to all resources.')
 param tags object
 
-var resourceGroupName = '${prefix}rg-cs-${env}${suffix}'
+var resourceGroupName = '${prefix}rg-csai-${env}${suffix}'
 
 module resourceGroup 'common/resourceGroup.bicep' = {
   name: '${prefix}cs-ai-rg-${env}${suffix}'

@@ -89,7 +89,7 @@ var environment = length(env) > 0 ? '-${env}' : env
 2. Discover subscriptions of the specified management groups
 */
 module assetInventory 'modules/cs-asset-inventory-mg.bicep' = {
-  name: '${resourceNamePrefix}cs-inv-mg-deployment-${env}${resourceNameSuffix}'
+  name: '${resourceNamePrefix}cs-inv-mg-deployment${environment}${resourceNameSuffix}'
   params: {
     managementGroupIds: managementGroups
     subscriptionIds: subscriptions

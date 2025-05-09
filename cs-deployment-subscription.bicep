@@ -80,7 +80,7 @@ var environment = length(env) > 0 ? '-${env}' : env
 1. Role assignments to the Crowdstrike's app service principal
 */
 module assetInventory 'modules/cs-asset-inventory-sub.bicep' = {
-  name: '${resourceNamePrefix}cs-inv-sub-deployment-${env}${resourceNameSuffix}'
+  name: '${resourceNamePrefix}cs-inv-sub-deployment${environment}${resourceNameSuffix}'
   params: {
     csInfraSubscriptionId: csInfraSubscriptionId
     subscriptionIds: subscriptions
@@ -104,7 +104,7 @@ module resourceGroup 'modules/common/resourceGroup.bicep' = if (featureSettings.
 }
 
 module logIngestion 'modules/cs-log-ingestion-sub.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled) {
-  name: '${resourceNamePrefix}cs-log-sub-deployment-${env}${resourceNameSuffix}'
+  name: '${resourceNamePrefix}cs-log-sub-deployment${environment}${resourceNameSuffix}'
   scope: subscription(csInfraSubscriptionId)
   params: {
     subscriptionIds: subscriptions

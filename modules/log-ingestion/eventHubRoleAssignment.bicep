@@ -1,3 +1,8 @@
+/*
+  This Bicep template assigns a specified role to the CrowdStrike service principal on an Event Hub.
+  Copyright (c) 2024 CrowdStrike, Inc.
+*/
+
 @description('Resource ID of the Event Hub that CrowdStrike needs access to. This is the target Event Hub for role assignment.')
 param eventHubId string
 

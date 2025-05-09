@@ -2,9 +2,8 @@ targetScope = 'managementGroup'
 
 /*
   This Bicep template creates and assigns an Azure Policy used to ensure
-  that Activity Log data is forwarded to CrowdStrike for Indicator of Attack (IOA)
+  that Activity Log data is forwarded to CrowdStrike for Real Time Visibility and Detection
   assessment.
-
   Copyright (c) 2024 CrowdStrike, Inc.
 */
 

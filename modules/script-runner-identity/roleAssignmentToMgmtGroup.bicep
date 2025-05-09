@@ -1,5 +1,10 @@
 targetScope = 'managementGroup'
 
+/*
+  This Bicep template assigns the Reader role to a managed identity at the management group scope.
+  Copyright (c) 2024 CrowdStrike, Inc.
+*/
+
 @description('Principal ID of the user-assigned managed identity that will execute deployment scripts. This identity needs appropriate permissions.')
 param scriptRunnerIdentityId string
 

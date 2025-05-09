@@ -4,8 +4,7 @@ targetScope = 'subscription'
 
 /*
   This Bicep template deploys infrastructure to enable CrowdStrike 
-  Indicator of Attack (IOA) assessment.
-
+  Real Time Visibility and Detection assessment.
   Copyright (c) 2024 CrowdStrike, Inc.
 */
 

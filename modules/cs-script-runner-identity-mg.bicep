@@ -1,5 +1,11 @@
 targetScope = 'managementGroup'
 
+/*
+  This Bicep template creates a user-assigned managed identity for executing deployment scripts
+  and assigns necessary permissions at the management group level.
+  Copyright (c) 2024 CrowdStrike, Inc.
+*/
+
 @description('List of Azure management group IDs to monitor. These management groups will be configured for CrowdStrike monitoring.')
 param managementGroupIds array
 

@@ -1,8 +1,7 @@
 targetScope = 'subscription'
 
 /*
-  This Bicep template deploys infrastructure to enable CrowdStrike
-  Indicator of Misconfiguration (IOM)
+  This Bicep template deploys infrastructure to enable CrowdStrike Asset Inventory
   Copyright (c) 2024 CrowdStrike, Inc.
 */
 

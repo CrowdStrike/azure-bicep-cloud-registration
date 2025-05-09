@@ -3,11 +3,11 @@ import { FeatureSettings } from 'models/common.bicep'
 targetScope = 'subscription'
 
 metadata name = 'CrowdStrike Falcon Cloud Security Integration'
-metadata description = 'Deploys CrowdStrike Falcon Cloud Security integration for Indicator of Misconfiguration (IOM) and Indicator of Attack (IOA) assessment'
+metadata description = 'Deploys CrowdStrike Falcon Cloud Security integration for Asset Inventory and Real Time Visibility and Detection assessment'
 metadata owner = 'CrowdStrike'
 /*
   This Bicep template deploys CrowdStrike Falcon Cloud Security integration for
-  Indicator of Misconfiguration (IOM) and Indicator of Attack (IOA) assessment.
+  Asset Inventory and Real Time Visibility and Detection assessment.
 
   Copyright (c) 2024 CrowdStrike, Inc.
 */

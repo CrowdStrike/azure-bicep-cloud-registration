@@ -4,10 +4,9 @@ import { FeatureSettings } from '../../models/common.bicep'
 targetScope = 'managementGroup'
 
 /*
-  This Bicep template deploys Azure Activity Log Diagnostic Settings
-  to existing Azure subscriptions in the current Entra Id tenant
-  to enable CrowdStrike Indicator of Attack (IOA) assessment.
-
+  This Bicep template creates and assigns an Azure Policy used to ensure
+  that Activity Log data is forwarded to CrowdStrike for Real Time Visibility and Detection
+  assessment.
   Copyright (c) 2024 CrowdStrike, Inc.
 */
 

@@ -2,8 +2,7 @@ targetScope = 'subscription'
 
 /*
   This Bicep template deploys diagnostic settings for current subscription in order to
-  forward logs to CrowdStrike for Indicator of Attack (IOA) assessment.
-
+  forward logs to CrowdStrike for Real Time Visibility and Detection assessment.
   Copyright (c) 2024 CrowdStrike, Inc.
 */
 
@@ -19,7 +18,7 @@ param diagnosticSettingsName string
 /*
   Deploy Diagnostic Settings for Azure Activity Logs - current Azure subscription
 
-  Collect Azure Activity Logs and submit them to CrowdStrike for analysis of Indicators of Attack (IOA)
+  Collect Azure Activity Logs and submit them to CrowdStrike for Real Time Visibility and Detection
 
   Note:
    - 'Contributor' permissions are required to create Azure Activity Logs diagnostic settings

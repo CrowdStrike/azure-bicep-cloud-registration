@@ -1,3 +1,8 @@
+/*
+  This Bicep template defines types and models for the CrowdStrike Real Time Visibility and Detection feature.
+  Copyright (c) 2024 CrowdStrike, Inc.
+*/
+
 @export()
 @description('Configuration settings for the real-time visibility and detection module, which enables monitoring of Azure activity and Entra ID logs')
 type RealTimeVisibilityDetectionSettings = {

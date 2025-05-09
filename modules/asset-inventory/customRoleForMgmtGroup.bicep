@@ -1,7 +1,7 @@
 targetScope = 'managementGroup'
 /*
   This Bicep template defines the required permissions at Azure management group scope to enable CrowdStrike
-  Indicator of Misconfiguration (IOM)
+  Asset Inventory
   Copyright (c) 2024 CrowdStrike, Inc.
 */
 

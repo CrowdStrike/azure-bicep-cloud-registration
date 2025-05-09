@@ -1,5 +1,11 @@
 import { ActivityLogSettings, EntraIdLogSettings } from '../../models/real-time-visibility-detection.bicep'
 
+/*
+  This Bicep template deploys Event Hub resources for collecting Azure Activity Logs and Entra ID logs
+  for CrowdStrike Real Time Visibility and Detection assessment.
+  Copyright (c) 2024 CrowdStrike, Inc.
+*/
+
 @description('Configuration settings for Azure Activity Log collection, including whether to use existing Event Hubs')
 param activityLogSettings ActivityLogSettings
 

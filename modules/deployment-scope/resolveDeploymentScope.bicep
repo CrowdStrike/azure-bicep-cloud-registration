@@ -1,3 +1,8 @@
+/*
+  This Bicep template resolves Azure management groups to their constituent subscriptions for deployment scope determination.
+  Copyright (c) 2024 CrowdStrike, Inc.
+*/
+
 @description('List of Azure management group IDs to monitor. These management groups will be configured for CrowdStrike monitoring.')
 param managementGroupIds array
 

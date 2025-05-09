@@ -2,8 +2,7 @@ targetScope = 'subscription'
 
 /*
   This Bicep template deploys diagnostic settings for Entra ID in order to
-  forward logs to CrowdStrike for Indicator of Attack (IOA) assessment.
-
+  forward logs to CrowdStrike for Real Time Visibility and Detection assessment.
   Copyright (c) 2024 CrowdStrike, Inc.
 */
 
@@ -19,7 +18,7 @@ param diagnosticSettingsName string
 /* 
   Deploy Diagnostic Settings for Microsoft Entra ID Logs
 
-  Collect Microsoft Entra ID logs and submit them to CrowdStrike for analysis of Indicators of Attack (IOA)
+  Collect Microsoft Entra ID logs and submit them to CrowdStrike for Real Time Visibility and Detection
 
   Note:
    - To export SignInLogs a P1 or P2 Microsoft Entra ID license is required

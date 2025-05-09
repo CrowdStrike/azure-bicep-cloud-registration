@@ -1,5 +1,10 @@
 targetScope = 'managementGroup'
 
+/*
+  This Bicep template assigns the Reader role and a custom role to the CrowdStrike service principal at the management group scope.
+  Copyright (c) 2024 CrowdStrike, Inc.
+*/
+
 @description('Resource ID of the custom role definition created for CrowdStrike. This role will be assigned to the CrowdStrike service principal.')
 param customRoleDefinitionId string
 

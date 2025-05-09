@@ -5,8 +5,7 @@ targetScope = 'managementGroup'
 /*
   This Bicep template deploys Azure Activity Log Diagnostic Settings
   to existing Azure subscriptions in the current Entra Id tenant
-  to enable CrowdStrike Indicator of Attack (IOA) assessment.
-
+  to enable CrowdStrike Real Time Visibility and Detection assessment.
   Copyright (c) 2024 CrowdStrike, Inc.
 */
 

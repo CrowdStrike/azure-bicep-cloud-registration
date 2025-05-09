@@ -1,5 +1,11 @@
 targetScope = 'managementGroup'
 
+/*
+  This Bicep template resolves the deployment scope by identifying all active subscriptions
+  within specified management groups for CrowdStrike monitoring.
+  Copyright (c) 2024 CrowdStrike, Inc.
+*/
+
 @description('List of Azure management group IDs to monitor. These management groups will be configured for CrowdStrike monitoring.')
 param managementGroupIds array
 

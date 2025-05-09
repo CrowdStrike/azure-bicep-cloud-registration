@@ -64,6 +64,7 @@ param featureSettings FeatureSettings = {
         namespaceName: ''
         resourceGroupName: ''
         subscriptionId: ''
+        consumerGruopName: ''
       }
     }
     entraIdLogSettings: {
@@ -74,6 +75,7 @@ param featureSettings FeatureSettings = {
         namespaceName: ''
         resourceGroupName: ''
         subscriptionId: ''
+        consumerGruopName: ''
       }
     }
   }
@@ -172,4 +174,6 @@ module logIngestion 'modules/cs-log-ingestion-mg.bicep' = if (featureSettings.re
 output customReaderRoleNameForSubs string = assetInventory.outputs.customRoleNameForSubs
 output customReaderRoleNameForMGs array = assetInventory.outputs.customRoleNameForMGs
 output activityLogEventHubId string = logIngestion.outputs.activityLogEventHubId
-output entraIDLogEventHubId string = logIngestion.outputs.entraIdLogEventHubId
+output activityLogEventHubConsumerGroupName string = logIngestion.outputs.activityLogEventHubConsumerGroupName
+output entraLogEventHubId string = logIngestion.outputs.entraLogEventHubId
+output entraLogEventHubConsumerGroupName string = logIngestion.outputs.entraLogEventHubConsumerGroupName

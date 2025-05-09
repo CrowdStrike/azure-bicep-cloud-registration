@@ -59,4 +59,6 @@ module deploymentForSubs 'log-ingestion/logIngestionForSub.bicep' = {
 }
 
 output activityLogEventHubId string = deploymentForSubs.outputs.activityLogEventHubId
-output entraIdLogEventHubId string = deploymentForSubs.outputs.entraLogEventHubId
+output activityLogEventHubConsumerGroupName string = deploymentForSubs.outputs.activityLogEventHubConsumerGroupName
+output entraLogEventHubId string = deploymentForSubs.outputs.entraLogEventHubId
+output entraLogEventHubConsumerGroupName string = deploymentForSubs.outputs.entraLogEventHubConsumerGroupName

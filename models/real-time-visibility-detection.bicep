@@ -52,4 +52,7 @@ type ExistingEventHub = {
 
   @description('Name of the existing Event Hub instance to use')
   name: string
+
+  @description('Consumer group name in the existing Event Hub instance to use')
+  consumerGruopName: string
 }

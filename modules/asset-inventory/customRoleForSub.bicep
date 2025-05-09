@@ -47,4 +47,4 @@ resource customRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-0
 }
 
 output id string = customRoleDefinition.id
-output name string = customRoleDefinition.name
+output name string = customRoleDefinition.properties.roleName

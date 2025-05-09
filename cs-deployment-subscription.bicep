@@ -57,7 +57,7 @@ param featureSettings FeatureSettings = {
         namespaceName: ''
         resourceGroupName: ''
         subscriptionId: ''
-        consumerGruopName: ''
+        consumerGroupName: ''
       }
     }
     entraIdLogSettings: {
@@ -68,7 +68,7 @@ param featureSettings FeatureSettings = {
         namespaceName: ''
         resourceGroupName: ''
         subscriptionId: ''
-        consumerGruopName: ''
+        consumerGroupName: ''
       }
     }
   }

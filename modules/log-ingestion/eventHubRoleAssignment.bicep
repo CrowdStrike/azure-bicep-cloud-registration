@@ -1,12 +1,10 @@
-import {ActivityLogSettings, EntraIdLogSettings} from '../../models/real-time-visibility-detection.bicep'
-
-@description('Eventhub Resource ID')
+@description('Resource ID of the Event Hub that CrowdStrike needs access to. This is the target Event Hub for role assignment.')
 param eventHubId string
 
-@description('role definition ID')
+@description('Role definition ID for the Azure RBAC role to assign.')
 param roleDefinitionId string
 
-@description('Principal Id of the Crowdstrike Application in Entra ID')
+@description('Principal ID of the CrowdStrike application registered in Entra ID. This service principal will be granted the specified role on the Event Hub.')
 param azurePrincipalId string
 
 

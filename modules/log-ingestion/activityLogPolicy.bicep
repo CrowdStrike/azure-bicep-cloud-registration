@@ -9,33 +9,33 @@ targetScope = 'managementGroup'
 */
 
 /* Parameters */
-@description('Azure location (aka region) where global resources (Role definitions, Event Hub, etc.) will be deployed. These tenant-wide resources only need to be created once regardless of how many subscriptions are monitored.')
+@description('Azure region where the policy resources will be deployed. This should match the region of your monitored resources for optimal performance.')
 param location string
 
 @minLength(36)
 @maxLength(36)
-@description('Azure subscription ID that host the target Event Hub for activity log')
+@description('Subscription ID where the Event Hub for Activity Logs is located. Used to target the correct Event Hub for diagnostic settings.')
 param eventhubSubscriptionId string
 
-@description('Azure resource group name that host the target Event Hub for activity log')
+@description('Resource group name where the Event Hub for Activity Logs is located. Used to target the correct Event Hub for diagnostic settings.')
 param eventhubResourceGroupName string
 
-@description('Event Hub ID for activity log')
+@description('Resource ID of the Event Hub that will receive Activity Logs. Used for role assignments to grant access permissions.')
 param eventhubId string
 
-@description('Event Hub Authorization Rule Id.')
+@description('Resource ID of the Event Hub Authorization Rule that grants send permissions. Used to configure diagnostic settings to send logs to the Event Hub.')
 param eventHubAuthorizationRuleId string
 
-@description('Diagnostic settings name of activity log')
+@description('Name for the diagnostic settings configuration that sends Activity Logs to the Event Hub. Used for identification in the Azure portal.')
 param activityLogDiagnosticSettingsName string
 
-@description('Event Hub Name.')
+@description('Name of the Event Hub instance where Activity Logs will be sent. This Event Hub must exist within the namespace referenced by the authorization rule.')
 param eventHubName string
 
-@description('The prefix to be added to the resource name.')
+@description('Optional prefix added to all resource names for organization and identification purposes.')
 param resourceNamePrefix string
 
-@description('The suffix to be added to the resource name.')
+@description('Optional suffix added to all resource names for organization and identification purposes.')
 param resourceNameSuffix string
 
 /* Variables */

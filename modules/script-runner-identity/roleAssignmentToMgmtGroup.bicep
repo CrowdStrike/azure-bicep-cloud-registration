@@ -1,9 +1,9 @@
 targetScope='managementGroup'
 
-@description('Managed identity Id of the script runner')
+@description('Principal ID of the user-assigned managed identity that will execute deployment scripts. This identity needs appropriate permissions.')
 param scriptRunnerIdentityId string
 
-@description('Custom label indicating the environment to be monitored, such as prod, stag or dev.')
+@description('Environment label (e.g., prod, stag, dev) used for resource naming and tagging. Helps distinguish between different deployment environments.')
 param env string
 
 var defaultRoleIds = [

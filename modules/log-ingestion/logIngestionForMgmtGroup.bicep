@@ -12,33 +12,33 @@ targetScope = 'managementGroup'
 */
 
 /* Parameters */
-@description('The prefix to be added to the resource name.')
+@description('Optional prefix added to all resource names for organization and identification purposes.')
 param resourceNamePrefix string
 
-@description('The suffix to be added to the resource name.')
+@description('Optional suffix added to all resource names for organization and identification purposes.')
 param resourceNameSuffix string
 
 @minLength(36)
 @maxLength(36)
-@description('Azure subscription ID that will host CrowdStrike infrastructure')
+@description('Subscription ID where CrowdStrike infrastructure resources will be deployed. This subscription hosts shared resources like Event Hubs.')
 param csInfraSubscriptionId string
 
-@description('Event Hub Authorization Rule Id.')
+@description('Resource ID of the Event Hub Authorization Rule that grants send permissions. Used to configure diagnostic settings to send logs to the Event Hub.')
 param eventHubAuthorizationRuleId string
 
-@description('Resource group name for the Crowdstrike infrastructure resources')
+@description('Name of the resource group where CrowdStrike infrastructure resources will be deployed.')
 param resourceGroupName string
 
-@description('Diagnostic settings name of activity log')
+@description('Name for the diagnostic settings configuration that sends Activity Logs to the Event Hub. Used for identification in the Azure portal.')
 param activityLogDiagnosticSettingsName string
 
-@description('Event Hub Name for activity log')
+@description('Name of the Event Hub instance where Activity Logs will be sent. This Event Hub must exist within the namespace referenced by the authorization rule.')
 param activityLogEventHubName string
 
-@description('Event Hub ID for activity log')
+@description('Resource ID of the Event Hub that will receive Activity Logs. Used for role assignments to grant access permissions.')
 param activityLogEventHubId string
 
-@description('Settings of feature modules')
+@description('Configuration settings for the real-time visibility and detection module, controlling which features are enabled and their specific settings.')
 param featureSettings RealTimeVisibilityDetectionSettings
 
 @description('Azure location (aka region) where global resources (Role definitions, Event Hub, etc.) will be deployed. These tenant-wide resources only need to be created once regardless of how many subscriptions are monitored.')

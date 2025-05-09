@@ -1,12 +1,12 @@
 targetScope='subscription'
 
-@description('Role definition Id of the custom Crowdstrike reader role')
+@description('Resource ID of the custom role definition created for CrowdStrike. This role will be assigned to the CrowdStrike service principal.')
 param customRoleDefinitionId string
 
-@description('Principal Id of the Crowdstrike Application in Entra ID')
+@description('Principal ID of the CrowdStrike application registered in Entra ID. This service principal will be granted the custom role.')
 param azurePrincipalId string
 
-@description('Custom label indicating the environment to be monitored, such as prod, stag or dev.')
+@description('Environment label (e.g., prod, stag, dev) used for resource naming and tagging. Helps distinguish between different deployment environments.')
 param env string
 
 var defaultRoleIds = [

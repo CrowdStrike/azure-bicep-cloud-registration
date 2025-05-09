@@ -1,52 +1,50 @@
 @export()
-@description('Settings for real time visibility and detection module')
+@description('Configuration settings for the real-time visibility and detection module, which enables monitoring of Azure activity and Entra ID logs')
 type RealTimeVisibilityDetectionSettings = {
-  @description('The main feature toggle of the real time visibility and detection module')
+  @description('Master toggle for the real-time visibility and detection module. When set to false, all related resources will not be deployed.')
   enabled: bool
 
-  @description('Detail settings of activity log')
+  @description('Configuration settings for Azure Activity Log collection and monitoring')
   activityLogSettings: ActivityLogSettings
 
-  @description('Detail settings of Entra ID log')
+  @description('Configuration settings for Entra ID log collection and monitoring')
   entraIdLogSettings: EntraIdLogSettings
 }
 
 @export()
 type ActivityLogSettings = {
-    @description('Deploy Activity Log Diagnostic Settings to all active Azure subscriptions. Defaults to true')
+    @description('Controls whether Activity Log Diagnostic Settings are deployed to monitored Azure subscriptions. When false, activity logs will not be collected.')
     enabled: bool
 
-    @description('Deploy Activity Log Diagnostic Settings policy. Defaults to true')
+    @description('Controls whether to deploy a policy that automatically configures Activity Log Diagnostic Settings on new subscriptions')
     deployRemediationPolicy: bool
 
-    @description('Settings for using existing Eventhub')
+    @description('Configuration for using an existing Event Hub instead of creating a new one for Activity Logs')
     existingEventhub: ExistingEventHub
 }
 
 @export()
 type EntraIdLogSettings = {
-    @description('Deploy Entra Log Diagnostic Settings. Defaults to true')
+    @description('Controls whether Entra ID Log Diagnostic Settings are deployed. When false, Entra ID logs will not be collected.')
     enabled: bool
 
-    @description('Settings for using existing Eventhub')
+    @description('Configuration for using an existing Event Hub instead of creating a new one for Entra ID Logs')
     existingEventhub: ExistingEventHub
 }
 
 type ExistingEventHub = {
-    @description('Use existing Eventhub to send/receive activity log')
+    @description('When set to true, an existing Event Hub will be used instead of creating a new one')
     use: bool
 
-    @description('Subscription ID hosting the Eventhub')
+    @description('Subscription ID where the existing Event Hub is located')
     subscriptionId: string
 
-    @description('Resource group name hosting the Eventhub')
+    @description('Resource group name where the existing Event Hub is located')
     resourceGroupName: string
     
-    @description('Name of Eventhub namespace')
+    @description('Name of the existing Event Hub Namespace')
     namespaceName: string
 
-    @description('Name of the Eventhub instance')
+    @description('Name of the existing Event Hub instance to use')
     name: string
-
-    
 }

@@ -13,38 +13,38 @@ metadata owner = 'CrowdStrike'
 */
 
 /* Parameters */
-@description('List of Azure subscription IDs to monitor')
+@description('List of Azure subscription IDs to monitor. These subscriptions will be configured for CrowdStrike monitoring.')
 param subscriptionIds array = []
 
 @minLength(36)
 @maxLength(36)
-@description('Subscription Id of the default Azure Subscription.')
+@description('Subscription ID where CrowdStrike infrastructure resources will be deployed. This subscription hosts shared resources like Event Hubs.')
 param csInfraSubscriptionId string
 
 @description('List of IP addresses of Crowdstrike Falcon service. Please refer to https://falcon.crowdstrike.com/documentation/page/re07d589/add-crowdstrike-ip-addresses-to-cloud-provider-allowlists-0 for the IP address list of your Falcon region.')
 param falconIpAddresses array = []
 
-@description('Principal Id of the Crowdstrike Application in Entra ID')
+@description('Principal ID of the CrowdStrike application registered in Entra ID. This ID is used for role assignments and access control.')
 param azurePrincipalId string
 
 @description('Azure location (aka region) where global resources (Role definitions, Event Hub, etc.) will be deployed. These tenant-wide resources only need to be created once regardless of how many subscriptions are monitored.')
 param location string = deployment().location
 
-@description('Custom label indicating the environment to be monitored, such as prod, stag or dev.')
+@description('Environment label (e.g., prod, stag, dev) used for resource naming and tagging. Helps distinguish between different deployment environments.')
 param env string = 'prod'
 
-@description('Tags to be applied to all resources.')
+@description('Tags to be applied to all deployed resources. Used for resource organization and governance.')
 param tags object = {
   CSTagVendor: 'crowdstrike'
 }
 
-@description('The prefix to be added to the deployment name.')
+@description('Optional prefix added to all resource names for organization and identification purposes.')
 param resourceNamePrefix string = ''
 
-@description('The suffix to be added to the deployment name.')
+@description('Optional suffix added to all resource names for organization and identification purposes.')
 param resourceNameSuffix string = ''
 
-@description('Settings of feature modules')
+@description('Configuration settings for CrowdStrike feature modules. Controls which features are enabled and their specific settings.')
 param featureSettings FeatureSettings = {
   realTimeVisibilityDetection: {
     enabled: true

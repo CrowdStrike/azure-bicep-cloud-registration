@@ -6,24 +6,24 @@ targetScope='subscription'
   Copyright (c) 2024 CrowdStrike, Inc.
 */
 
-@description('The prefix to be added to the deployment name.')
+@description('Optional prefix added to all resource names for organization and identification purposes.')
 param resourceNamePrefix string
 
-@description('The suffix to be added to the deployment name.')
+@description('Optional suffix added to all resource names for organization and identification purposes.')
 param resourceNameSuffix string
 
 @minLength(36)
 @maxLength(36)
-@description('Subscription Id of the default Azure Subscription.')
+@description('Subscription ID where CrowdStrike infrastructure resources will be deployed. This subscription hosts shared resources like Event Hubs.')
 param csInfraSubscriptionId string
 
-@description('List of Azure subscription IDs to monitor')
+@description('List of Azure subscription IDs to monitor. These subscriptions will be configured for CrowdStrike monitoring.')
 param subscriptionIds array
 
-@description('Principal Id of the Crowdstrike Application in Entra ID')
+@description('Principal ID of the CrowdStrike application registered in Entra ID. This service principal will be granted necessary permissions.')
 param azurePrincipalId string
 
-@description('Custom label indicating the environment to be monitored, such as prod, stag or dev.')
+@description('Environment label (e.g., prod, stag, dev) used for resource naming and tagging. Helps distinguish between different deployment environments.')
 param env string
 
 var environment = length(env) > 0 ? '-${env}' : env
@@ -51,4 +51,3 @@ module roleAssignmentToSubs 'asset-inventory/roleAssignmentToSub.bicep' =[for su
 }]
 
 output customRoleName string = customRoleForSubs.outputs.name
-

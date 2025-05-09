@@ -1,30 +1,30 @@
 import {ActivityLogSettings, EntraIdLogSettings} from '../../models/real-time-visibility-detection.bicep'
 
-@description('Settings for configuring Event Hub for activity log')
+@description('Configuration settings for Azure Activity Log collection, including whether to use existing Event Hubs')
 param activityLogSettings ActivityLogSettings
 
-@description('Settings for configuring Event Hub for Entra ID log')
+@description('Configuration settings for Entra ID log collection, including whether to use existing Event Hubs')
 param entraLogSettings EntraIdLogSettings
 
-@description('List of IP addresses of Crowdstrike Falcon service. Please refer to https://falcon.crowdstrike.com/documentation/page/re07d589/add-crowdstrike-ip-addresses-to-cloud-provider-allowlists-0 for the IP address list of your Falcon region.')
+@description('List of CrowdStrike Falcon service IP addresses that need network access to the Event Hub. These IPs will be allowed through the Event Hub firewall.')
 param falconIpAddresses array
 
-@description('Principal Id of the Crowdstrike Application in Entra ID')
+@description('Principal ID of the CrowdStrike application registered in Entra ID. Used to grant data receiver permissions on Event Hubs.')
 param azurePrincipalId string
 
-@description('The prefix to be added to the resource name.')
+@description('Optional prefix added to all resource names for organization and identification purposes.')
 param resourceNamePrefix string
 
-@description('The suffix to be added to the resource name.')
+@description('Optional suffix added to all resource names for organization and identification purposes.')
 param resourceNameSuffix string
 
 @description('Azure location (aka region) where global resources (Role definitions, Event Hub, etc.) will be deployed. These tenant-wide resources only need to be created once regardless of how many subscriptions are monitored.')
 param location string
 
-@description('Custom label indicating the environment to be monitored, such as prod, stag or dev.')
+@description('Environment label (e.g., prod, stag, dev) used for resource naming and tagging. Helps distinguish between different deployment environments.')
 param env string
 
-@description('Tags to be applied to all resources.')
+@description('Tags to be applied to all deployed Event Hub resources. Used for resource organization and governance.')
 param tags object
 
 

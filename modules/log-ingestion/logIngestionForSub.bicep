@@ -13,31 +13,31 @@ targetScope = 'subscription'
 @description('Azure location (aka region) where global resources (Role definitions, Event Hub, etc.) will be deployed. These tenant-wide resources only need to be created once regardless of how many subscriptions are monitored.')
 param location string
 
-@description('Custom label indicating the environment to be monitored, such as prod, stag or dev.')
+@description('Environment label (e.g., prod, stag, dev) used for resource naming and tagging. Helps distinguish between different deployment environments.')
 param env string
 
-@description('The prefix to be added to the resource name.')
+@description('Optional prefix added to all resource names for organization and identification purposes.')
 param resourceNamePrefix string
 
-@description('The suffix to be added to the resource name.')
+@description('Optional suffix added to all resource names for organization and identification purposes.')
 param resourceNameSuffix string
 
-@description('Resource group name for the Crowdstrike infrastructure resources')
+@description('Name of the resource group where CrowdStrike infrastructure resources will be deployed.')
 param resourceGroupName string
 
-@description('Principal Id of the Crowdstrike Application in Entra ID')
+@description('Principal ID of the CrowdStrike application registered in Entra ID. This service principal will be granted necessary permissions.')
 param azurePrincipalId string
 
-@description('Tags to be applied to all resources.')
+@description('Tags to be applied to all deployed resources. Used for resource organization, governance, and cost tracking.')
 param tags object
 
-@description('Settings of feature modules')
+@description('Configuration settings for the real-time visibility and detection module, controlling which features are enabled and their specific settings.')
 param featureSettings RealTimeVisibilityDetectionSettings
 
 @description('List of IP addresses of Crowdstrike Falcon service. Please refer to https://falcon.crowdstrike.com/documentation/page/re07d589/add-crowdstrike-ip-addresses-to-cloud-provider-allowlists-0 for the IP address list of your Falcon region.')
 param falconIpAddresses array
 
-@description('List of Azure subscription IDs to monitor')
+@description('List of Azure subscription IDs to monitor. These subscriptions will be configured for CrowdStrike monitoring.')
 param subscriptionIds array
 
 /* Variables */

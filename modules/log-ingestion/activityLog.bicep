@@ -7,13 +7,13 @@ targetScope = 'subscription'
   Copyright (c) 2024 CrowdStrike, Inc.
 */
 
-@description('Event Hub Authorization Rule Id.')
+@description('Resource ID of the Event Hub Authorization Rule that grants send permissions. Used to configure diagnostic settings to send logs to the Event Hub.')
 param eventHubAuthorizationRuleId string
 
-@description('Event Hub Name.')
+@description('Name of the Event Hub instance where Activity Logs will be sent. This Event Hub must exist within the namespace referenced by the authorization rule.')
 param eventHubName string
 
-@description('Entra ID Diagnostic Settings Name.')
+@description('Name for the diagnostic settings configuration that sends Activity Logs to the Event Hub. Used for identification in the Azure portal.')
 param diagnosticSettingsName string
 
 /*

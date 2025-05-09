@@ -1,16 +1,16 @@
-@description('List of Azure management group IDs to monitor')
+@description('List of Azure management group IDs to monitor. These management groups will be configured for CrowdStrike monitoring.')
 param managementGroupIds array
 
-@description('Managed identity Id of the script runner')
+@description('Resource ID of the user-assigned managed identity that will execute deployment scripts. This identity needs appropriate permissions.')
 param scriptRunnerIdentityId string
 
 @description('Azure location (aka region) where global resources (Role definitions, Event Hub, etc.) will be deployed. These tenant-wide resources only need to be created once regardless of how many subscriptions are monitored.')
 param location string
 
-@description('Custom label indicating the environment to be monitored, such as prod, stag or dev.')
+@description('Environment label (e.g., prod, stag, dev) used for resource naming and tagging. Helps distinguish between different deployment environments.')
 param env string
 
-@description('Tags to be applied to all resources.')
+@description('Tags to be applied to all deployed resources. Used for resource organization, governance, and cost tracking.')
 param tags object
 
 

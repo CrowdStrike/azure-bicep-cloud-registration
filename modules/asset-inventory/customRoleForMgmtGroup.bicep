@@ -5,11 +5,11 @@ targetScope='managementGroup'
   Copyright (c) 2024 CrowdStrike, Inc.
 */
 
-@description('The prefix to be added to the deployment name.')
-param prefix string
+@description('The prefix to be added to the resource name.')
+param resourceNamePrefix string
 
-@description('The suffix to be added to the deployment name.')
-param suffix string
+@description('The suffix to be added to the resource name.')
+param resourceNameSuffix string
 
 @description('Custom label indicating the environment to be monitored, such as prod, stag or dev.')
 param env string
@@ -24,8 +24,9 @@ var customRole = {
   ]
 }
 
+var roleName = '${resourceNamePrefix}${customRole.roleName}-${managementGroup().name}${resourceNameSuffix}'
 resource customRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
-  name: guid(customRole.roleName, tenant().tenantId, managementGroup().id, env)
+  name: guid(roleName, tenant().tenantId, managementGroup().id, env)
   properties: {
     assignableScopes: [managementGroup().id]
     description: customRole.roleDescription
@@ -35,7 +36,7 @@ resource customRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-0
         notActions: []
       }
     ]
-    roleName: '${prefix}${customRole.roleName}-${managementGroup().name}${suffix}'
+    roleName: roleName
     type: 'CustomRole'
   }
 }

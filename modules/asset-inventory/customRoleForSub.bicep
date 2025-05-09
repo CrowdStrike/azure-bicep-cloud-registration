@@ -5,11 +5,11 @@ targetScope='subscription'
   Copyright (c) 2024 CrowdStrike, Inc.
 */
 
-@description('The prefix to be added to the deployment name.')
-param prefix string
+@description('The prefix to be added to the resource name.')
+param resourceNamePrefix string
 
-@description('The suffix to be added to the deployment name.')
-param suffix string
+@description('The suffix to be added to the resource name.')
+param resourceNameSuffix string
 
 @description('List of Azure subscription IDs to monitor')
 param subscriptionIds array
@@ -30,8 +30,9 @@ var customRole = {
 var fullPathSubscriptionIds = [for subId in subscriptionIds: '/subscriptions/${subId}']
 
 
+var roleName = '${resourceNamePrefix}${customRole.roleName}-sub${resourceNameSuffix}'
 resource customRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
-  name: guid(customRole.roleName, tenant().tenantId, subscription().id)
+  name: guid(roleName, tenant().tenantId, subscription().id, env)
   properties: {
     assignableScopes: fullPathSubscriptionIds
     description: customRole.roleDescription
@@ -41,7 +42,7 @@ resource customRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-0
         notActions: []
       }
     ]
-    roleName: '${prefix}${customRole.roleName}-sub${suffix}'
+    roleName: roleName
     type: 'CustomRole'
   }
 }

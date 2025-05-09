@@ -14,13 +14,6 @@ metadata owner = 'CrowdStrike'
 */
 
 /* Parameters */
-@description('Targetscope of the Falcon Cloud Security integration.')
-@allowed([
-  'ManagementGroup'
-  'Subscription'
-])
-param targetScope string = 'ManagementGroup'
-
 @description('List of Azure management group IDs to monitor')
 param managementGroupIds array = []
 
@@ -35,39 +28,13 @@ param csInfraSubscriptionId string
 @description('Principal Id of the Crowdstrike Application in Entra ID')
 param azurePrincipalId string
 
-@description('Principal type of the specified principal Id')
-param azurePrincipalType string = 'ServicePrincipal'
-
-@description('CID for the Falcon API.')
-param falconCID string = ''
-
-@description('Client ID for the Falcon API.')
-param falconClientId string=''
-
-@description('Client secret for the Falcon API.')
-@secure()
-param falconClientSecret string=''
-
-@description('Falcon cloud API url')
-param falconUrl string = 'api.crowdstrike.com'
-
 @description('List of IP addresses of Crowdstrike Falcon service. Please refer to https://falcon.crowdstrike.com/documentation/page/re07d589/add-crowdstrike-ip-addresses-to-cloud-provider-allowlists-0 for the IP address list of your Falcon region.')
-param falconIpAddresses array = [
-  '13.52.148.107'
-  '52.52.20.134'
-  '54.176.76.126'
-  '54.176.197.246'
-]
+param falconIpAddresses array = []
 
-@description('Type of the Azure account to integrate.')
-@allowed([
-  'commercial'
-])
-param azureAccountType string = 'commercial'
+@description('Azure location (aka region) where global resources (Role definitions, Event Hub, etc.) will be deployed. These tenant-wide resources only need to be created once regardless of how many subscriptions are monitored.')
+param location string = deployment().location
 
-@description('Azure region for the resources deployed in this solution.')
-param region string = deployment().location
-
+@maxLength(4)
 @description('Custom label indicating the environment to be monitored, such as prod, stag or dev.')
 param env string = 'prod'
 
@@ -76,71 +43,131 @@ param tags object = {
   CSTagVendor: 'Crowdstrike'
 }
 
-@description('The prefix to be added to the deployment name.')
-param deploymentNamePrefix string = ''
+@maxLength(10)
+@description('The prefix to be added to the resource name.')
+param resourceNamePrefix string = ''
 
-@description('The suffix to be added to the deployment name.')
-param deploymentNameSuffix string = ''
+@maxLength(10)
+@description('The suffix to be added to the resource name.')
+param resourceNameSuffix string = ''
 
 @description('Settings of feature modules')
 param featureSettings FeatureSettings = {
   realTimeVisibilityDetection: {
     enabled: true
-    deployActivityLogDiagnosticSettings: true       
-    deployActivityLogDiagnosticSettingsPolicy: true 
-    deployEntraLogDiagnosticSettings: true          
-    enableAppInsights: false                        
+    activityLogSettings: {
+      enabled: true
+      deployRemediationPolicy: true
+      existingEventhub: {
+        use: false
+        name: ''
+        namespaceName: ''
+        resourceGroupName: ''
+        subscriptionId: ''
+      }
+    }
+    entraIdLogSettings: {
+      enabled: true
+      existingEventhub: {
+        use: false
+        name: ''
+        namespaceName: ''
+        resourceGroupName: ''
+        subscriptionId: ''
+      }
+    }                    
   }
 }
 
 
 // ===========================================================================
-var crowdstrikeInfraSubscriptionId = length(csInfraSubscriptionId) > 0 ? csInfraSubscriptionId : (length(subscriptionIds) > 0 ? subscriptionIds[0] : '')
-var distinctSubscriptionIds = union(subscriptionIds, [csInfraSubscriptionId]) // remove duplicated values
-var distinctManagementGroupIds = union(managementGroupIds, []) // remove duplicated values
-var prefix = length(deploymentNamePrefix) > 0 ? '${deploymentNamePrefix}-' : ''
-var suffix = length(deploymentNameSuffix) > 0 ? '-${deploymentNameSuffix}' : ''
+var subscriptions = union(subscriptionIds, [csInfraSubscriptionId]) // remove duplicated values
+var managementGroups = union(managementGroupIds, []) // remove duplicated values
+var environment = length(env) > 0 ? '-${env}' : env
 
 /* Resources used across modules
 1. Role assignments to the Crowdstrike's app service principal
 2. Discover subscriptions of the specified management groups
 */
 module assetInventory 'modules/cs-asset-inventory-mg.bicep' = {
-  name: '${prefix}cs-ai-mg-deployment-${env}${suffix}'
+  name: '${resourceNamePrefix}cs-inv-mg-deployment-${env}${resourceNameSuffix}'
   params: {
-    csInfraSubscriptionId: crowdstrikeInfraSubscriptionId
-    managementGroupIds: distinctManagementGroupIds
-    subscriptionIds: distinctSubscriptionIds
+    managementGroupIds: managementGroups
+    subscriptionIds: subscriptions
     azurePrincipalId: azurePrincipalId
-    azurePrincipalType: azurePrincipalType
-    prefix: prefix
-    suffix: suffix
-    region: region
+    csInfraSubscriptionId: csInfraSubscriptionId
+    resourceNamePrefix: resourceNamePrefix
+    resourceNameSuffix: resourceNameSuffix
     env: env
-    tags: tags
   }
 }
 
-module logIngestion 'modules/cs-log-ingestion-mg.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled && targetScope == 'ManagementGroup') {
-    name: '${prefix}cs-li-mg-deployment-${env}${suffix}'
+var resourceGroupName = '${resourceNamePrefix}rg-cs${environment}${resourceNameSuffix}'
+module resourceGroup 'modules/common/resourceGroup.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled) {
+    name: '${resourceNamePrefix}cs-rg${environment}${resourceNameSuffix}'
+    scope: subscription(csInfraSubscriptionId)
+
     params: {
-      targetScope: targetScope
-      managementGroupIds: distinctManagementGroupIds
-      subscriptionIds: distinctSubscriptionIds
-      csInfraSubscriptionId: crowdstrikeInfraSubscriptionId
-      managementGroupsToSubscriptions: assetInventory.outputs.managementGroupsToSubscriptions
-      featureSettings: featureSettings
+        resourceGroupName: resourceGroupName
+        location: location
+        tags: tags
+    }
+}
+
+module scriptRunnerIdentity 'modules/cs-script-runner-identity-mg.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled) {
+    name: '${resourceNamePrefix}cs-script-runner-identity${environment}${resourceNameSuffix}'
+
+    params: {
+        csInfraSubscriptionId: csInfraSubscriptionId
+        managementGroupIds: managementGroups
+        resourceGroupName: resourceGroupName
+        resourceNamePrefix: resourceNamePrefix
+        resourceNameSuffix: resourceNameSuffix
+        env: env
+        location: location
+        tags: tags
+    }
+
+    dependsOn: [
+        resourceGroup
+    ]
+}
+
+module deploymentScope 'modules/cs-deployment-scope-mg.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled) {
+    name: '${resourceNamePrefix}cs-deployment-scope${environment}${resourceNameSuffix}'
+    params: {
+        managementGroupIds: managementGroups
+        subscriptionIds: subscriptions
+        resourceGroupName: resourceGroupName
+        scriptRunnerIdentityId: scriptRunnerIdentity.outputs.id
+        csInfraSubscriptionId: csInfraSubscriptionId
+        resourceNamePrefix: resourceNamePrefix
+        resourceNameSuffix: resourceNameSuffix
+        env: env
+        location: location
+        tags: tags
+    }
+}
+
+module logIngestion 'modules/cs-log-ingestion-mg.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled) {
+    name: '${resourceNamePrefix}cs-log-mg-deployment${environment}${resourceNameSuffix}'
+    params: {
+      managementGroupIds: managementGroups
+      subscriptionIds: subscriptions
+      csInfraSubscriptionId: csInfraSubscriptionId
+      resourceGroupName: resourceGroupName
+      featureSettings: featureSettings.realTimeVisibilityDetection
       falconIpAddresses: falconIpAddresses
-      prefix: prefix
-      suffix: suffix
       azurePrincipalId: azurePrincipalId
-      azurePrincipalType: azurePrincipalType
-      region: region
+      resourceNamePrefix: resourceNamePrefix
+      resourceNameSuffix: resourceNameSuffix
+      location: location
       env: env
       tags: tags
     }
     dependsOn: [
-      assetInventory
+        resourceGroup
+        deploymentScope
     ]
 }
 

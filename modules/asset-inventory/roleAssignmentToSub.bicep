@@ -1,24 +1,10 @@
 targetScope='subscription'
 
-@description('The prefix to be added to the deployment name.')
-param prefix string
-
-@description('The suffix to be added to the deployment name.')
-param suffix string
-
 @description('Role definition Id of the custom Crowdstrike reader role')
 param customRoleDefinitionId string
 
-@minLength(36)
-@maxLength(36)
-@description('Subscription Id of the default Azure Subscription.')
-param csInfraSubscriptionId string
-
 @description('Principal Id of the Crowdstrike Application in Entra ID')
 param azurePrincipalId string
-
-@description('Type of the Principal, defaults to ServicePrincipal.')
-param azurePrincipalType string
 
 @description('Custom label indicating the environment to be monitored, such as prod, stag or dev.')
 param env string
@@ -34,7 +20,7 @@ resource roleAssignments 'Microsoft.Authorization/roleAssignments@2022-04-01' = 
     properties: {
       roleDefinitionId: roleDefinitionId
       principalId: azurePrincipalId
-      principalType: azurePrincipalType
+      principalType: 'ServicePrincipal'
     }
   }
 ]

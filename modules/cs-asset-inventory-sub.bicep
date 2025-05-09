@@ -7,10 +7,10 @@ targetScope='subscription'
 */
 
 @description('The prefix to be added to the deployment name.')
-param prefix string
+param resourceNamePrefix string
 
 @description('The suffix to be added to the deployment name.')
-param suffix string
+param resourceNameSuffix string
 
 @minLength(36)
 @maxLength(36)
@@ -23,52 +23,29 @@ param subscriptionIds array
 @description('Principal Id of the Crowdstrike Application in Entra ID')
 param azurePrincipalId string
 
-@description('Type of the Principal')
-param azurePrincipalType string
-
-@description('Azure region for the resources deployed in this solution.')
-param region string
-
 @description('Custom label indicating the environment to be monitored, such as prod, stag or dev.')
 param env string
 
-@description('Tags to be applied to all resources.')
-param tags object
-
-var resourceGroupName = '${prefix}rg-csai-${env}${suffix}'
-
-module resourceGroup 'common/resourceGroup.bicep' = {
-  name: '${prefix}cs-ai-rg-${env}${suffix}'
-  scope: subscription(csInfraSubscriptionId)
-  params: {
-    resourceGroupName: resourceGroupName
-    region: region
-    tags: tags
-  }
-}
+var environment = length(env) > 0 ? '-${env}' : env
 
 /* Define required permissions at Azure Subscription scope */
 module customRoleForSubs 'asset-inventory/customRoleForSub.bicep' = {
-  name: '${prefix}cs-ai-reader-role-sub-${env}${suffix}'
+  name: '${resourceNamePrefix}cs-inv-reader-role-sub${environment}${resourceNameSuffix}'
   scope: subscription(csInfraSubscriptionId)
   params: {
     subscriptionIds: subscriptionIds
-    prefix: prefix
-    suffix: suffix
+    resourceNamePrefix: resourceNamePrefix
+    resourceNameSuffix: resourceNameSuffix
     env: env
   }
 }
 
 module roleAssignmentToSubs 'asset-inventory/roleAssignmentToSub.bicep' =[for subId in subscriptionIds: {
-  name: '${prefix}cs-ai-ra-sub-${subId}-${env}${suffix}'
+  name: '${resourceNamePrefix}cs-inv-ra-sub-${subId}${environment}${resourceNameSuffix}'
   scope: subscription(subId)
   params: {
     azurePrincipalId: azurePrincipalId
-    azurePrincipalType: azurePrincipalType
     customRoleDefinitionId: customRoleForSubs.outputs.id
-    csInfraSubscriptionId: csInfraSubscriptionId
-    prefix: prefix
-    suffix: suffix
     env: env
   }
 }]

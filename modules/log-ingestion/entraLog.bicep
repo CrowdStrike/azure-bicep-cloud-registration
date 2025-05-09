@@ -14,7 +14,7 @@ param eventHubAuthorizationRuleId string
 param eventHubName string
 
 @description('Entra ID Diagnostic Settings Name.')
-param diagnosticSettingsName string = 'cs-li-entid-to-eventhub'
+param diagnosticSettingsName string
 
 /* 
   Deploy Diagnostic Settings for Microsoft Entra ID Logs

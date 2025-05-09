@@ -1,5 +1,4 @@
-import { DiagnosticLogSettings } from '../../models/real-time-visibility-detection.bicep'
-import { FeatureSettings } from '../../models/common.bicep'
+import { RealTimeVisibilityDetectionSettings } from '../../models/real-time-visibility-detection.bicep'
 
 targetScope = 'subscription'
 
@@ -11,131 +10,78 @@ targetScope = 'subscription'
 */
 
 /* Parameters */
-@description('Targetscope of the IOM integration.')
-@allowed([
-  'ManagementGroup'
-  'Subscription'
-])
-param targetScope string
-
-@description('The Azure region for the resources deployed in this solution.')
-param region string
+@description('Azure location (aka region) where global resources (Role definitions, Event Hub, etc.) will be deployed. These tenant-wide resources only need to be created once regardless of how many subscriptions are monitored.')
+param location string
 
 @description('Custom label indicating the environment to be monitored, such as prod, stag or dev.')
 param env string
 
-@description('The prefix to be added to the deployment name.')
-param prefix string
+@description('The prefix to be added to the resource name.')
+param resourceNamePrefix string
 
-@description('The suffix to be added to the deployment name.')
-param suffix string
+@description('The suffix to be added to the resource name.')
+param resourceNameSuffix string
+
+@description('Resource group name for the Crowdstrike infrastructure resources')
+param resourceGroupName string
 
 @description('Principal Id of the Crowdstrike Application in Entra ID')
 param azurePrincipalId string
-
-@description('Type of the Principal')
-param azurePrincipalType string
 
 @description('Tags to be applied to all resources.')
 param tags object
 
 @description('Settings of feature modules')
-param featureSettings FeatureSettings
+param featureSettings RealTimeVisibilityDetectionSettings
 
 @description('List of IP addresses of Crowdstrike Falcon service. Please refer to https://falcon.crowdstrike.com/documentation/page/re07d589/add-crowdstrike-ip-addresses-to-cloud-provider-allowlists-0 for the IP address list of your Falcon region.')
 param falconIpAddresses array
 
-@minLength(36)
-@maxLength(36)
-@description('Subscription Id of the default Azure Subscription.')
-param csInfraSubscriptionId string // DO NOT CHANGE - used for registration validation
-
 @description('List of Azure subscription IDs to monitor')
 param subscriptionIds array
 
-
-/* ParameterBag for Activity Logs */
-param activityLogSettings DiagnosticLogSettings = {
-  useExistingEventHub: false
-  eventHubNamespaceName : ''                                // Optional, used only when useExistingEventHub is set to true
-  eventHubName: ''        // Optional, used only when useExistingEventHub is set to true
-  eventHubResourceGroupName: ''                             // Optional, used only when useExistingEventHub is set to true
-  eventHubSubscriptionId: ''                                // Optional, used only when useExistingEventHub is set to true
-  eventHubAuthorizationRuleId: ''                           // Optional, used only when useExistingEventHub is set to true
-  diagnosticSettingsName: 'diag-csliactivity-${env}'               // DO NOT CHANGE - used for registration validation
-}
-
-/* ParameterBag for EntraId Logs */
-param entraLogSettings DiagnosticLogSettings = {
-  useExistingEventHub: false
-  eventHubNamespaceName : ''                    // Optional, used only when useExistingEventHub is set to true
-  eventHubName: '' // Optional, used only when useExistingEventHub is set to true
-  eventHubResourceGroupName: ''                 // Optional, used only when useExistingEventHub is set to true
-  eventHubSubscriptionId: ''                    // Optional, used only when useExistingEventHub is set to true
-  eventHubAuthorizationRuleId: ''               // Optional, used only when useExistingEventHub is set to true
-  diagnosticSettingsName: 'diag-cslientid'        // DO NOT CHANGE - used for registration validation
-}
-
-
-
 /* Variables */
-var resourceGroupName = '${prefix}rg-csli-${env}${suffix}'
+var environment = length(env) > 0 ? '-${env}' : env
 var scope = az.resourceGroup(resourceGroupName)
-
-/* Resource Deployment */
-resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-03-01' = {
-  name: resourceGroupName
-  location: region
-  tags: tags
-}
+var shouldDeployEventhubForActivityLog = featureSettings.activityLogSettings.enabled && !featureSettings.activityLogSettings.existingEventhub.use
+var shouldDeployEventhubForEntraIdLog = featureSettings.entraIdLogSettings.enabled && !featureSettings.entraIdLogSettings.existingEventhub.use
 
 // Create EventHub Namespace and Eventhubs used by CrowdStrike
 module eventHub 'eventHub.bicep' = {
-  name: '${prefix}cs-li-eventhub-${env}-${region}${suffix}'
+  name: '${resourceNamePrefix}cs-log-eventhub${environment}-${location}${resourceNameSuffix}'
   scope: scope
   params: {
-    activityLogSettings: activityLogSettings
-    entraLogSettings: entraLogSettings
+    activityLogSettings: featureSettings.activityLogSettings
+    entraLogSettings: featureSettings.entraIdLogSettings
     falconIpAddresses: falconIpAddresses
     azurePrincipalId: azurePrincipalId
-    azurePrincipalType: azurePrincipalType
-    activityLogEnabled: featureSettings.realTimeVisibilityDetection.deployActivityLogDiagnosticSettings
-    entraLogEnabled: featureSettings.realTimeVisibilityDetection.deployEntraLogDiagnosticSettings
-    prefix: prefix
-    suffix: suffix
+    resourceNamePrefix: resourceNamePrefix
+    resourceNameSuffix: resourceNameSuffix
     tags: tags
-    region: region
+    location: location
     env: env
   }
-  dependsOn: [
-    resourceGroup
-  ]
 }
 
 /* Deploy Activity Log Diagnostic Settings for current Azure subscription */
-module activityDiagnosticSettings 'activityLog.bicep' = [for subId in union(subscriptionIds, [csInfraSubscriptionId]): if(featureSettings.realTimeVisibilityDetection.deployActivityLogDiagnosticSettings && !activityLogSettings.useExistingEventHub) { // make sure the specified infra subscription is in the scope
-  name:  '${prefix}cs-li-activity-diag-${env}${suffix}'
+var activityLogDiagnosticSettingsName = '${resourceNamePrefix}diag-cslogact${environment}${resourceNameSuffix}'
+module activityDiagnosticSettings 'activityLog.bicep' = [for subId in subscriptionIds: if(shouldDeployEventhubForActivityLog) {
+  name:  '${resourceNamePrefix}cs-log-activity-diag${environment}${resourceNameSuffix}'
   scope: subscription(subId)
   params: {
-      diagnosticSettingsName: '${prefix}${activityLogSettings.diagnosticSettingsName}${suffix}'
-      eventHubAuthorizationRuleId: eventHub.outputs.eventhubs.activityLog.eventHubAuthorizationRuleId
+      diagnosticSettingsName: activityLogDiagnosticSettingsName
       eventHubName: eventHub.outputs.eventhubs.activityLog.eventHubName
+      eventHubAuthorizationRuleId: eventHub.outputs.eventhubs.activityLog.eventHubAuthorizationRuleId
   }
-  dependsOn: [
-    resourceGroup
-  ]
 }]
 
-module entraDiagnosticSettings 'entraLog.bicep' = if (featureSettings.realTimeVisibilityDetection.deployEntraLogDiagnosticSettings && !entraLogSettings.useExistingEventHub) {
-  name: '${prefix}cs-li-entid-diag${suffix}'
+module entraDiagnosticSettings 'entraLog.bicep' = if (shouldDeployEventhubForEntraIdLog) {
+  name: '${resourceNamePrefix}cs-log-entid-diag${resourceNameSuffix}'
   params: {
-    diagnosticSettingsName: '${prefix}${entraLogSettings.diagnosticSettingsName}${suffix}'
+    diagnosticSettingsName: '${resourceNamePrefix}diag-cslogentid${environment}${resourceNameSuffix}'
     eventHubName: eventHub.outputs.eventhubs.entraLog.eventHubName
     eventHubAuthorizationRuleId: eventHub.outputs.eventhubs.entraLog.eventHubAuthorizationRuleId
   }
-  dependsOn: [
-    resourceGroup
-  ]
 }
 
 /* Deployment outputs required for follow-up activities */
@@ -145,3 +91,4 @@ output activityLogEventHubName string = eventHub.outputs.eventhubs.activityLog.e
 output entraLogEventHubName string = eventHub.outputs.eventhubs.entraLog.eventHubName
 output activityLogEventHubId string = eventHub.outputs.eventhubs.activityLog.eventHubId
 output entraLogEventHubId string = eventHub.outputs.eventhubs.entraLog.eventHubId
+output activityLogDiagnosticSettingsName string = activityLogDiagnosticSettingsName

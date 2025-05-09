@@ -1,4 +1,4 @@
-import {FeatureSettings} from '../models/common.bicep'
+import { RealTimeVisibilityDetectionSettings } from '../models/real-time-visibility-detection.bicep'
 
 targetScope = 'managementGroup'
 
@@ -11,21 +11,11 @@ targetScope = 'managementGroup'
 */
 
 /* Parameters */
-@description('Targetscope of the Falcon Cloud Security integration.')
-@allowed([
-  'ManagementGroup'
-  'Subscription'
-])
-param targetScope string
-
 @description('List of Azure management group IDs to monitor')
 param managementGroupIds array
 
 @description('List of Azure subscription IDs to monitor')
 param subscriptionIds array
-
-@description('Mapping of Azure management group IDs to Azure subscription IDs')
-param managementGroupsToSubscriptions array
 
 @minLength(36)
 @maxLength(36)
@@ -35,23 +25,23 @@ param csInfraSubscriptionId string
 @description('List of IP addresses of Crowdstrike Falcon service. Please refer to https://falcon.crowdstrike.com/documentation/page/re07d589/add-crowdstrike-ip-addresses-to-cloud-provider-allowlists-0 for the IP address list of your Falcon region.')
 param falconIpAddresses array
 
-@description('The prefix to be added to the deployment name.')
-param prefix string
+@description('The prefix to be added to the resource name.')
+param resourceNamePrefix string
 
-@description('The suffix to be added to the deployment name.')
-param suffix string
+@description('The suffix to be added to the resource name.')
+param resourceNameSuffix string
+
+@description('Resource group name for the Crowdstrike infrastructure resources')
+param resourceGroupName string
 
 @description('Principal Id of the Crowdstrike Application in Entra ID')
 param azurePrincipalId string
 
-@description('Type of the Principal')
-param azurePrincipalType string
-
 @description('Settings of feature modules')
-param featureSettings FeatureSettings
+param featureSettings RealTimeVisibilityDetectionSettings
 
-@description('Azure region for the resources deployed in this solution.')
-param region string
+@description('Azure location (aka region) where global resources (Role definitions, Event Hub, etc.) will be deployed. These tenant-wide resources only need to be created once regardless of how many subscriptions are monitored.')
+param location string
 
 @description('Custom label indicating the environment to be monitored, such as prod, stag or dev.')
 param env string
@@ -59,43 +49,41 @@ param env string
 @description('Tags to be applied to all resources.')
 param tags object
 
+var environment = length(env) > 0 ? '-${env}' : env
 
 // Deployment for subscriptions
 module deploymentForSubs 'log-ingestion/logIngestionForSub.bicep' = {
-  name: '${prefix}cs-li-sub-${env}${suffix}'
+  name: '${resourceNamePrefix}cs-log-sub${environment}${resourceNameSuffix}'
   scope: subscription(csInfraSubscriptionId)
   params: {
-    targetScope: targetScope
-    csInfraSubscriptionId: csInfraSubscriptionId // DO NOT CHANGE
     subscriptionIds: subscriptionIds
-    prefix: prefix
-    suffix: suffix
+    resourceGroupName: resourceGroupName
+    resourceNamePrefix: resourceNamePrefix
+    resourceNameSuffix: resourceNameSuffix
     azurePrincipalId: azurePrincipalId
-    azurePrincipalType: azurePrincipalType
     featureSettings: featureSettings
     falconIpAddresses: falconIpAddresses
-    region: region
+    location: location
     env: env
     tags: tags
   }
 }
 
 // Deployment for management groups
-module realTimeVisibilityDetectionForMG 'log-ingestion/logIngestionForMgmtGroup.bicep' = [for (mgmtGroupId, i) in managementGroupIds: if (featureSettings.realTimeVisibilityDetection.enabled && targetScope == 'ManagementGroup') {
-  name: '${prefix}cs-li-mg-${mgmtGroupId}-${env}${suffix}'
+module realTimeVisibilityDetectionForMG 'log-ingestion/logIngestionForMgmtGroup.bicep' = [for (mgmtGroupId, i) in managementGroupIds: {
+  name: '${resourceNamePrefix}cs-log-mg-${mgmtGroupId}${environment}${resourceNameSuffix}'
   scope: managementGroup(mgmtGroupId)
   params: {
-    targetScope: targetScope
-    managedSubscriptions: managementGroupsToSubscriptions[i]
-    individualSubscriptionIds: subscriptionIds
-    eventHubName: deploymentForSubs.outputs.activityLogEventHubName
     eventHubAuthorizationRuleId: deploymentForSubs.outputs.eventHubAuthorizationRuleIdForActivityLog
+    activityLogEventHubName: deploymentForSubs.outputs.activityLogEventHubName
+    activityLogEventHubId: deploymentForSubs.outputs.activityLogEventHubId
+    resourceGroupName: resourceGroupName
+    csInfraSubscriptionId: csInfraSubscriptionId
+    activityLogDiagnosticSettingsName: deploymentForSubs.outputs.activityLogDiagnosticSettingsName
     featureSettings: featureSettings
-    prefix: prefix
-    suffix: suffix
-    region: region
-    env: env
-    tags: tags
+    resourceNamePrefix: resourceNamePrefix
+    resourceNameSuffix: resourceNameSuffix
+    location: location
   }
 }]
 

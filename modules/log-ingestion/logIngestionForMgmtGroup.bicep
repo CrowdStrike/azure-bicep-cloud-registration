@@ -1,4 +1,4 @@
-import { DiagnosticLogSettings } from '../../models/real-time-visibility-detection.bicep'
+import { RealTimeVisibilityDetectionSettings } from '../../models/real-time-visibility-detection.bicep'
 import { FeatureSettings } from '../../models/common.bicep'
 
 targetScope = 'managementGroup'
@@ -12,72 +12,49 @@ targetScope = 'managementGroup'
 */
 
 /* Parameters */
-@description('Targetscope of the Falcon Cloud Security integration.')
-@allowed([
-  'ManagementGroup'
-  'Subscription'
-])
-param targetScope string
+@description('The prefix to be added to the resource name.')
+param resourceNamePrefix string
 
-@description('The prefix to be added to the deployment name.')
-param prefix string
+@description('The suffix to be added to the resource name.')
+param resourceNameSuffix string
 
-@description('The suffix to be added to the deployment name.')
-param suffix string
-
-@description('Directly specified active subscriptions  ')
-param individualSubscriptionIds array
-
-@description('Active subscriptions under management groups.')
-param managedSubscriptions array
+@minLength(36)
+@maxLength(36)
+@description('Azure subscription ID that will host CrowdStrike infrastructure')
+param csInfraSubscriptionId string
 
 @description('Event Hub Authorization Rule Id.')
 param eventHubAuthorizationRuleId string
 
-@description('Event Hub Name.')
-param eventHubName string
+@description('Resource group name for the Crowdstrike infrastructure resources')
+param resourceGroupName string
+
+@description('Diagnostic settings name of activity log')
+param activityLogDiagnosticSettingsName string
+
+@description('Event Hub Name for activity log')
+param activityLogEventHubName string
+
+@description('Event Hub ID for activity log')
+param activityLogEventHubId string
 
 @description('Settings of feature modules')
-param featureSettings FeatureSettings
+param featureSettings RealTimeVisibilityDetectionSettings
 
-@description('Azure region for the resources deployed in this solution.')
-param region string
+@description('Azure location (aka region) where global resources (Role definitions, Event Hub, etc.) will be deployed. These tenant-wide resources only need to be created once regardless of how many subscriptions are monitored.')
+param location string
 
-@description('Custom label indicating the environment to be monitored, such as prod, stag or dev.')
-param env string
-
-@description('Tags to be applied to all resources.')
-param tags object
-
-/* ParameterBag for Activity Logs */
-param activityLogSettings DiagnosticLogSettings = {
-  useExistingEventHub: false
-  eventHubNamespaceName : ''                                // Optional, used only when useExistingEventHub is set to true
-  eventHubName: ''        // Optional, used only when useExistingEventHub is set to true
-  eventHubResourceGroupName: ''                             // Optional, used only when useExistingEventHub is set to true
-  eventHubSubscriptionId: ''                                // Optional, used only when useExistingEventHub is set to true
-  eventHubAuthorizationRuleId: ''                           // Optional, used only when useExistingEventHub is set to true
-  diagnosticSettingsName: 'diag-csliactivity-${env}'               // DO NOT CHANGE - used for registration validation
-}
-
-module activityLogDiagnosticSettings 'activityLog.bicep' = [for subId in managedSubscriptions: if((featureSettings.realTimeVisibilityDetection.deployActivityLogDiagnosticSettings && !activityLogSettings.useExistingEventHub) && indexOf(individualSubscriptionIds, subId) < 0) {
-  name: '${prefix}cs-li-activity-diag-${subId}-${env}${suffix}'
-  scope: subscription(subId)
+module activityLogDiagnosticSettingsPolicyAssignment 'activityLogPolicy.bicep' = if (featureSettings.activityLogSettings.enabled && !featureSettings.activityLogSettings.existingEventhub.use && featureSettings.activityLogSettings.deployRemediationPolicy) {
+  name: '${resourceNamePrefix}cs-log-policy-${location}${resourceNameSuffix}'
   params: {
+    eventHubName: activityLogEventHubName
     eventHubAuthorizationRuleId: eventHubAuthorizationRuleId
-    eventHubName: eventHubName
-    diagnosticSettingsName: '${prefix}${activityLogSettings.diagnosticSettingsName}${suffix}'
-  }
-}]
-
-module activityLogDiagnosticSettingsPolicyAssignment 'activityLogPolicy.bicep' = if (featureSettings.realTimeVisibilityDetection.deployActivityLogDiagnosticSettingsPolicy) {
-  name: '${prefix}cs-li-policy-${region}${suffix}'
-  params: {
-    eventHubName: eventHubName
-    eventHubAuthorizationRuleId: eventHubAuthorizationRuleId
-    prefix: prefix
-    suffix: suffix
-    region: region
-    env: env
+    eventhubSubscriptionId: csInfraSubscriptionId
+    eventhubResourceGroupName: resourceGroupName
+    eventhubId: activityLogEventHubId
+    activityLogDiagnosticSettingsName: activityLogDiagnosticSettingsName
+    resourceNamePrefix: resourceNamePrefix
+    resourceNameSuffix: resourceNameSuffix
+    location: location
   }
 }

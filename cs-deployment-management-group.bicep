@@ -153,7 +153,7 @@ module logIngestion 'modules/cs-log-ingestion-mg.bicep' = if (featureSettings.re
     name: '${resourceNamePrefix}cs-log-mg-deployment${environment}${resourceNameSuffix}'
     params: {
       managementGroupIds: managementGroups
-      subscriptionIds: subscriptions
+      subscriptionIds: deploymentScope.outputs.allSubscriptions
       csInfraSubscriptionId: csInfraSubscriptionId
       resourceGroupName: resourceGroupName
       featureSettings: featureSettings.realTimeVisibilityDetection
@@ -167,7 +167,6 @@ module logIngestion 'modules/cs-log-ingestion-mg.bicep' = if (featureSettings.re
     }
     dependsOn: [
         resourceGroup
-        deploymentScope
     ]
 }
 

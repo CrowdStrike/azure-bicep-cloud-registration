@@ -1,4 +1,4 @@
-targetScope='subscription'
+targetScope = 'subscription'
 /*
   This Bicep template defines the required permissions at Azure Subscription scope to enable CrowdStrike
   Indicator of Misconfiguration (IOM)
@@ -28,7 +28,6 @@ var customRole = {
 }
 
 var fullPathSubscriptionIds = [for subId in subscriptionIds: '/subscriptions/${subId}']
-
 
 var roleName = '${resourceNamePrefix}${customRole.roleName}-sub${resourceNameSuffix}'
 resource customRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {

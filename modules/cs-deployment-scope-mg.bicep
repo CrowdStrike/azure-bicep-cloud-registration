@@ -1,4 +1,4 @@
-targetScope='managementGroup'
+targetScope = 'managementGroup'
 
 @description('List of Azure management group IDs to monitor. These management groups will be configured for CrowdStrike monitoring.')
 param managementGroupIds array
@@ -49,8 +49,10 @@ module deploymentScope 'deployment-scope/resolveDeploymentScope.bicep' = {
   }
 }
 
-output subscriptionsByManagementGroup array = [for (mgmtGroupId, i) in managementGroupIds: {
-  managementGroupId: mgmtGroupId
-  activeSubscriptionIds: deploymentScope.outputs.subscriptionsByManageGroups[i]
-}]
+output subscriptionsByManagementGroup array = [
+  for (mgmtGroupId, i) in managementGroupIds: {
+    managementGroupId: mgmtGroupId
+    activeSubscriptionIds: deploymentScope.outputs.subscriptionsByManageGroups[i]
+  }
+]
 output allSubscriptions array = union(flatten(deploymentScope.outputs.subscriptionsByManageGroups), subscriptionIds)

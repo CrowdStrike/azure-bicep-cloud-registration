@@ -1,4 +1,4 @@
-targetScope='subscription'
+targetScope = 'subscription'
 
 /*
   This Bicep template deploys infrastructure to enable CrowdStrike
@@ -40,14 +40,16 @@ module customRoleForSubs 'asset-inventory/customRoleForSub.bicep' = {
   }
 }
 
-module roleAssignmentToSubs 'asset-inventory/roleAssignmentToSub.bicep' =[for subId in subscriptionIds: {
-  name: '${resourceNamePrefix}cs-inv-ra-sub-${subId}${environment}${resourceNameSuffix}'
-  scope: subscription(subId)
-  params: {
-    azurePrincipalId: azurePrincipalId
-    customRoleDefinitionId: customRoleForSubs.outputs.id
-    env: env
+module roleAssignmentToSubs 'asset-inventory/roleAssignmentToSub.bicep' = [
+  for subId in subscriptionIds: {
+    name: '${resourceNamePrefix}cs-inv-ra-sub-${subId}${environment}${resourceNameSuffix}'
+    scope: subscription(subId)
+    params: {
+      azurePrincipalId: azurePrincipalId
+      customRoleDefinitionId: customRoleForSubs.outputs.id
+      env: env
+    }
   }
-}]
+]
 
 output customRoleName string = customRoleForSubs.outputs.name

@@ -1,6 +1,6 @@
-import {FeatureSettings} from 'models/common.bicep'
+import { FeatureSettings } from 'models/common.bicep'
 
-targetScope='managementGroup'
+targetScope = 'managementGroup'
 
 metadata name = 'CrowdStrike Falcon Cloud Security Integration'
 metadata description = 'Deploys CrowdStrike Falcon Cloud Security integration for Indicator of Misconfiguration (IOM) and Indicator of Attack (IOA) assessment'
@@ -75,10 +75,9 @@ param featureSettings FeatureSettings = {
         resourceGroupName: ''
         subscriptionId: ''
       }
-    }                    
+    }
   }
 }
-
 
 // ===========================================================================
 var subscriptions = union(subscriptionIds, [csInfraSubscriptionId]) // remove duplicated values
@@ -104,70 +103,70 @@ module assetInventory 'modules/cs-asset-inventory-mg.bicep' = {
 
 var resourceGroupName = '${resourceNamePrefix}rg-cs${environment}${resourceNameSuffix}'
 module resourceGroup 'modules/common/resourceGroup.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled) {
-    name: '${resourceNamePrefix}cs-rg${environment}${resourceNameSuffix}'
-    scope: subscription(csInfraSubscriptionId)
+  name: '${resourceNamePrefix}cs-rg${environment}${resourceNameSuffix}'
+  scope: subscription(csInfraSubscriptionId)
 
-    params: {
-        resourceGroupName: resourceGroupName
-        location: location
-        tags: tags
-    }
+  params: {
+    resourceGroupName: resourceGroupName
+    location: location
+    tags: tags
+  }
 }
 
 module scriptRunnerIdentity 'modules/cs-script-runner-identity-mg.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled) {
-    name: '${resourceNamePrefix}cs-script-runner-identity${environment}${resourceNameSuffix}'
+  name: '${resourceNamePrefix}cs-script-runner-identity${environment}${resourceNameSuffix}'
 
-    params: {
-        csInfraSubscriptionId: csInfraSubscriptionId
-        managementGroupIds: managementGroups
-        resourceGroupName: resourceGroupName
-        resourceNamePrefix: resourceNamePrefix
-        resourceNameSuffix: resourceNameSuffix
-        env: env
-        location: location
-        tags: tags
-    }
+  params: {
+    csInfraSubscriptionId: csInfraSubscriptionId
+    managementGroupIds: managementGroups
+    resourceGroupName: resourceGroupName
+    resourceNamePrefix: resourceNamePrefix
+    resourceNameSuffix: resourceNameSuffix
+    env: env
+    location: location
+    tags: tags
+  }
 
-    dependsOn: [
-        resourceGroup
-    ]
+  dependsOn: [
+    resourceGroup
+  ]
 }
 
 module deploymentScope 'modules/cs-deployment-scope-mg.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled) {
-    name: '${resourceNamePrefix}cs-deployment-scope${environment}${resourceNameSuffix}'
-    params: {
-        managementGroupIds: managementGroups
-        subscriptionIds: subscriptions
-        resourceGroupName: resourceGroupName
-        scriptRunnerIdentityId: scriptRunnerIdentity.outputs.id
-        csInfraSubscriptionId: csInfraSubscriptionId
-        resourceNamePrefix: resourceNamePrefix
-        resourceNameSuffix: resourceNameSuffix
-        env: env
-        location: location
-        tags: tags
-    }
+  name: '${resourceNamePrefix}cs-deployment-scope${environment}${resourceNameSuffix}'
+  params: {
+    managementGroupIds: managementGroups
+    subscriptionIds: subscriptions
+    resourceGroupName: resourceGroupName
+    scriptRunnerIdentityId: scriptRunnerIdentity.outputs.id
+    csInfraSubscriptionId: csInfraSubscriptionId
+    resourceNamePrefix: resourceNamePrefix
+    resourceNameSuffix: resourceNameSuffix
+    env: env
+    location: location
+    tags: tags
+  }
 }
 
 module logIngestion 'modules/cs-log-ingestion-mg.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled) {
-    name: '${resourceNamePrefix}cs-log-mg-deployment${environment}${resourceNameSuffix}'
-    params: {
-      managementGroupIds: managementGroups
-      subscriptionIds: deploymentScope.outputs.allSubscriptions
-      csInfraSubscriptionId: csInfraSubscriptionId
-      resourceGroupName: resourceGroupName
-      featureSettings: featureSettings.realTimeVisibilityDetection
-      falconIpAddresses: falconIpAddresses
-      azurePrincipalId: azurePrincipalId
-      resourceNamePrefix: resourceNamePrefix
-      resourceNameSuffix: resourceNameSuffix
-      location: location
-      env: env
-      tags: tags
-    }
-    dependsOn: [
-        resourceGroup
-    ]
+  name: '${resourceNamePrefix}cs-log-mg-deployment${environment}${resourceNameSuffix}'
+  params: {
+    managementGroupIds: managementGroups
+    subscriptionIds: deploymentScope.outputs.allSubscriptions
+    csInfraSubscriptionId: csInfraSubscriptionId
+    resourceGroupName: resourceGroupName
+    featureSettings: featureSettings.realTimeVisibilityDetection
+    falconIpAddresses: falconIpAddresses
+    azurePrincipalId: azurePrincipalId
+    resourceNamePrefix: resourceNamePrefix
+    resourceNameSuffix: resourceNameSuffix
+    location: location
+    env: env
+    tags: tags
+  }
+  dependsOn: [
+    resourceGroup
+  ]
 }
 
 output customReaderRoleNameForSubs string = assetInventory.outputs.customRoleNameForSubs

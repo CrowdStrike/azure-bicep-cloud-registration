@@ -1,4 +1,4 @@
-targetScope='managementGroup'
+targetScope = 'managementGroup'
 
 @description('List of Azure management group IDs to monitor. These management groups will be configured for CrowdStrike monitoring.')
 param managementGroupIds array
@@ -40,13 +40,15 @@ module scriptRunnerIdentity 'common/managedIdentity.bicep' = {
   }
 }
 
-module roleAssignmentToMGs 'script-runner-identity/roleAssignmentToMgmtGroup.bicep' =[for (mgmtGroupId, i) in managementGroupIds: {
-  name: '${resourceNamePrefix}cs-inv-ra-mg-${mgmtGroupId}-${env}${resourceNameSuffix}'
-  scope: managementGroup(mgmtGroupId)
-  params: {
-    scriptRunnerIdentityId:scriptRunnerIdentity.outputs.principalId
-    env: env
+module roleAssignmentToMGs 'script-runner-identity/roleAssignmentToMgmtGroup.bicep' = [
+  for (mgmtGroupId, i) in managementGroupIds: {
+    name: '${resourceNamePrefix}cs-inv-ra-mg-${mgmtGroupId}-${env}${resourceNameSuffix}'
+    scope: managementGroup(mgmtGroupId)
+    params: {
+      scriptRunnerIdentityId: scriptRunnerIdentity.outputs.principalId
+      env: env
+    }
   }
-}]
+]
 
 output id string = scriptRunnerIdentity.outputs.id

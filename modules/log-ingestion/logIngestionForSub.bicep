@@ -65,15 +65,17 @@ module eventHub 'eventHub.bicep' = {
 
 /* Deploy Activity Log Diagnostic Settings for current Azure subscription */
 var activityLogDiagnosticSettingsName = '${resourceNamePrefix}diag-cslogact${environment}${resourceNameSuffix}'
-module activityDiagnosticSettings 'activityLog.bicep' = [for subId in subscriptionIds: if(shouldDeployEventhubForActivityLog) {
-  name:  '${resourceNamePrefix}cs-log-activity-diag${environment}${resourceNameSuffix}'
-  scope: subscription(subId)
-  params: {
+module activityDiagnosticSettings 'activityLog.bicep' = [
+  for subId in subscriptionIds: if (shouldDeployEventhubForActivityLog) {
+    name: '${resourceNamePrefix}cs-log-activity-diag${environment}${resourceNameSuffix}'
+    scope: subscription(subId)
+    params: {
       diagnosticSettingsName: activityLogDiagnosticSettingsName
       eventHubName: eventHub.outputs.eventhubs.activityLog.eventHubName
       eventHubAuthorizationRuleId: eventHub.outputs.eventhubs.activityLog.eventHubAuthorizationRuleId
+    }
   }
-}]
+]
 
 module entraDiagnosticSettings 'entraLog.bicep' = if (shouldDeployEventhubForEntraIdLog) {
   name: '${resourceNamePrefix}cs-log-entid-diag${resourceNameSuffix}'

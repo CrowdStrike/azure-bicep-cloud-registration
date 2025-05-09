@@ -13,26 +13,28 @@ param env string
 @description('Tags to be applied to all deployed resources. Used for resource organization, governance, and cost tracking.')
 param tags object
 
-
-resource subscriptionsInManagementGroup 'Microsoft.Resources/deploymentScripts@2023-08-01' = [for mgmtGroupId in managementGroupIds: {
-  name: guid('resolveManagementGroupToSubscription', mgmtGroupId, resourceGroup().id, env)
-  location: location
-  kind: 'AzurePowerShell'
-  tags: tags
-  identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${scriptRunnerIdentityId}': {}
+resource subscriptionsInManagementGroup 'Microsoft.Resources/deploymentScripts@2023-08-01' = [
+  for mgmtGroupId in managementGroupIds: {
+    name: guid('resolveManagementGroupToSubscription', mgmtGroupId, resourceGroup().id, env)
+    location: location
+    kind: 'AzurePowerShell'
+    tags: tags
+    identity: {
+      type: 'UserAssigned'
+      userAssignedIdentities: {
+        '${scriptRunnerIdentityId}': {}
+      }
+    }
+    properties: {
+      azPowerShellVersion: '12.3'
+      arguments: '-AzureTenantId ${tenant().tenantId} -ManagementGroupId "${mgmtGroupId}"'
+      scriptContent: loadTextContent('../../scripts/Resolve-Deployment-Scope.ps1')
+      retentionInterval: 'PT1H'
+      cleanupPreference: 'OnSuccess'
     }
   }
-  properties: {
-    azPowerShellVersion: '12.3'
-    arguments: '-AzureTenantId ${tenant().tenantId} -ManagementGroupId "${mgmtGroupId}"'
-    scriptContent: loadTextContent('../../scripts/Resolve-Deployment-Scope.ps1')
-    retentionInterval: 'PT1H'
-    cleanupPreference: 'OnSuccess'
-  }
-}]
+]
 
-
-output subscriptionsByManageGroups array = [for (mgmtGroupId, i) in managementGroupIds: subscriptionsInManagementGroup[i].properties.outputs.activeSubscriptions]
+output subscriptionsByManageGroups array = [
+  for (mgmtGroupId, i) in managementGroupIds: subscriptionsInManagementGroup[i].properties.outputs.activeSubscriptions
+]

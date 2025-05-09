@@ -1,4 +1,4 @@
-targetScope='managementGroup'
+targetScope = 'managementGroup'
 
 /*
   This Bicep template deploys infrastructure to enable CrowdStrike
@@ -43,36 +43,42 @@ module customRoleForSubs 'asset-inventory/customRoleForSub.bicep' = {
   }
 }
 
-module roleAssignmentToSubs 'asset-inventory/roleAssignmentToSub.bicep' =[for subId in subscriptionIds: {
-  name: '${resourceNamePrefix}cs-inv-ra-sub-${subId}${environment}${resourceNameSuffix}'
-  scope: subscription(subId)
-  params: {
-    azurePrincipalId: azurePrincipalId
-    customRoleDefinitionId: customRoleForSubs.outputs.id
-    env: env
+module roleAssignmentToSubs 'asset-inventory/roleAssignmentToSub.bicep' = [
+  for subId in subscriptionIds: {
+    name: '${resourceNamePrefix}cs-inv-ra-sub-${subId}${environment}${resourceNameSuffix}'
+    scope: subscription(subId)
+    params: {
+      azurePrincipalId: azurePrincipalId
+      customRoleDefinitionId: customRoleForSubs.outputs.id
+      env: env
+    }
   }
-}]
+]
 
 /* Define required permissions at Azure Management Group scope */
-module customRoleForMGs 'asset-inventory/customRoleForMgmtGroup.bicep' = [for mgmtGroupId in managementGroupIds: {
-  name: '${resourceNamePrefix}cs-inv-website-reader-role-mg-${mgmtGroupId}${environment}${resourceNameSuffix}'
-  scope: managementGroup(mgmtGroupId)
-  params: {
-    resourceNamePrefix: resourceNamePrefix
-    resourceNameSuffix:resourceNameSuffix
-    env: env
+module customRoleForMGs 'asset-inventory/customRoleForMgmtGroup.bicep' = [
+  for mgmtGroupId in managementGroupIds: {
+    name: '${resourceNamePrefix}cs-inv-website-reader-role-mg-${mgmtGroupId}${environment}${resourceNameSuffix}'
+    scope: managementGroup(mgmtGroupId)
+    params: {
+      resourceNamePrefix: resourceNamePrefix
+      resourceNameSuffix: resourceNameSuffix
+      env: env
+    }
   }
-}]
+]
 
-module roleAssignmentToMGs 'asset-inventory/roleAssignmentToMgmtGroup.bicep' =[for (mgmtGroupId, i) in managementGroupIds: {
-  name: '${resourceNamePrefix}cs-inv-ra-mg-${mgmtGroupId}${environment}${resourceNameSuffix}'
-  scope: managementGroup(mgmtGroupId)
-  params: {
-    azurePrincipalId: azurePrincipalId
-    customRoleDefinitionId: customRoleForMGs[i].outputs.id
-    env: env
+module roleAssignmentToMGs 'asset-inventory/roleAssignmentToMgmtGroup.bicep' = [
+  for (mgmtGroupId, i) in managementGroupIds: {
+    name: '${resourceNamePrefix}cs-inv-ra-mg-${mgmtGroupId}${environment}${resourceNameSuffix}'
+    scope: managementGroup(mgmtGroupId)
+    params: {
+      azurePrincipalId: azurePrincipalId
+      customRoleDefinitionId: customRoleForMGs[i].outputs.id
+      env: env
+    }
   }
-}]
+]
 
 output customRoleNameForSubs string = customRoleForSubs.outputs.name
 output customRoleNameForMGs array = [for (mgmtGroupId, i) in managementGroupIds: customRoleForMGs[i].outputs.name]

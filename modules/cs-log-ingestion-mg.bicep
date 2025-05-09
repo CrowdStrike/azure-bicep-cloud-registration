@@ -70,22 +70,24 @@ module deploymentForSubs 'log-ingestion/logIngestionForSub.bicep' = {
 }
 
 // Deployment for management groups
-module realTimeVisibilityDetectionForMG 'log-ingestion/logIngestionForMgmtGroup.bicep' = [for (mgmtGroupId, i) in managementGroupIds: {
-  name: '${resourceNamePrefix}cs-log-mg-${mgmtGroupId}${environment}${resourceNameSuffix}'
-  scope: managementGroup(mgmtGroupId)
-  params: {
-    eventHubAuthorizationRuleId: deploymentForSubs.outputs.eventHubAuthorizationRuleIdForActivityLog
-    activityLogEventHubName: deploymentForSubs.outputs.activityLogEventHubName
-    activityLogEventHubId: deploymentForSubs.outputs.activityLogEventHubId
-    resourceGroupName: resourceGroupName
-    csInfraSubscriptionId: csInfraSubscriptionId
-    activityLogDiagnosticSettingsName: deploymentForSubs.outputs.activityLogDiagnosticSettingsName
-    featureSettings: featureSettings
-    resourceNamePrefix: resourceNamePrefix
-    resourceNameSuffix: resourceNameSuffix
-    location: location
+module realTimeVisibilityDetectionForMG 'log-ingestion/logIngestionForMgmtGroup.bicep' = [
+  for (mgmtGroupId, i) in managementGroupIds: {
+    name: '${resourceNamePrefix}cs-log-mg-${mgmtGroupId}${environment}${resourceNameSuffix}'
+    scope: managementGroup(mgmtGroupId)
+    params: {
+      eventHubAuthorizationRuleId: deploymentForSubs.outputs.eventHubAuthorizationRuleIdForActivityLog
+      activityLogEventHubName: deploymentForSubs.outputs.activityLogEventHubName
+      activityLogEventHubId: deploymentForSubs.outputs.activityLogEventHubId
+      resourceGroupName: resourceGroupName
+      csInfraSubscriptionId: csInfraSubscriptionId
+      activityLogDiagnosticSettingsName: deploymentForSubs.outputs.activityLogDiagnosticSettingsName
+      featureSettings: featureSettings
+      resourceNamePrefix: resourceNamePrefix
+      resourceNameSuffix: resourceNameSuffix
+      location: location
+    }
   }
-}]
+]
 
 output activityLogEventHubId string = deploymentForSubs.outputs.activityLogEventHubId
 output entraIdLogEventHubId string = deploymentForSubs.outputs.entraLogEventHubId

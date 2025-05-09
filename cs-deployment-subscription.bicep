@@ -1,6 +1,6 @@
-import {FeatureSettings} from 'models/common.bicep'
+import { FeatureSettings } from 'models/common.bicep'
 
-targetScope='subscription'
+targetScope = 'subscription'
 
 metadata name = 'CrowdStrike Falcon Cloud Security Integration'
 metadata description = 'Deploys CrowdStrike Falcon Cloud Security integration for Indicator of Misconfiguration (IOM) and Indicator of Attack (IOA) assessment'
@@ -68,10 +68,9 @@ param featureSettings FeatureSettings = {
         resourceGroupName: ''
         subscriptionId: ''
       }
-    }                    
+    }
   }
 }
-
 
 // ===========================================================================
 var subscriptions = union(subscriptionIds, [csInfraSubscriptionId]) // remove duplicated values
@@ -94,16 +93,15 @@ module assetInventory 'modules/cs-asset-inventory-sub.bicep' = {
 
 var resourceGroupName = '${resourceNamePrefix}rg-cs${environment}${resourceNameSuffix}'
 module resourceGroup 'modules/common/resourceGroup.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled) {
-    name: '${resourceNamePrefix}cs-rg${environment}${resourceNameSuffix}'
-    scope: subscription(csInfraSubscriptionId)
+  name: '${resourceNamePrefix}cs-rg${environment}${resourceNameSuffix}'
+  scope: subscription(csInfraSubscriptionId)
 
-    params: {
-        resourceGroupName: resourceGroupName
-        location: location
-        tags: tags
-    }
+  params: {
+    resourceGroupName: resourceGroupName
+    location: location
+    tags: tags
+  }
 }
-
 
 module logIngestion 'modules/cs-log-ingestion-sub.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled) {
   name: '${resourceNamePrefix}cs-log-sub-deployment-${env}${resourceNameSuffix}'

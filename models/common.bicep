@@ -1,4 +1,4 @@
-import {RealTimeVisibilityDetectionSettings} from 'real-time-visibility-detection.bicep'
+import { RealTimeVisibilityDetectionSettings } from 'real-time-visibility-detection.bicep'
 
 @export()
 @description('Master configuration object containing settings for all CrowdStrike feature modules')

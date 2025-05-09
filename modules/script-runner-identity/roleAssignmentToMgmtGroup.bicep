@@ -1,4 +1,4 @@
-targetScope='managementGroup'
+targetScope = 'managementGroup'
 
 @description('Principal ID of the user-assigned managed identity that will execute deployment scripts. This identity needs appropriate permissions.')
 param scriptRunnerIdentityId string
@@ -10,7 +10,9 @@ var defaultRoleIds = [
   'acdd72a7-3385-48ef-bd42-f606fba81ae7' // Reader
 ]
 
-var defaultRoleDefinitionIds = [for roleId in defaultRoleIds: resourceId('Microsoft.Authorization/roleDefinitions', roleId)]
+var defaultRoleDefinitionIds = [
+  for roleId in defaultRoleIds: resourceId('Microsoft.Authorization/roleDefinitions', roleId)
+]
 resource roleAssignments 'Microsoft.Authorization/roleAssignments@2022-04-01' = [
   for roleDefinitionId in union(defaultRoleDefinitionIds, []): {
     name: guid(scriptRunnerIdentityId, roleDefinitionId, managementGroup().id, env)

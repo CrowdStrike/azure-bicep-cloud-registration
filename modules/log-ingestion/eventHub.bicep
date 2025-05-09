@@ -200,7 +200,7 @@ output eventhubs object = {
     eventHubAuthorizationRuleId: shouldDeployActivityLog ? authorizationRule.id : ''
     eventHubConsumerGrouopName: shouldDeployActivityLog
       ? '$Default'
-      : activityLogSettings.existingEventhub.consumerGruopName
+      : activityLogSettings.existingEventhub.consumerGroupName
   }
   entraLog: {
     eventHubNamespaceName: shouldUseExistingEventHubForEntraLog
@@ -216,6 +216,6 @@ output eventhubs object = {
       ? existingEntraLogEventHubNamespace.properties.serviceBusEndpoint
       : (shouldDeployEntraLog ? eventHubNamespace.properties.serviceBusEndpoint : '')
     eventHubAuthorizationRuleId: shouldDeployEntraLog ? authorizationRule.id : ''
-    eventHubConsumerGrouopName: shouldDeployEntraLog ? '$Default' : entraLogSettings.existingEventhub.consumerGruopName
+    eventHubConsumerGrouopName: shouldDeployEntraLog ? '$Default' : entraLogSettings.existingEventhub.consumerGroupName
   }
 }

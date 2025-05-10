@@ -11,6 +11,9 @@ param resourceNamePrefix string
 @description('Optional suffix added to all resource names for organization and identification purposes.')
 param resourceNameSuffix string
 
+@description('List of Azure subscription IDs to monitor. These subscriptions will be configured for CrowdStrike monitoring.')
+param subscriptionIds array
+
 @description('Environment label (e.g., prod, stag, dev) used for resource naming and tagging. Helps distinguish between different deployment environments.')
 param env string
 
@@ -23,12 +26,22 @@ var customRole = {
     'Microsoft.Web/sites/config/list/Action'
   ]
 }
-
+var environment = length(env) > 0 ? '-${env}' : env
+var fullPathSubscriptionIds = [for subId in subscriptionIds: '/subscriptions/${subId}']
 var roleName = '${resourceNamePrefix}${customRole.roleName}-sub${resourceNameSuffix}'
+var roleId = guid(roleName, tenant().tenantId, subscription().id, env)
+
+module existingAssignableScopes 'customRoleAssignableScopesForSub.bicep' = {
+  name: '${resourceNamePrefix}cs-inv-role-csreader-scope${environment}${resourceNameSuffix}'
+  params: {
+    roleId: roleId
+  }
+}
+
 resource customRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
-  name: guid(roleName, tenant().tenantId, subscription().id, env)
+  name: roleId
   properties: {
-    assignableScopes: [subscription().id]
+    assignableScopes: union(existingAssignableScopes.outputs.assignableScopes, fullPathSubscriptionIds)
     description: customRole.roleDescription
     permissions: [
       {

@@ -31,8 +31,18 @@ param env string
 var environment = length(env) > 0 ? '-${env}' : env
 
 /* Define required permissions at Azure Subscription scope */
-module customRoleForSubs 'asset-inventory/customRoleForSub.bicep' = {
+module customRoleForSubs 'asset-inventory/customRoleForSub.bicep' = if (csInfraSubscriptionId != '') {
   name: '${resourceNamePrefix}cs-inv-reader-role-sub${environment}${resourceNameSuffix}'
+  scope: subscription(csInfraSubscriptionId)
+  params: {
+    resourceNamePrefix: resourceNamePrefix
+    resourceNameSuffix: resourceNameSuffix
+    env: env
+  }
+}
+
+module updateCustomRoleAssignableScopesForSubs 'asset-inventory/updateCustomRoleAssignableScopesForSub.bicep' = if (csInfraSubscriptionId != '' && length(subscriptionIds) > 0) {
+  name: '${resourceNamePrefix}cs-inv-update-reader-role-sub${environment}${resourceNameSuffix}'
   scope: subscription(csInfraSubscriptionId)
   params: {
     subscriptionIds: subscriptionIds
@@ -40,6 +50,10 @@ module customRoleForSubs 'asset-inventory/customRoleForSub.bicep' = {
     resourceNameSuffix: resourceNameSuffix
     env: env
   }
+
+  dependsOn: [
+    customRoleForSubs
+  ]
 }
 
 module roleAssignmentToSubs 'asset-inventory/roleAssignmentToSub.bicep' = [
@@ -51,6 +65,10 @@ module roleAssignmentToSubs 'asset-inventory/roleAssignmentToSub.bicep' = [
       customRoleDefinitionId: customRoleForSubs.outputs.id
       env: env
     }
+
+    dependsOn: [
+      updateCustomRoleAssignableScopesForSubs
+    ]
   }
 ]
 

@@ -32,11 +32,24 @@ module customRoleForSubs 'asset-inventory/customRoleForSub.bicep' = {
   name: '${resourceNamePrefix}cs-inv-reader-role-sub${environment}${resourceNameSuffix}'
   scope: subscription(csInfraSubscriptionId)
   params: {
+    resourceNamePrefix: resourceNamePrefix
+    resourceNameSuffix: resourceNameSuffix
+    env: env
+  }
+}
+
+module updateCustomRoleAssignableScopesForSubs 'asset-inventory/updateCustomRoleAssignableScopesForSub.bicep' = {
+  name: '${resourceNamePrefix}cs-inv-update-reader-role-sub${environment}${resourceNameSuffix}'
+  scope: subscription(csInfraSubscriptionId)
+  params: {
     subscriptionIds: subscriptionIds
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
     env: env
   }
+  dependsOn: [
+    customRoleForSubs
+  ]
 }
 
 module roleAssignmentToSubs 'asset-inventory/roleAssignmentToSub.bicep' = [
@@ -48,6 +61,10 @@ module roleAssignmentToSubs 'asset-inventory/roleAssignmentToSub.bicep' = [
       customRoleDefinitionId: customRoleForSubs.outputs.id
       env: env
     }
+
+    dependsOn: [
+      updateCustomRoleAssignableScopesForSubs
+    ]
   }
 ]
 

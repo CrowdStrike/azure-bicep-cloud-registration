@@ -4,9 +4,9 @@
 */
 
 @export()
-@description('Configuration settings for the real-time visibility and detection module, which enables monitoring of Azure activity and Entra ID logs')
-type RealTimeVisibilityDetectionSettings = {
-  @description('Master toggle for the real-time visibility and detection module. When set to false, all related resources will not be deployed.')
+@description('Configuration settings for the log ingestion module, which enables monitoring of Azure activity and Entra ID logs')
+type LogIngestionSettings = {
+  @description('Master toggle for the log ingestion module. When set to false, all related resources will not be deployed.')
   enabled: bool
 
   @description('Configuration settings for Azure Activity Log collection and monitoring')

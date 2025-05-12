@@ -1,4 +1,4 @@
-import { RealTimeVisibilityDetectionSettings } from '../models/real-time-visibility-detection.bicep'
+import { ActivityLogSettings, EntraIdLogSettings } from '../models/log-ingestion.bicep'
 
 targetScope = 'managementGroup'
 
@@ -36,8 +36,11 @@ param resourceGroupName string
 @description('Principal ID of the CrowdStrike application registered in Entra ID. This service principal will be granted necessary permissions.')
 param azurePrincipalId string
 
-@description('Configuration settings for the real-time visibility and detection module, controlling which features are enabled and their specific settings.')
-param featureSettings RealTimeVisibilityDetectionSettings
+@description('Configuration settings for Azure Activity Log collection and monitoring.')
+param activityLogSettings ActivityLogSettings
+
+@description('Configuration settings for Microsoft Entra ID log collection and monitoring.')
+param entraIdLogSettings EntraIdLogSettings
 
 @description('Azure location (aka region) where global resources (Role definitions, Event Hub, etc.) will be deployed. These tenant-wide resources only need to be created once regardless of how many subscriptions are monitored.')
 param location string
@@ -60,7 +63,8 @@ module deploymentForSubs 'log-ingestion/logIngestionForSub.bicep' = {
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
     azurePrincipalId: azurePrincipalId
-    featureSettings: featureSettings
+    activityLogSettings: activityLogSettings
+    entraIdLogSettings: entraIdLogSettings
     falconIpAddresses: falconIpAddresses
     location: location
     env: env
@@ -80,7 +84,7 @@ module realTimeVisibilityDetectionForMG 'log-ingestion/logIngestionForMgmtGroup.
       resourceGroupName: resourceGroupName
       csInfraSubscriptionId: csInfraSubscriptionId
       activityLogDiagnosticSettingsName: deploymentForSubs.outputs.activityLogDiagnosticSettingsName
-      featureSettings: featureSettings
+      activityLogSettings: activityLogSettings
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix
       location: location

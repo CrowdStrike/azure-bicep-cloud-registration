@@ -1,4 +1,4 @@
-import { RealTimeVisibilityDetectionSettings } from '../models/real-time-visibility-detection.bicep'
+import { ActivityLogSettings, EntraIdLogSettings } from '../models/log-ingestion.bicep'
 
 targetScope = 'subscription'
 
@@ -31,8 +31,11 @@ param resourceGroupName string
 @description('Tags to be applied to all deployed resources. Used for resource organization, governance, and cost tracking.')
 param tags object
 
-@description('Configuration settings for the real-time visibility and detection module, controlling which features are enabled and their specific settings.')
-param featureSettings RealTimeVisibilityDetectionSettings
+@description('Configuration settings for Azure Activity Log collection and monitoring.')
+param activityLogSettings ActivityLogSettings
+
+@description('Configuration settings for Microsoft Entra ID log collection and monitoring.')
+param entraIdLogSettings EntraIdLogSettings
 
 @description('List of IP addresses of Crowdstrike Falcon service. Please refer to https://falcon.crowdstrike.com/documentation/page/re07d589/add-crowdstrike-ip-addresses-to-cloud-provider-allowlists-0 for the IP address list of your Falcon region.')
 param falconIpAddresses array
@@ -50,7 +53,8 @@ module deploymentForSubs 'log-ingestion/logIngestionForSub.bicep' = {
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
     azurePrincipalId: azurePrincipalId
-    featureSettings: featureSettings
+    activityLogSettings: activityLogSettings
+    entraIdLogSettings: entraIdLogSettings
     falconIpAddresses: falconIpAddresses
     location: location
     env: env

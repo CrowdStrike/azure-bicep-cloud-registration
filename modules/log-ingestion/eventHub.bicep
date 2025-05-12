@@ -1,4 +1,4 @@
-import { ActivityLogSettings, EntraIdLogSettings } from '../../models/real-time-visibility-detection.bicep'
+import { ActivityLogSettings, EntraIdLogSettings } from '../../models/log-ingestion.bicep'
 
 /*
   This Bicep template deploys Event Hub resources for collecting Azure Activity Logs and Entra ID logs

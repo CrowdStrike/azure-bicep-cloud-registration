@@ -4,7 +4,6 @@ targetScope = 'subscription'
   Asset Inventory
   Copyright (c) 2024 CrowdStrike, Inc.
 */
-
 @description('Optional prefix added to all resource names for organization and identification purposes.')
 param resourceNamePrefix string
 
@@ -24,9 +23,10 @@ var customRole = {
   ]
 }
 
-var roleName = '${resourceNamePrefix}${customRole.roleName}-sub${resourceNameSuffix}'
+var roleName = '${resourceNamePrefix}${customRole.roleName}-${subscription().subscriptionId}${resourceNameSuffix}'
+var roleId = guid(roleName, tenant().tenantId, subscription().id, env)
 resource customRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
-  name: guid(roleName, tenant().tenantId, subscription().id, env)
+  name: roleId
   properties: {
     assignableScopes: [subscription().id]
     description: customRole.roleDescription

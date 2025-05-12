@@ -1,4 +1,4 @@
-import { RealTimeVisibilityDetectionSettings } from '../../models/real-time-visibility-detection.bicep'
+import { ActivityLogSettings, EntraIdLogSettings } from '../../models/log-ingestion.bicep'
 
 targetScope = 'subscription'
 
@@ -30,8 +30,11 @@ param azurePrincipalId string
 @description('Tags to be applied to all deployed resources. Used for resource organization, governance, and cost tracking.')
 param tags object
 
-@description('Configuration settings for the real-time visibility and detection module, controlling which features are enabled and their specific settings.')
-param featureSettings RealTimeVisibilityDetectionSettings
+@description('Configuration settings for Azure Activity Log collection and monitoring.')
+param activityLogSettings ActivityLogSettings
+
+@description('Configuration settings for Microsoft Entra ID log collection and monitoring.')
+param entraIdLogSettings EntraIdLogSettings
 
 @description('List of IP addresses of Crowdstrike Falcon service. Please refer to https://falcon.crowdstrike.com/documentation/page/re07d589/add-crowdstrike-ip-addresses-to-cloud-provider-allowlists-0 for the IP address list of your Falcon region.')
 param falconIpAddresses array
@@ -42,16 +45,16 @@ param subscriptionIds array
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
 var scope = az.resourceGroup(resourceGroupName)
-var shouldDeployEventhubForActivityLog = featureSettings.activityLogSettings.enabled && !featureSettings.activityLogSettings.existingEventhub.use
-var shouldDeployEventhubForEntraIdLog = featureSettings.entraIdLogSettings.enabled && !featureSettings.entraIdLogSettings.existingEventhub.use
+var shouldDeployEventhubForActivityLog = activityLogSettings.enabled && !activityLogSettings.existingEventhub.use
+var shouldDeployEventhubForEntraIdLog = entraIdLogSettings.enabled && !entraIdLogSettings.existingEventhub.use
 
 // Create EventHub Namespace and Eventhubs used by CrowdStrike
 module eventHub 'eventHub.bicep' = {
   name: '${resourceNamePrefix}cs-log-eventhub${environment}-${location}${resourceNameSuffix}'
   scope: scope
   params: {
-    activityLogSettings: featureSettings.activityLogSettings
-    entraLogSettings: featureSettings.entraIdLogSettings
+    activityLogSettings: activityLogSettings
+    entraLogSettings: entraIdLogSettings
     falconIpAddresses: falconIpAddresses
     azurePrincipalId: azurePrincipalId
     resourceNamePrefix: resourceNamePrefix

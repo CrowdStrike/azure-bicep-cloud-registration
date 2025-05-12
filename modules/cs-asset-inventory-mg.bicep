@@ -11,11 +11,6 @@ param resourceNamePrefix string
 @description('Optional suffix added to all resource names for organization and identification purposes.')
 param resourceNameSuffix string
 
-@minLength(36)
-@maxLength(36)
-@description('Subscription ID where CrowdStrike infrastructure resources will be deployed. This subscription hosts shared resources like Event Hubs.')
-param csInfraSubscriptionId string
-
 @description('List of Azure management group IDs to monitor. These management groups will be configured for CrowdStrike monitoring.')
 param managementGroupIds array
 
@@ -30,54 +25,12 @@ param env string
 
 var environment = length(env) > 0 ? '-${env}' : env
 
-/* Define required permissions at Azure Subscription scope */
-module customRoleForSubs 'asset-inventory/customRoleForSub.bicep' = if (csInfraSubscriptionId != '') {
-  name: '${resourceNamePrefix}cs-inv-reader-role-sub${environment}${resourceNameSuffix}'
-  scope: subscription(csInfraSubscriptionId)
-  params: {
-    resourceNamePrefix: resourceNamePrefix
-    resourceNameSuffix: resourceNameSuffix
-    env: env
-  }
-}
-
-module updateCustomRoleAssignableScopesForSubs 'asset-inventory/updateCustomRoleAssignableScopesForSub.bicep' = if (csInfraSubscriptionId != '' && length(subscriptionIds) > 0) {
-  name: '${resourceNamePrefix}cs-inv-update-reader-role-sub${environment}${resourceNameSuffix}'
-  scope: subscription(csInfraSubscriptionId)
-  params: {
-    subscriptionIds: subscriptionIds
-    resourceNamePrefix: resourceNamePrefix
-    resourceNameSuffix: resourceNameSuffix
-    env: env
-  }
-
-  dependsOn: [
-    customRoleForSubs
-  ]
-}
-
-module roleAssignmentToSubs 'asset-inventory/roleAssignmentToSub.bicep' = [
+module deploymentForSubs 'asset-inventory/assetInventoryForSub.bicep' = [
   for subId in subscriptionIds: {
-    name: '${resourceNamePrefix}cs-inv-ra-sub-${subId}${environment}${resourceNameSuffix}'
+    name: '${resourceNamePrefix}cs-inv-deployment-sub${environment}${resourceNameSuffix}'
     scope: subscription(subId)
     params: {
       azurePrincipalId: azurePrincipalId
-      customRoleDefinitionId: customRoleForSubs.outputs.id
-      env: env
-    }
-
-    dependsOn: [
-      updateCustomRoleAssignableScopesForSubs
-    ]
-  }
-]
-
-/* Define required permissions at Azure Management Group scope */
-module customRoleForMGs 'asset-inventory/customRoleForMgmtGroup.bicep' = [
-  for mgmtGroupId in managementGroupIds: {
-    name: '${resourceNamePrefix}cs-inv-website-reader-role-mg-${mgmtGroupId}${environment}${resourceNameSuffix}'
-    scope: managementGroup(mgmtGroupId)
-    params: {
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix
       env: env
@@ -85,17 +38,21 @@ module customRoleForMGs 'asset-inventory/customRoleForMgmtGroup.bicep' = [
   }
 ]
 
-module roleAssignmentToMGs 'asset-inventory/roleAssignmentToMgmtGroup.bicep' = [
-  for (mgmtGroupId, i) in managementGroupIds: {
-    name: '${resourceNamePrefix}cs-inv-ra-mg-${mgmtGroupId}${environment}${resourceNameSuffix}'
+/* Define required permissions at Azure Management Group scope */
+module deploymentForMGs 'asset-inventory/assetInventoryForMgmtGroup.bicep' = [
+  for mgmtGroupId in managementGroupIds: {
+    name: '${resourceNamePrefix}cs-inv-deployment-mg${environment}${resourceNameSuffix}'
     scope: managementGroup(mgmtGroupId)
     params: {
       azurePrincipalId: azurePrincipalId
-      customRoleDefinitionId: customRoleForMGs[i].outputs.id
+      resourceNamePrefix: resourceNamePrefix
+      resourceNameSuffix: resourceNameSuffix
       env: env
     }
   }
 ]
 
-output customRoleNameForSubs string = customRoleForSubs.outputs.name
-output customRoleNameForMGs array = [for (mgmtGroupId, i) in managementGroupIds: customRoleForMGs[i].outputs.name]
+output customRoleNameForSubs array = [for (sub, i) in subscriptionIds: deploymentForSubs[i].outputs.customRoleName]
+output customRoleNameForMGs array = [
+  for (mgmtGroupId, i) in managementGroupIds: deploymentForMGs[i].outputs.customRoleName
+]

@@ -1,4 +1,4 @@
-import { FeatureSettings } from 'models/common.bicep'
+import { LogIngestionSettings } from 'models/log-ingestion.bicep'
 
 targetScope = 'subscription'
 
@@ -16,10 +16,8 @@ metadata owner = 'CrowdStrike'
 @description('List of Azure subscription IDs to monitor. These subscriptions will be configured for CrowdStrike monitoring.')
 param subscriptionIds array = []
 
-@minLength(36)
-@maxLength(36)
 @description('Subscription ID where CrowdStrike infrastructure resources will be deployed. This subscription hosts shared resources like Event Hubs.')
-param csInfraSubscriptionId string
+param csInfraSubscriptionId string = ''
 
 @description('List of IP addresses of Crowdstrike Falcon service. Please refer to https://falcon.crowdstrike.com/documentation/page/re07d589/add-crowdstrike-ip-addresses-to-cloud-provider-allowlists-0 for the IP address list of your Falcon region.')
 param falconIpAddresses array = []
@@ -44,32 +42,30 @@ param resourceNamePrefix string = ''
 @description('Optional suffix added to all resource names for organization and identification purposes.')
 param resourceNameSuffix string = ''
 
-@description('Configuration settings for CrowdStrike feature modules. Controls which features are enabled and their specific settings.')
-param featureSettings FeatureSettings = {
-  realTimeVisibilityDetection: {
+@description('Configuration settings for the log ingestion module, which enables monitoring of Azure activity and Entra ID logs')
+param logIngestionSettings LogIngestionSettings = {
+  enabled: true
+  activityLogSettings: {
     enabled: true
-    activityLogSettings: {
-      enabled: true
-      deployRemediationPolicy: true
-      existingEventhub: {
-        use: false
-        name: ''
-        namespaceName: ''
-        resourceGroupName: ''
-        subscriptionId: ''
-        consumerGroupName: ''
-      }
+    deployRemediationPolicy: true
+    existingEventhub: {
+      use: false
+      name: ''
+      namespaceName: ''
+      resourceGroupName: ''
+      subscriptionId: ''
+      consumerGroupName: ''
     }
-    entraIdLogSettings: {
-      enabled: true
-      existingEventhub: {
-        use: false
-        name: ''
-        namespaceName: ''
-        resourceGroupName: ''
-        subscriptionId: ''
-        consumerGroupName: ''
-      }
+  }
+  entraIdLogSettings: {
+    enabled: true
+    existingEventhub: {
+      use: false
+      name: ''
+      namespaceName: ''
+      resourceGroupName: ''
+      subscriptionId: ''
+      consumerGroupName: ''
     }
   }
 }
@@ -84,7 +80,6 @@ var environment = length(env) > 0 ? '-${env}' : env
 module assetInventory 'modules/cs-asset-inventory-sub.bicep' = {
   name: '${resourceNamePrefix}cs-inv-sub-deployment${environment}${resourceNameSuffix}'
   params: {
-    csInfraSubscriptionId: csInfraSubscriptionId
     subscriptionIds: subscriptions
     azurePrincipalId: azurePrincipalId
     resourceNamePrefix: resourceNamePrefix
@@ -94,7 +89,7 @@ module assetInventory 'modules/cs-asset-inventory-sub.bicep' = {
 }
 
 var resourceGroupName = '${resourceNamePrefix}rg-cs${environment}${resourceNameSuffix}'
-module resourceGroup 'modules/common/resourceGroup.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled) {
+module resourceGroup 'modules/common/resourceGroup.bicep' = if (logIngestionSettings.enabled) {
   name: '${resourceNamePrefix}cs-rg${environment}${resourceNameSuffix}'
   scope: subscription(csInfraSubscriptionId)
 
@@ -105,7 +100,7 @@ module resourceGroup 'modules/common/resourceGroup.bicep' = if (featureSettings.
   }
 }
 
-module logIngestion 'modules/cs-log-ingestion-sub.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled) {
+module logIngestion 'modules/cs-log-ingestion-sub.bicep' = if (logIngestionSettings.enabled) {
   name: '${resourceNamePrefix}cs-log-sub-deployment${environment}${resourceNameSuffix}'
   scope: subscription(csInfraSubscriptionId)
   params: {
@@ -115,7 +110,8 @@ module logIngestion 'modules/cs-log-ingestion-sub.bicep' = if (featureSettings.r
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
     azurePrincipalId: azurePrincipalId
-    featureSettings: featureSettings.realTimeVisibilityDetection
+    activityLogSettings: logIngestionSettings.activityLogSettings
+    entraIdLogSettings: logIngestionSettings.entraIdLogSettings
     location: location
     env: env
     tags: tags
@@ -125,8 +121,12 @@ module logIngestion 'modules/cs-log-ingestion-sub.bicep' = if (featureSettings.r
   ]
 }
 
-output csCustomReaderRoleName string = assetInventory.outputs.customRoleName
-output activityLogEventHubId string = logIngestion.outputs.activityLogEventHubId
-output activityLogEventHubConsumerGroupName string = logIngestion.outputs.activityLogEventHubConsumerGroupName
-output entraLogEventHubId string = logIngestion.outputs.entraLogEventHubId
-output entraLogEventHubConsumerGroupName string = logIngestion.outputs.entraLogEventHubConsumerGroupName
+output customRoleNameForSubs array = assetInventory.outputs.customRoleNameForSubs
+// output activityLogEventHubId string = logIngestionSettings.enabled ? logIngestion.outputs.activityLogEventHubId : ''
+// output activityLogEventHubConsumerGroupName string = logIngestionSettings.enabled
+//   ? logIngestion.outputs.activityLogEventHubConsumerGroupName
+//   : ''
+// output entraLogEventHubId string = logIngestion.outputs.entraLogEventHubId
+// output entraLogEventHubConsumerGroupName string = logIngestionSettings.enabled
+//   ? logIngestion.outputs.entraLogEventHubConsumerGroupName
+//   : ''

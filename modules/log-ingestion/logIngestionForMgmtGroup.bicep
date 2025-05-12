@@ -1,5 +1,4 @@
-import { RealTimeVisibilityDetectionSettings } from '../../models/real-time-visibility-detection.bicep'
-import { FeatureSettings } from '../../models/common.bicep'
+import { ActivityLogSettings, EntraIdLogSettings } from '../../models/log-ingestion.bicep'
 
 targetScope = 'managementGroup'
 
@@ -37,13 +36,13 @@ param activityLogEventHubName string
 @description('Resource ID of the Event Hub that will receive Activity Logs. Used for role assignments to grant access permissions.')
 param activityLogEventHubId string
 
-@description('Configuration settings for the real-time visibility and detection module, controlling which features are enabled and their specific settings.')
-param featureSettings RealTimeVisibilityDetectionSettings
+@description('Configuration settings for Azure Activity Log collection and monitoring.')
+param activityLogSettings ActivityLogSettings
 
 @description('Azure location (aka region) where global resources (Role definitions, Event Hub, etc.) will be deployed. These tenant-wide resources only need to be created once regardless of how many subscriptions are monitored.')
 param location string
 
-module activityLogDiagnosticSettingsPolicyAssignment 'activityLogPolicy.bicep' = if (featureSettings.activityLogSettings.enabled && !featureSettings.activityLogSettings.existingEventhub.use && featureSettings.activityLogSettings.deployRemediationPolicy) {
+module activityLogDiagnosticSettingsPolicyAssignment 'activityLogPolicy.bicep' = if (activityLogSettings.enabled && !activityLogSettings.existingEventhub.use && activityLogSettings.deployRemediationPolicy) {
   name: '${resourceNamePrefix}cs-log-policy-${location}${resourceNameSuffix}'
   params: {
     eventHubName: activityLogEventHubName

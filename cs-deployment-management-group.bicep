@@ -1,4 +1,4 @@
-import { FeatureSettings } from 'models/common.bicep'
+import { LogIngestionSettings } from 'models/log-ingestion.bicep'
 
 targetScope = 'managementGroup'
 
@@ -20,10 +20,8 @@ param managementGroupIds array = []
 @description('List of Azure subscription IDs to monitor. These subscriptions will be configured for CrowdStrike monitoring.')
 param subscriptionIds array = []
 
-@minLength(36)
-@maxLength(36)
 @description('Subscription ID where CrowdStrike infrastructure resources will be deployed. This subscription hosts shared resources like Event Hubs.')
-param csInfraSubscriptionId string
+param csInfraSubscriptionId string = ''
 
 @description('Principal ID of the CrowdStrike application registered in Entra ID. This ID is used for role assignments and access control.')
 param azurePrincipalId string
@@ -51,38 +49,36 @@ param resourceNamePrefix string = ''
 @description('Optional suffix added to all resource names for organization and identification purposes.')
 param resourceNameSuffix string = ''
 
-@description('Configuration settings for CrowdStrike feature modules. Controls which features are enabled and their specific settings.')
-param featureSettings FeatureSettings = {
-  realTimeVisibilityDetection: {
+@description('Configuration settings for the log ingestion module, which enables monitoring of Azure activity and Entra ID logs')
+param logIngestionSettings LogIngestionSettings = {
+  enabled: true
+  activityLogSettings: {
     enabled: true
-    activityLogSettings: {
-      enabled: true
-      deployRemediationPolicy: true
-      existingEventhub: {
-        use: false
-        name: ''
-        namespaceName: ''
-        resourceGroupName: ''
-        subscriptionId: ''
-        consumerGroupName: ''
-      }
+    deployRemediationPolicy: true
+    existingEventhub: {
+      use: false
+      name: ''
+      namespaceName: ''
+      resourceGroupName: ''
+      subscriptionId: ''
+      consumerGroupName: ''
     }
-    entraIdLogSettings: {
-      enabled: true
-      existingEventhub: {
-        use: false
-        name: ''
-        namespaceName: ''
-        resourceGroupName: ''
-        subscriptionId: ''
-        consumerGroupName: ''
-      }
+  }
+  entraIdLogSettings: {
+    enabled: true
+    existingEventhub: {
+      use: false
+      name: ''
+      namespaceName: ''
+      resourceGroupName: ''
+      subscriptionId: ''
+      consumerGroupName: ''
     }
   }
 }
 
 // ===========================================================================
-var subscriptions = union(subscriptionIds, [csInfraSubscriptionId]) // remove duplicated values
+var subscriptions = union(subscriptionIds, []) // remove duplicated values
 var managementGroups = union(managementGroupIds, []) // remove duplicated values
 var environment = length(env) > 0 ? '-${env}' : env
 
@@ -96,7 +92,6 @@ module assetInventory 'modules/cs-asset-inventory-mg.bicep' = {
     managementGroupIds: managementGroups
     subscriptionIds: subscriptions
     azurePrincipalId: azurePrincipalId
-    csInfraSubscriptionId: csInfraSubscriptionId
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
     env: env
@@ -104,7 +99,7 @@ module assetInventory 'modules/cs-asset-inventory-mg.bicep' = {
 }
 
 var resourceGroupName = '${resourceNamePrefix}rg-cs${environment}${resourceNameSuffix}'
-module resourceGroup 'modules/common/resourceGroup.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled) {
+module resourceGroup 'modules/common/resourceGroup.bicep' = if (logIngestionSettings.enabled) {
   name: '${resourceNamePrefix}cs-rg${environment}${resourceNameSuffix}'
   scope: subscription(csInfraSubscriptionId)
 
@@ -115,7 +110,7 @@ module resourceGroup 'modules/common/resourceGroup.bicep' = if (featureSettings.
   }
 }
 
-module scriptRunnerIdentity 'modules/cs-script-runner-identity-mg.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled) {
+module scriptRunnerIdentity 'modules/cs-script-runner-identity-mg.bicep' = if (logIngestionSettings.enabled) {
   name: '${resourceNamePrefix}cs-script-runner-identity${environment}${resourceNameSuffix}'
 
   params: {
@@ -134,7 +129,7 @@ module scriptRunnerIdentity 'modules/cs-script-runner-identity-mg.bicep' = if (f
   ]
 }
 
-module deploymentScope 'modules/cs-deployment-scope-mg.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled) {
+module deploymentScope 'modules/cs-deployment-scope-mg.bicep' = if (logIngestionSettings.enabled) {
   name: '${resourceNamePrefix}cs-deployment-scope${environment}${resourceNameSuffix}'
   params: {
     managementGroupIds: managementGroups
@@ -150,14 +145,15 @@ module deploymentScope 'modules/cs-deployment-scope-mg.bicep' = if (featureSetti
   }
 }
 
-module logIngestion 'modules/cs-log-ingestion-mg.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled) {
+module logIngestion 'modules/cs-log-ingestion-mg.bicep' = if (logIngestionSettings.enabled) {
   name: '${resourceNamePrefix}cs-log-mg-deployment${environment}${resourceNameSuffix}'
   params: {
     managementGroupIds: managementGroups
     subscriptionIds: deploymentScope.outputs.allSubscriptions
     csInfraSubscriptionId: csInfraSubscriptionId
     resourceGroupName: resourceGroupName
-    featureSettings: featureSettings.realTimeVisibilityDetection
+    activityLogSettings: logIngestionSettings.activityLogSettings
+    entraIdLogSettings: logIngestionSettings.entraIdLogSettings
     falconIpAddresses: falconIpAddresses
     azurePrincipalId: azurePrincipalId
     resourceNamePrefix: resourceNamePrefix
@@ -171,9 +167,13 @@ module logIngestion 'modules/cs-log-ingestion-mg.bicep' = if (featureSettings.re
   ]
 }
 
-output customReaderRoleNameForSubs string = assetInventory.outputs.customRoleNameForSubs
+output customReaderRoleNameForSubs array = assetInventory.outputs.customRoleNameForSubs
 output customReaderRoleNameForMGs array = assetInventory.outputs.customRoleNameForMGs
-output activityLogEventHubId string = logIngestion.outputs.activityLogEventHubId
-output activityLogEventHubConsumerGroupName string = logIngestion.outputs.activityLogEventHubConsumerGroupName
-output entraLogEventHubId string = logIngestion.outputs.entraLogEventHubId
-output entraLogEventHubConsumerGroupName string = logIngestion.outputs.entraLogEventHubConsumerGroupName
+output activityLogEventHubId string = logIngestionSettings.enabled ? logIngestion.outputs.activityLogEventHubId : ''
+output activityLogEventHubConsumerGroupName string = logIngestionSettings.enabled
+  ? logIngestion.outputs.activityLogEventHubConsumerGroupName
+  : ''
+output entraLogEventHubId string = logIngestionSettings.enabled ? logIngestion.outputs.entraLogEventHubId : ''
+output entraLogEventHubConsumerGroupName string = logIngestionSettings.enabled
+  ? logIngestion.outputs.entraLogEventHubConsumerGroupName
+  : ''

@@ -1,4 +1,4 @@
-targetScope = 'subscription'
+targetScope = 'managementGroup'
 
 /*
   This Bicep template deploys infrastructure to enable CrowdStrike Asset Inventory
@@ -11,9 +11,6 @@ param resourceNamePrefix string
 @description('Optional suffix added to all resource names for organization and identification purposes.')
 param resourceNameSuffix string
 
-@description('List of Azure subscription IDs to monitor. These subscriptions will be configured for CrowdStrike monitoring.')
-param subscriptionIds array
-
 @description('Principal ID of the CrowdStrike application registered in Entra ID. This service principal will be granted necessary permissions.')
 param azurePrincipalId string
 
@@ -22,17 +19,23 @@ param env string
 
 var environment = length(env) > 0 ? '-${env}' : env
 
-module deploymentForSubs 'asset-inventory/assetInventoryForSub.bicep' = [
-  for subId in subscriptionIds: {
-    name: '${resourceNamePrefix}cs-inv-deployment-sub${environment}${resourceNameSuffix}'
-    scope: subscription(subId)
-    params: {
-      azurePrincipalId: azurePrincipalId
-      resourceNamePrefix: resourceNamePrefix
-      resourceNameSuffix: resourceNameSuffix
-      env: env
-    }
+/* Define required permissions at Azure Management Group scope */
+module customRole 'customRoleForMgmtGroup.bicep' = {
+  name: '${resourceNamePrefix}cs-inv-csreader-role-mg${environment}${resourceNameSuffix}'
+  params: {
+    resourceNamePrefix: resourceNamePrefix
+    resourceNameSuffix: resourceNameSuffix
+    env: env
   }
-]
+}
 
-output customRoleNameForSubs array = [for (sub, i) in subscriptionIds: deploymentForSubs[i].outputs.customRoleName]
+module roleAssignment 'roleAssignmentToMgmtGroup.bicep' = {
+  name: '${resourceNamePrefix}cs-inv-ra-mg${environment}${resourceNameSuffix}'
+  params: {
+    azurePrincipalId: azurePrincipalId
+    customRoleDefinitionId: customRole.outputs.id
+    env: env
+  }
+}
+
+output customRoleName string = customRole.outputs.name

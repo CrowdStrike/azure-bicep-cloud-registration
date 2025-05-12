@@ -1,7 +1,7 @@
 {
   "properties": {
-    "displayName": "Activity Logs must be sent to CrowdStrike for Realtime Visibility assessment",
-    "description": "Activity Log data must be sent to CrowdStrike for Realtime Visibility assessment.",
+    "displayName": "Activity Logs must be sent to CrowdStrike for Real Time Visibility and Detection assessment",
+    "description": "Activity Log data must be sent to CrowdStrike for Real Time Visibility and Detection assessment.",
     "policyType": "Custom",
     "metadata": {
       "version": "1.0.0",

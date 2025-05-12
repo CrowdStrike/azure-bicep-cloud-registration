@@ -2,8 +2,8 @@ targetScope = 'subscription'
 
 /*
   This Bicep template deploys diagnostic settings for current subscription in order to
-  forward logs to CrowdStrike for Real Time Visibility and Detection assessment.
-  Copyright (c) 2024 CrowdStrike, Inc.
+  forward activity logs to CrowdStrike.
+  Copyright (c) 2025 CrowdStrike, Inc.
 */
 
 @description('Resource ID of the Event Hub Authorization Rule that grants send permissions. Used to configure diagnostic settings to send logs to the Event Hub.')
@@ -18,7 +18,7 @@ param diagnosticSettingsName string
 /*
   Deploy Diagnostic Settings for Azure Activity Logs - current Azure subscription
 
-  Collect Azure Activity Logs and submit them to CrowdStrike for Real Time Visibility and Detection
+  Collect Azure Activity Logs and submit them to CrowdStrike
 
   Note:
    - 'Contributor' permissions are required to create Azure Activity Logs diagnostic settings

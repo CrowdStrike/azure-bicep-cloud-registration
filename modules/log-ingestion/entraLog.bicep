@@ -2,8 +2,8 @@ targetScope = 'subscription'
 
 /*
   This Bicep template deploys diagnostic settings for Entra ID in order to
-  forward logs to CrowdStrike for Real Time Visibility and Detection assessment.
-  Copyright (c) 2024 CrowdStrike, Inc.
+  forward logs to CrowdStrike.
+  Copyright (c) 2025 CrowdStrike, Inc.
 */
 
 @description('Resource ID of the Event Hub Authorization Rule that grants send permissions. Used to configure diagnostic settings to send Entra ID logs to the Event Hub.')
@@ -18,7 +18,7 @@ param diagnosticSettingsName string
 /* 
   Deploy Diagnostic Settings for Microsoft Entra ID Logs
 
-  Collect Microsoft Entra ID logs and submit them to CrowdStrike for Real Time Visibility and Detection
+  Collect Microsoft Entra ID logs and submit them to CrowdStrike
 
   Note:
    - To export SignInLogs a P1 or P2 Microsoft Entra ID license is required

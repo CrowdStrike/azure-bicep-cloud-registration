@@ -29,14 +29,14 @@ The Bicep files in this repo register Azure management groups (and all Subscript
   - Microsoft.Web/sites/Read
   - Microsoft.Web/sites/config/Read
   - Microsoft.Web/sites/config/list/Action
-- If the `featureSettings.realTimeVisibilityDetection.enabled` parameter is set to true, the file also:
+- If the `logIngestionSettings.enabled` parameter is set to true, the file also:
    - Deploys an Event Hub Namespace, two Event Hubs, and additional infrastructure to the subscription that has been designated as the default subscription (which is done via the `csInfraSubscriptionId` parameter). This infrastructure is used to stream Entra ID Sign In and Audit Logs, as well as Azure Activity logs, to Falcon Cloud Security.
    - Creates a Microsoft Entra ID diagnostic setting that forwards Sign In and Audit Logs to the newly-created Event Hub
    - Individual subscription deployments only:
       - Creates an Azure Activity Log diagnostic setting in the subscription being registered with Falcon Cloud Security that forwards Activity Logs to the newly-created Event Hub
    - Management group deployments only:
       - Creates an Azure Activity Log diagnostic setting in all active subscriptions that forwards Activity Logs to the newly-created Event Hub
-      - Creates an Azure policy definition and management group assignment that will create an Azure Activity Log diagnostic settings for new subscriptions that forwards Activity Logs to the newly-created Event Hub (only when `featureSettings.realTimeVisibilityDetection.activityLogSettings.deployRemediationPolicy` is set to `true`)
+      - Creates an Azure policy definition and management group assignment that will create an Azure Activity Log diagnostic settings for new subscriptions that forwards Activity Logs to the newly-created Event Hub (only when `logIngestionSettings.activityLogSettings.deployRemediationPolicy` is set to `true`)
 
 > [!NOTE]
 > The user-assigned managed identity created during management group deployment is only used to get a list of all active subscriptions in the specified management groups and can be safely removed after a successful registration. The underlying resources using the user-assigned managed identity are removed automatically.
@@ -77,26 +77,28 @@ You can use any of these methods to pass parameters:
 | `location`                                                                              | no       | Azure location (aka region) where global resources will be deployed. Default is the deployment location.                                                                                |
 | `resourceNamePrefix`                                                                    | no       | Optional prefix added to all resource names for organization and identification purposes.                                                                                               |
 | `resourceNameSuffix`                                                                    | no       | Optional suffix added to all resource names for organization and identification purposes.                                                                                               |
-| `falconIpAddresses`                                                                     | yes      | Falcon public IP addresses. Only used when `featureSettings.realTimeVisibilityDetection.enabled` is set to `true`. These will be configured to public network access list of EventHubs. |
+| `falconIpAddresses`                                                                     | yes      | Falcon public IP addresses. Only used when `logIngestionSettings.enabled` is set to `true`. These will be configured to public network access list of EventHubs. |
 | `azurePrincipalId`                                                                      | yes      | Principal Id of Falcon Cloud Security App in Entra ID.                                                                                                                                  |
 | `env`                                                                                   | no       | Environment label (e.g., prod, stag or dev) used for resource naming and tagging. Default set to `prod`                                                                                |
 | `tags`                                                                                  | no       | Tags to be applied to all deployed resources. Used for resource organization and governance.                                                                                            |
-| `featureSettings.realTimeVisibilityDetection.enabled`                                   | no       | Deploy `Real Time Visibility and Detection(RTVD)` integration. Defaults to `true`.                                                                                                      |
-| `featureSettings.realTimeVisibilityDetection.activityLogSettings.enabled`               | no       | Controls whether Activity Log Diagnostic Settings are deployed to monitored Azure subscriptions. Defaults to `true`.                                                                     |
-| `featureSettings.realTimeVisibilityDetection.activityLogSettings.deployRemediationPolicy` | no     | Controls whether to deploy a policy that automatically configures Activity Log Diagnostic Settings on new subscriptions. Defaults to `true`.                                             |
-| `featureSettings.realTimeVisibilityDetection.entraIdLogSettings.enabled`                | no       | Controls whether Entra ID Log Diagnostic Settings are deployed. Defaults to `true`.                                                                                                     |
-| `featureSettings.realTimeVisibilityDetection.activityLogSettings.existingEventhub`      | no       | Configuration for using an existing Event Hub instead of creating a new one for Activity Logs.|
-| `featureSettings.realTimeVisibilityDetection.activityLogSettings.existingEventhub.use`  | no       | When set to true, an existing Event Hub will be used instead of creating a new one. Defaults to `false`.|
-| `featureSettings.realTimeVisibilityDetection.activityLogSettings.existingEventhub.subscriptionId` | no | Subscription ID where the existing Event Hub is located.|
-| `featureSettings.realTimeVisibilityDetection.activityLogSettings.existingEventhub.resourceGroupName` | no | Resource group name where the existing Event Hub is located.|
-| `featureSettings.realTimeVisibilityDetection.activityLogSettings.existingEventhub.namespaceName` | no | Name of the existing Event Hub Namespace.|
-| `featureSettings.realTimeVisibilityDetection.activityLogSettings.existingEventhub.name` | no | Name of the existing Event Hub instance to use.|
-| `featureSettings.realTimeVisibilityDetection.entraIdLogSettings.existingEventhub`       | no       | Configuration for using an existing Event Hub instead of creating a new one for Entra ID Logs.|
-| `featureSettings.realTimeVisibilityDetection.entraIdLogSettings.existingEventhub.use`  | no       | When set to true, an existing Event Hub will be used instead of creating a new one. Defaults to `false`.|
-| `featureSettings.realTimeVisibilityDetection.entraIdLogSettings.existingEventhub.subscriptionId` | no | Subscription ID where the existing Event Hub is located.|
-| `featureSettings.realTimeVisibilityDetection.entraIdLogSettings.existingEventhub.resourceGroupName` | no | Resource group name where the existing Event Hub is located.|
-| `featureSettings.realTimeVisibilityDetection.entraIdLogSettings.existingEventhub.namespaceName` | no | Name of the existing Event Hub Namespace.|
-| `featureSettings.realTimeVisibilityDetection.entraIdLogSettings.existingEventhub.name` | no | Name of the existing Event Hub instance to use.|
+| `logIngestionSettings.enabled`                                   | no       | Master toggle for the log ingestion module. When set to false, all related resources will not be deployed. Defaults to `true`.                                                                       |
+| `logIngestionSettings.activityLogSettings.enabled`               | no       | Controls whether Activity Log Diagnostic Settings are deployed to monitored Azure subscriptions. Defaults to `true`.                                                                                 |
+| `logIngestionSettings.activityLogSettings.deployRemediationPolicy` | no     | Controls whether to deploy a policy that automatically configures Activity Log Diagnostic Settings on new subscriptions. Defaults to `true`.                                                         |
+| `logIngestionSettings.entraIdLogSettings.enabled`                | no       | Controls whether Entra ID Log Diagnostic Settings are deployed. When false, Entra ID logs will not be collected. Defaults to `true`.                                                                |
+| `logIngestionSettings.activityLogSettings.existingEventhub`      | no       | Configuration for using an existing Event Hub instead of creating a new one for Activity Logs.|
+| `logIngestionSettings.activityLogSettings.existingEventhub.use`  | no       | When set to true, an existing Event Hub will be used instead of creating a new one. Defaults to `false`.|
+| `logIngestionSettings.activityLogSettings.existingEventhub.subscriptionId` | no | Subscription ID where the existing Event Hub is located.|
+| `logIngestionSettings.activityLogSettings.existingEventhub.resourceGroupName` | no | Resource group name where the existing Event Hub is located.|
+| `logIngestionSettings.activityLogSettings.existingEventhub.namespaceName` | no | Name of the existing Event Hub Namespace.|
+| `logIngestionSettings.activityLogSettings.existingEventhub.name` | no | Name of the existing Event Hub instance to use.|
+| `logIngestionSettings.activityLogSettings.existingEventhub.consumerGroupName` | no | Consumer group name in the existing Event Hub instance to use.|
+| `logIngestionSettings.entraIdLogSettings.existingEventhub`       | no       | Configuration for using an existing Event Hub instead of creating a new one for Entra ID Logs.|
+| `logIngestionSettings.entraIdLogSettings.existingEventhub.use`  | no       | When set to true, an existing Event Hub will be used instead of creating a new one. Defaults to `false`.|
+| `logIngestionSettings.entraIdLogSettings.existingEventhub.subscriptionId` | no | Subscription ID where the existing Event Hub is located.|
+| `logIngestionSettings.entraIdLogSettings.existingEventhub.resourceGroupName` | no | Resource group name where the existing Event Hub is located.|
+| `logIngestionSettings.entraIdLogSettings.existingEventhub.namespaceName` | no | Name of the existing Event Hub Namespace.|
+| `logIngestionSettings.entraIdLogSettings.existingEventhub.name` | no | Name of the existing Event Hub instance to use.|
+| `logIngestionSettings.entraIdLogSettings.existingEventhub.consumerGroupName` | no | Consumer group name in the existing Event Hub instance to use.|
 
 ## Deployment
 
@@ -132,9 +134,9 @@ To track progress of the deployment or if you encounter issues and want to see d
 #### Remediate existing subscriptions using Azure Policy
 
 > [!NOTE]
-> This section is only applicable when `featureSettings.realTimeVisibilityDetection.activityLogSettings.deployRemediationPolicy` is set to `true`.
+> This section is only applicable when `logIngestionSettings.activityLogSettings.deployRemediationPolicy` is set to `true`.
 
-If the default deployment of Azure Activity Log diagnostic settings to all active subscriptions has been disabled, you can use a remeditation task as part of Azure Policy to deploy Azure Activity Log diagnostic settings to existing subscriptions in a tenant to enable `Real Time Visibility and Detection (RTVD)`.
+If the default deployment of Azure Activity Log diagnostic settings to all active subscriptions has been disabled, you can use a remediation task as part of Azure Policy to deploy Azure Activity Log diagnostic settings to existing subscriptions in a tenant to enable `Real Time Visibility and Detection (RTV&D)`.
 
 > [!NOTE]
 > Once an Azure Policy assignment has been created it takes time for Azure Policy to evaluate the compliance state of existing subscriptions. There is no predefined expectation of when the evaluation cycle completes. Please see [Azure Policy Evaluation Triggers](https://learn.microsoft.com/en-us/azure/governance/policy/how-to/get-compliance-data#evaluation-triggers) for more information.
@@ -143,7 +145,7 @@ To start a manual remediation task:
 
 1. In the Azure portal, navigate to **Management Groups** and select the tenant root group.
 2. Go to **Governance** > **Policy** and select **Authoring** > **Assignments**.
-3. Click the **CrowdStrike Real Time Visibility and Detection** assignment and then remediate the assignment by [creating a remediation task from a non-compliant policy assignment](https://learn.microsoft.com/en-us/azure/governance/policy/how-to/remediate-resources?tabs=azure-portal#option-2-create-a-remediation-task-from-a-non-compliant-policy-assignment).
+3. Click the **CrowdStrike Activity Log Collection** assignment and then remediate the assignment by [creating a remediation task from a non-compliant policy assignment](https://learn.microsoft.com/en-us/azure/governance/policy/how-to/remediate-resources?tabs=azure-portal#option-2-create-a-remediation-task-from-a-non-compliant-policy-assignment).
 
 
 ### Deployment Command for Registering Individual Subscriptions
@@ -175,7 +177,7 @@ This is usually caused by the presence of a web proxy on your network using self
 
 ### Real Time Visibility and Detection appears inactive for discovered subscriptions after registering an Azure management group
 
-After registering a management group and manually remediating the CrowdStrike Real Time Visibility and Detection Azure policy assignment, Real Time Visibility and Detection can remain inactive for some discovered subscriptions. This can happen when the diagnostic settings are not configured in the registered subscriptions.
+After registering a management group and manually remediating the `CrowdStrike Activity Log Collection` policy assignment, Real Time Visibility and Detection can remain inactive for some discovered subscriptions. This can happen when the diagnostic settings are not configured in the registered subscriptions.
 
 The evaluation of the assigned Azure policy responsible for the diagnostic settings creation can take some time to properly evaluate which resources need to be remediated (See [Evaluation Triggers](https://learn.microsoft.com/en-us/azure/governance/policy/how-to/get-compliance-data#evaluation-triggers)).
 

@@ -4,9 +4,9 @@ targetScope = 'managementGroup'
 
 /*
   This Bicep template creates and assigns an Azure Policy used to ensure
-  that Activity Log data is forwarded to CrowdStrike for Real Time Visibility and Detection
+  that Activity Log data is forwarded to CrowdStrike
   assessment.
-  Copyright (c) 2024 CrowdStrike, Inc.
+  Copyright (c) 2025 CrowdStrike, Inc.
 */
 
 /* Parameters */

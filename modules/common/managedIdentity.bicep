@@ -1,6 +1,6 @@
 /*
   This Bicep template creates a user-assigned managed identity for executing deployment scripts.
-  Copyright (c) 2024 CrowdStrike, Inc.
+  Copyright (c) 2025 CrowdStrike, Inc.
 */
 
 @description('Name of the user-assigned managed identity to be created. This identity will be used to execute deployment scripts.')

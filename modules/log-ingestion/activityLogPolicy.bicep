@@ -2,9 +2,8 @@ targetScope = 'managementGroup'
 
 /*
   This Bicep template creates and assigns an Azure Policy used to ensure
-  that Activity Log data is forwarded to CrowdStrike for Real Time Visibility and Detection
-  assessment.
-  Copyright (c) 2024 CrowdStrike, Inc.
+  that Activity Log data is forwarded to CrowdStrike
+  Copyright (c) 2025 CrowdStrike, Inc.
 */
 
 /* Parameters */
@@ -63,7 +62,7 @@ resource csRTVDPolicyAssignment 'Microsoft.Authorization/policyAssignments@2024-
   properties: {
     assignmentType: 'Custom'
     description: 'Ensures that Activity Log data is send to CrowdStrike for Real Time Visibility and Detection assessment.'
-    displayName: 'CrowdStrike Real Time Visibility and Detection'
+    displayName: 'CrowdStrike Activity Log Collection'
     enforcementMode: 'Default'
     policyDefinitionId: csRTVDPolicyDefinition.id
     parameters: {

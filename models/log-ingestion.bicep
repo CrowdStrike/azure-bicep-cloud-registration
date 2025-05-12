@@ -1,6 +1,6 @@
 /*
-  This Bicep template defines types and models for the CrowdStrike Real Time Visibility and Detection feature.
-  Copyright (c) 2024 CrowdStrike, Inc.
+  This Bicep template defines types and models for the CrowdStrike Log Ingestion module.
+  Copyright (c) 2025 CrowdStrike, Inc.
 */
 
 @export()

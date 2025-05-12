@@ -2,7 +2,7 @@ targetScope = 'subscription'
 
 /*
   This Bicep template assigns the Reader role and a custom role to the CrowdStrike service principal at the subscription scope.
-  Copyright (c) 2024 CrowdStrike, Inc.
+  Copyright (c) 2025 CrowdStrike, Inc.
 */
 
 @description('Resource ID of the custom role definition created for CrowdStrike. This role will be assigned to the CrowdStrike service principal.')

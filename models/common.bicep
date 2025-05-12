@@ -2,7 +2,7 @@ import { LogIngestionSettings } from 'log-ingestion.bicep'
 
 /*
   This Bicep template defines common types and models used across the CrowdStrike deployment templates.
-  Copyright (c) 2024 CrowdStrike, Inc.
+  Copyright (c) 2025 CrowdStrike, Inc.
 */
 
 @export()

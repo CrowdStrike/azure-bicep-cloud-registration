@@ -2,7 +2,7 @@ targetScope = 'subscription'
 
 /*
   This Bicep template creates a resource group in the specified Azure subscription.
-  Copyright (c) 2024 CrowdStrike, Inc.
+  Copyright (c) 2025 CrowdStrike, Inc.
 */
 
 param resourceGroupName string

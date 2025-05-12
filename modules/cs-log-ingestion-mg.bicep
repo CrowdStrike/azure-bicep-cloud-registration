@@ -3,10 +3,10 @@ import { ActivityLogSettings, EntraIdLogSettings } from '../models/log-ingestion
 targetScope = 'managementGroup'
 
 /*
-  This Bicep template deploys Azure Activity Log Diagnostic Settings
-  to existing Azure subscriptions in the current Entra Id tenant
-  to enable CrowdStrike Real Time Visibility and Detection assessment.
-  Copyright (c) 2024 CrowdStrike, Inc.
+  This Bicep template deploys Azure Activity Log and Microsoft Entra ID Diagnostic Settings
+  to the target Azure subscriptions and management groups in the current Entra ID tenant.
+  It configures Event Hubs and necessary permissions for CrowdStrike log ingestion.
+  Copyright (c) 2025 CrowdStrike, Inc.
 */
 
 /* Parameters */
@@ -73,7 +73,7 @@ module deploymentForSubs 'log-ingestion/logIngestionForSub.bicep' = {
 }
 
 // Deployment for management groups
-module realTimeVisibilityDetectionForMG 'log-ingestion/logIngestionForMgmtGroup.bicep' = [
+module deploymentForMGs 'log-ingestion/logIngestionForMgmtGroup.bicep' = [
   for (mgmtGroupId, i) in managementGroupIds: {
     name: '${resourceNamePrefix}cs-log-mg-${mgmtGroupId}${environment}${resourceNameSuffix}'
     scope: managementGroup(mgmtGroupId)

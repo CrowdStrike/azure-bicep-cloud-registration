@@ -9,7 +9,7 @@ metadata owner = 'CrowdStrike'
   This Bicep template deploys CrowdStrike Falcon Cloud Security integration for
   Asset Inventory and Real Time Visibility and Detection assessment.
 
-  Copyright (c) 2024 CrowdStrike, Inc.
+  Copyright (c) 2025 CrowdStrike, Inc.
 */
 
 /* Parameters */

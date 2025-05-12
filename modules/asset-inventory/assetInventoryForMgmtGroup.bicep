@@ -2,7 +2,7 @@ targetScope = 'managementGroup'
 
 /*
   This Bicep template deploys infrastructure to enable CrowdStrike Asset Inventory
-  Copyright (c) 2024 CrowdStrike, Inc.
+  Copyright (c) 2025 CrowdStrike, Inc.
 */
 
 @description('Optional prefix added to all resource names for organization and identification purposes.')

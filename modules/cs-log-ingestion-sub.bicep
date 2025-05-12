@@ -3,10 +3,10 @@ import { ActivityLogSettings, EntraIdLogSettings } from '../models/log-ingestion
 targetScope = 'subscription'
 
 /*
-  This Bicep template deploys Azure Activity Log Diagnostic Settings
-  to existing Azure subscriptions in the current Entra Id tenant
-  to enable CrowdStrike Real Time Visibility and Detection assessment.
-  Copyright (c) 2024 CrowdStrike, Inc.
+  This Bicep template deploys Azure Activity Log and Microsoft Entra ID Diagnostic Settings
+  to the target Azure subscriptions in the current Entra ID tenant.
+  It configures Event Hubs and necessary permissions for CrowdStrike log ingestion.
+  Copyright (c) 2025 CrowdStrike, Inc.
 */
 
 /* Parameters */

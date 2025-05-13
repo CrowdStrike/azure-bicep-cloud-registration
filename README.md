@@ -182,21 +182,50 @@ The evaluation of the assigned Azure policy responsible for the diagnostic setti
 Make sure that all the existing subscriptions are properly listed under [resources to remediate](https://learn.microsoft.com/en-us/azure/governance/policy/how-to/remediate-resources?tabs=azure-portal#step-2-specify-remediation-task-details) when creating the remediation tasks.
 
 ### Deleting the deployment stack fails if Microsoft Entra ID Log is enabled in Log Ingestion module
-The deletion of the deployment stack would fail with the following error if Microsoft Entra ID Log is enabled and not using existing Event Hub instance in Log Ingestion module:
+
+When Microsoft Entra ID Log is enabled and not using an existing Event Hub instance in the Log Ingestion module, the deletion of the deployment stack may fail with the following error:
+
 ```
 (DeploymentStackDeleteResourcesFailed) One or more resources could not be deleted. Correlation id: '...'.
 Code: DeploymentStackDeleteResourcesFailed
 Message: One or more resources could not be deleted. Correlation id: '...'.
-Exception Details:	(DeploymentStackDeleteResourcesFailed) An error occurred while deleting resources. These resources are still present in the stack but can be deleted manually. Please see the FailedResources property for specific error information. Deletion failures that are known limitations are documented here: https://aka.ms/DeploymentStacksKnownLimitations
-	Code: DeploymentStackDeleteResourcesFailed
-	Message: An error occurred while deleting resources. These resources are still present in the stack but can be deleted manually. Please see the FailedResources property for specific error information. Deletion failures that are known limitations are documented here: https://aka.ms/DeploymentStacksKnownLimitations
+Exception Details: (DeploymentStackDeleteResourcesFailed) An error occurred while deleting resources. 
+These resources are still present in the stack but can be deleted manually. 
+Please see the FailedResources property for specific error information. 
+Deletion failures that are known limitations are documented here: https://aka.ms/DeploymentStacksKnownLimitations
 ```
 
-To delete the deployment stack sucessfully, please follow the following steps:
-1. Run command, `az stack sub/mg ... --action-on-unmanage deleteAll`, the deletion will fail with the above error.
-2. Go to the deployment stack on Azure portal, then click the name of the Entra ID log diagnostic settings resource
-3. Click Delete to delete the resource manually
-4. Run command, `az stack sub/mg ... --action-on-unmanage detachAll`
+This occurs because the Entra ID diagnostic settings resource has dependencies that prevent automatic deletion through the deployment stack.
+
+To delete the deployment stack successfully, follow these steps:
+
+1. Attempt to delete the deployment stack with the following command (the deletion will fail with the above error):
+   ```
+   az stack sub delete --name <deployment-stack-name> --action-on-unmanage deleteAll
+   ```
+   or for management group deployments:
+   ```
+   az stack mg delete --name <deployment-stack-name> --management-group-id <management-group-id> --action-on-unmanage deleteAll
+   ```
+
+2. Navigate to the deployment stack in the Azure portal:
+   - For subscription deployments: Go to **Subscriptions** > **[your subscription]** > **Settings** > **Deployment stacks**
+   - For management group deployments: Go to **Management Groups** > **[your management group]** > **Governance** > **Deployment stacks**
+
+3. Select the deployment stack that failed to delete.
+
+4. In the deployment stack details, locate and click on the name of the Entra ID log diagnostic settings resource (it will be listed in the failed resources).
+
+5. Click **Delete** to manually delete this resource.
+
+6. After the diagnostic settings resource is successfully deleted, detach the deployment stack using:
+   ```
+   az stack sub delete --name <deployment-stack-name> --action-on-unmanage detachAll
+   ```
+   or for management group deployments:
+   ```
+   az stack mg delete --name <deployment-stack-name> --management-group-id <management-group-id> --action-on-unmanage detachAll
+   ```
 
 ## Contributing
 

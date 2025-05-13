@@ -181,6 +181,23 @@ The evaluation of the assigned Azure policy responsible for the diagnostic setti
 
 Make sure that all the existing subscriptions are properly listed under [resources to remediate](https://learn.microsoft.com/en-us/azure/governance/policy/how-to/remediate-resources?tabs=azure-portal#step-2-specify-remediation-task-details) when creating the remediation tasks.
 
+### Deleting the deployment stack fails if Microsoft Entra ID Log is enabled in Log Ingestion module
+The deletion of the deployment stack would fail with the following error if Microsoft Entra ID Log is enabled and not using existing Event Hub instance in Log Ingestion module:
+```
+(DeploymentStackDeleteResourcesFailed) One or more resources could not be deleted. Correlation id: '...'.
+Code: DeploymentStackDeleteResourcesFailed
+Message: One or more resources could not be deleted. Correlation id: '...'.
+Exception Details:	(DeploymentStackDeleteResourcesFailed) An error occurred while deleting resources. These resources are still present in the stack but can be deleted manually. Please see the FailedResources property for specific error information. Deletion failures that are known limitations are documented here: https://aka.ms/DeploymentStacksKnownLimitations
+	Code: DeploymentStackDeleteResourcesFailed
+	Message: An error occurred while deleting resources. These resources are still present in the stack but can be deleted manually. Please see the FailedResources property for specific error information. Deletion failures that are known limitations are documented here: https://aka.ms/DeploymentStacksKnownLimitations
+```
+
+To delete the deployment stack sucessfully, please follow the following steps:
+1. Run command, `az stack sub/mg ... --action-on-unmanage deleteAll`, the deletion will fail with the above error.
+2. Go to the deployment stack on Azure portal, then click the name of the Entra ID log diagnostic settings resource
+3. Click Delete to delete the resource manually
+4. Run command, `az stack sub/mg ... --action-on-unmanage detachAll`
+
 ## Contributing
 
 If you want to develop new content or improve on this collection, please open an issue or create a pull request. All contributions are welcome!

@@ -52,9 +52,7 @@ The Bicep files in this repo register Azure management groups (and all Subscript
    - [US-2](https://falcon.us-2.crowdstrike.com/api-clients-and-keys/)
    - [EU-1](https://falcon.eu-1.crowdstrike.com/api-clients-and-keys/clients)
 
-3. [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/) must be installed on your local machine
-> [!IMPORTANT]
-> This Bicep template can only be deployed via Azure CLI running on a local machine. You cannot deploy using Azure CLI in Azure Cloud Shell.
+3. [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/) must be installed on your local machine or use `Azure Cloud Shell` in the Azure portal.
 
 
 ## Required permissions

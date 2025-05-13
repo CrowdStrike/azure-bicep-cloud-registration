@@ -3,6 +3,11 @@
   Copyright (c) 2025 CrowdStrike, Inc.
 */
 
+@minLength(36)
+@maxLength(36)
+@description('Subscription ID where CrowdStrike infrastructure resources will be deployed. This subscription hosts shared resources like Event Hubs.')
+param csInfraSubscriptionId string
+
 @description('List of Azure management group IDs to monitor. These management groups will be configured for CrowdStrike monitoring.')
 param managementGroupIds array
 
@@ -32,7 +37,7 @@ resource subscriptionsInManagementGroup 'Microsoft.Resources/deploymentScripts@2
     }
     properties: {
       azPowerShellVersion: '12.3'
-      arguments: '-AzureTenantId ${tenant().tenantId} -ManagementGroupId "${mgmtGroupId}"'
+      arguments: '-AzureTenantId ${tenant().tenantId} -ManagementGroupId "${mgmtGroupId}" -CSInfraSubscriptionId "${csInfraSubscriptionId}"'
       scriptContent: loadTextContent('../../scripts/Resolve-Deployment-Scope.ps1')
       retentionInterval: 'PT1H'
       cleanupPreference: 'OnSuccess'

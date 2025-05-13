@@ -47,6 +47,7 @@ module deploymentScope 'deployment-scope/resolveDeploymentScope.bicep' = {
   name: '${resourceNamePrefix}cs-deployment-scope${environment}${resourceNameSuffix}'
   scope: az.resourceGroup(csInfraSubscriptionId, resourceGroupName)
   params: {
+    csInfraSubscriptionId: csInfraSubscriptionId
     scriptRunnerIdentityId: scriptRunnerIdentityId
     managementGroupIds: managementGroupIds
     env: env

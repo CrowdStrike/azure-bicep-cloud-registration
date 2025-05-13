@@ -27,7 +27,7 @@ var environment = length(env) > 0 ? '-${env}' : env
 
 module deploymentForSubs 'asset-inventory/assetInventoryForSub.bicep' = [
   for subId in subscriptionIds: {
-    name: '${resourceNamePrefix}cs-inv-deployment-sub${environment}${resourceNameSuffix}'
+    name: '${resourceNamePrefix}cs-inv-deployment-sub-${substring(subId, 0 , 8)}${environment}${resourceNameSuffix}'
     scope: subscription(subId)
     params: {
       azurePrincipalId: azurePrincipalId
@@ -41,7 +41,7 @@ module deploymentForSubs 'asset-inventory/assetInventoryForSub.bicep' = [
 /* Define required permissions at Azure Management Group scope */
 module deploymentForMGs 'asset-inventory/assetInventoryForMgmtGroup.bicep' = [
   for mgmtGroupId in managementGroupIds: {
-    name: '${resourceNamePrefix}cs-inv-deployment-mg${environment}${resourceNameSuffix}'
+    name: '${resourceNamePrefix}cs-inv-deployment-mg-${mgmtGroupId}${environment}${resourceNameSuffix}'
     scope: managementGroup(mgmtGroupId)
     params: {
       azurePrincipalId: azurePrincipalId

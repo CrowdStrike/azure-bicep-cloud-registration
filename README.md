@@ -54,6 +54,21 @@ The Bicep files in this repo register Azure management groups (and all Subscript
 
 3. [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/) must be installed on your local machine or use `Azure Cloud Shell` in the Azure portal.
 
+4. If you're using management group deployment and `logIngestionSettings.enabled` is set to `true`, ensure the `Microsoft.Management` resource provider is registered in the `csInfraSubscriptionId` subscription. This allows the template to discover active subscriptions under the specified management groups. You can register it using either method:
+
+   **Using Azure CLI:**
+   ```
+   az provider register --namespace Microsoft.Management --subscription <csInfraSubscriptionId>
+   ```
+
+   **Using Azure Portal:**
+   1. Sign in to the Azure Portal
+   2. Navigate to the subscription specified in `csInfraSubscriptionId`
+   3. In the left menu, select **Settings** > **Resource providers**
+   4. Search for `Microsoft.Management` in the filter box
+   5. Select `Microsoft.Management` and click **Register** at the top of the page
+   6. Wait for the status to change from "Registering" to "Registered"
+
 
 ## Required permissions
 

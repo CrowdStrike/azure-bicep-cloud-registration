@@ -4,11 +4,17 @@ param(
     [string] $AzureTenantId,
 
     [Parameter(Mandatory = $true)]
+    [ValidatePattern('^[a-fA-F0-9]{8}-([a-fA-F0-9]{4}-){3}[a-fA-F0-9]{12}$')]
+    [string] $CSInfraSubscriptionId,
+
+    [Parameter(Mandatory = $true)]
     [string] $ManagementGroupId
 )
 
 try {
     $activeSubscriptions = [System.Collections.Generic.HashSet[string]]::new()
+
+    Set-AzContext -Subscription $CSInfraSubscriptionId -Tenant $AzureTenantId
 
     # Level order traversal from the specified management group
     $curLevel = @(

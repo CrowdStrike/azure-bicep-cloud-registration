@@ -1,14 +1,21 @@
-targetScope='subscription'
+targetScope = 'subscription'
+
+/*
+  This Bicep template creates a resource group in the specified Azure subscription.
+  Copyright (c) 2025 CrowdStrike, Inc.
+*/
 
 param resourceGroupName string
 
-param region string
+@description('Azure region where the resource group will be created. Should be selected based on data residency requirements and proximity to monitored resources.')
+param location string
 
-param tags object = {}
+@description('Tags to be applied to the resource group. Used for resource organization, governance, and cost tracking.')
+param tags object
 
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-11-01' = {
   name: resourceGroupName
-  location: region
+  location: location
   tags: tags
 }
 

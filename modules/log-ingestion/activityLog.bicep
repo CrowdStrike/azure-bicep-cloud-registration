@@ -2,24 +2,23 @@ targetScope = 'subscription'
 
 /*
   This Bicep template deploys diagnostic settings for current subscription in order to
-  forward logs to CrowdStrike for Indicator of Attack (IOA) assessment.
-
-  Copyright (c) 2024 CrowdStrike, Inc.
+  forward activity logs to CrowdStrike.
+  Copyright (c) 2025 CrowdStrike, Inc.
 */
 
-@description('Event Hub Authorization Rule Id.')
+@description('Resource ID of the Event Hub Authorization Rule that grants "Send" permissions. Used to configure diagnostic settings to send logs to the Event Hub.')
 param eventHubAuthorizationRuleId string
 
-@description('Event Hub Name.')
+@description('Name of the Event Hub instance where Activity Logs will be sent. This Event Hub must exist within the namespace referenced by the authorization rule.')
 param eventHubName string
 
-@description('Entra ID Diagnostic Settings Name.')
+@description('Name for the diagnostic settings configuration that sends Activity Logs to the Event Hub. Used for identification in the Azure portal.')
 param diagnosticSettingsName string
 
 /*
   Deploy Diagnostic Settings for Azure Activity Logs - current Azure subscription
 
-  Collect Azure Activity Logs and submit them to CrowdStrike for analysis of Indicators of Attack (IOA)
+  Collect Azure Activity Logs and submit them to CrowdStrike
 
   Note:
    - 'Contributor' permissions are required to create Azure Activity Logs diagnostic settings

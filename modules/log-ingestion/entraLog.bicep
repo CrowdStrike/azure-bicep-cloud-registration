@@ -2,24 +2,23 @@ targetScope = 'subscription'
 
 /*
   This Bicep template deploys diagnostic settings for Entra ID in order to
-  forward logs to CrowdStrike for Indicator of Attack (IOA) assessment.
-
-  Copyright (c) 2024 CrowdStrike, Inc.
+  forward logs to CrowdStrike.
+  Copyright (c) 2025 CrowdStrike, Inc.
 */
 
-@description('Event Hub Authorization Rule Id.')
+@description('Resource ID of the Event Hub Authorization Rule that grants send permissions. Used to configure diagnostic settings to send Entra ID logs to the Event Hub.')
 param eventHubAuthorizationRuleId string
 
-@description('Event Hub Name.')
+@description('Name of the Event Hub instance where Entra ID logs will be sent. This Event Hub must exist within the namespace referenced by the authorization rule.')
 param eventHubName string
 
-@description('Entra ID Diagnostic Settings Name.')
-param diagnosticSettingsName string = 'cs-li-entid-to-eventhub'
+@description('Name for the diagnostic settings configuration that sends Entra ID logs to the Event Hub. Used for identification in the Azure portal.')
+param diagnosticSettingsName string
 
 /* 
   Deploy Diagnostic Settings for Microsoft Entra ID Logs
 
-  Collect Microsoft Entra ID logs and submit them to CrowdStrike for analysis of Indicators of Attack (IOA)
+  Collect Microsoft Entra ID logs and submit them to CrowdStrike
 
   Note:
    - To export SignInLogs a P1 or P2 Microsoft Entra ID license is required

@@ -1,135 +1,132 @@
-import {FeatureSettings} from 'models/common.bicep'
+import { LogIngestionSettings } from 'models/log-ingestion.bicep'
 
-targetScope='subscription'
+targetScope = 'subscription'
 
 metadata name = 'CrowdStrike Falcon Cloud Security Integration'
-metadata description = 'Deploys CrowdStrike Falcon Cloud Security integration for Indicator of Misconfiguration (IOM) and Indicator of Attack (IOA) assessment'
+metadata description = 'Deploys CrowdStrike Falcon Cloud Security integration for Asset Inventory and Real Time Visibility and Detection assessment'
 metadata owner = 'CrowdStrike'
 /*
   This Bicep template deploys CrowdStrike Falcon Cloud Security integration for
-  Indicator of Misconfiguration (IOM) and Indicator of Attack (IOA) assessment.
+  Asset Inventory and Real Time Visibility and Detection assessment.
 
-  Copyright (c) 2024 CrowdStrike, Inc.
+  Copyright (c) 2025 CrowdStrike, Inc.
 */
 
 /* Parameters */
-@description('Targetscope of the Falcon Cloud Security integration.')
-@allowed([
-  'ManagementGroup'
-  'Subscription'
-])
-param targetScope string = 'Subscription'
-
-@description('List of Azure subscription IDs to monitor')
+@description('List of Azure subscription IDs to monitor. These subscriptions will be configured for CrowdStrike monitoring.')
 param subscriptionIds array = []
 
-@description('Azure subscription ID that will host CrowdStrike infrastructure')
-param csInfraSubscriptionId string
+@description('Subscription ID where CrowdStrike infrastructure resources will be deployed. This subscription hosts shared resources like Event Hubs.')
+param csInfraSubscriptionId string = ''
 
-@minLength(32)
-@maxLength(32)
-@description('CID for the Falcon API.')
-param falconCID string
+@description('List of IP addresses of Crowdstrike Falcon service. Please refer to https://falcon.crowdstrike.com/documentation/page/re07d589/add-crowdstrike-ip-addresses-to-cloud-provider-allowlists-0 for the IP address list of your Falcon region.')
+param falconIpAddresses array = []
 
-@description('Client ID for the Falcon API.')
-param falconClientId string
-
-@description('Client secret for the Falcon API.')
-@secure()
-param falconClientSecret string
-
-@description('Falcon cloud API url')
-param falconUrl string = 'api.crowdstrike.com'
-
-@description('IP addresses of Falcon')
-param falconIpAddresses array = [
-  '13.52.148.107'
-  '52.52.20.134'
-  '54.176.76.126'
-  '54.176.197.246'
-]
-
-@description('Principal Id of the Crowdstrike Application in Entra ID')
+@description('Principal ID of the CrowdStrike application registered in Entra ID. This ID is used for role assignments and access control.')
 param azurePrincipalId string
 
-@description('Principal type of the specified principal Id')
-param azurePrincipalType string = 'ServicePrincipal'
+@description('Azure location (aka region) where global resources (Role definitions, Event Hub, etc.) will be deployed. These tenant-wide resources only need to be created once regardless of how many subscriptions are monitored.')
+param location string = deployment().location
 
-@description('Type of the Azure account to integrate.')
-@allowed([
-  'commercial'
-])
-param azureAccountType string = 'commercial'
-
-@description('Azure region for the resources deployed in this solution.')
-param region string = deployment().location
-
-@description('Custom label indicating the environment to be monitored, such as prod, stag or dev.')
+@description('Environment label (e.g., prod, stag, dev) used for resource naming and tagging. Helps distinguish between different deployment environments.')
 param env string = 'prod'
 
-@description('Tags to be applied to all resources.')
+@description('Tags to be applied to all deployed resources. Used for resource organization and governance.')
 param tags object = {
   CSTagVendor: 'crowdstrike'
 }
 
-@description('The prefix to be added to the deployment name.')
-param deploymentNamePrefix string = ''
+@description('Optional prefix added to all resource names for organization and identification purposes.')
+param resourceNamePrefix string = ''
 
-@description('The suffix to be added to the deployment name.')
-param deploymentNameSuffix string = ''
+@description('Optional suffix added to all resource names for organization and identification purposes.')
+param resourceNameSuffix string = ''
 
-param featureSettings FeatureSettings = {
-  realTimeVisibilityDetection: {
+@description('Configuration settings for the log ingestion module, which enables monitoring of Azure activity and Entra ID logs')
+param logIngestionSettings LogIngestionSettings = {
+  enabled: true
+  activityLogSettings: {
     enabled: true
-    deployActivityLogDiagnosticSettings: true       
-    deployActivityLogDiagnosticSettingsPolicy: true 
-    deployEntraLogDiagnosticSettings: true          
-    enableAppInsights: false
+    deployRemediationPolicy: true
+    existingEventhub: {
+      use: false
+      name: ''
+      namespaceName: ''
+      resourceGroupName: ''
+      subscriptionId: ''
+      consumerGroupName: ''
+    }
+  }
+  entraIdLogSettings: {
+    enabled: true
+    existingEventhub: {
+      use: false
+      name: ''
+      namespaceName: ''
+      resourceGroupName: ''
+      subscriptionId: ''
+      consumerGroupName: ''
+    }
   }
 }
 
-
 // ===========================================================================
-var crowdstrikeInfraSubscriptionId = length(csInfraSubscriptionId) > 0 ? csInfraSubscriptionId : (length(subscriptionIds) > 0 ? subscriptionIds[0] : '')
-var distinctSubscriptionIds = union(subscriptionIds, [csInfraSubscriptionId]) // remove duplicated values
-var prefix = length(deploymentNamePrefix) > 0 ? '${deploymentNamePrefix}-' : ''
-var suffix = length(deploymentNameSuffix) > 0 ? '-${deploymentNameSuffix}' : ''
+var subscriptions = union(subscriptionIds, [csInfraSubscriptionId]) // remove duplicated values
+var environment = length(env) > 0 ? '-${env}' : env
 
 /* Resources used across modules
 1. Role assignments to the Crowdstrike's app service principal
 */
-module global 'modules/cs-global-sub.bicep' = {
-  name: '${prefix}cs-sub-deployment${deploymentNameSuffix}'
+module assetInventory 'modules/cs-asset-inventory-sub.bicep' = {
+  name: '${resourceNamePrefix}cs-inv-sub-deployment${environment}${resourceNameSuffix}'
   params: {
-    csInfraSubscriptionId: crowdstrikeInfraSubscriptionId
-    subscriptionIds: distinctSubscriptionIds
+    subscriptionIds: subscriptions
     azurePrincipalId: azurePrincipalId
-    azurePrincipalType: azurePrincipalType
-    prefix: prefix
-    suffix: suffix
-    region: region
+    resourceNamePrefix: resourceNamePrefix
+    resourceNameSuffix: resourceNameSuffix
     env: env
+  }
+}
+
+var resourceGroupName = '${resourceNamePrefix}rg-cs${environment}${resourceNameSuffix}'
+module resourceGroup 'modules/common/resourceGroup.bicep' = if (logIngestionSettings.enabled) {
+  name: '${resourceNamePrefix}cs-rg${environment}${resourceNameSuffix}'
+  scope: subscription(csInfraSubscriptionId)
+
+  params: {
+    resourceGroupName: resourceGroupName
+    location: location
     tags: tags
   }
 }
 
-
-module logInjection 'modules/cs-log-injection-sub.bicep' = if (featureSettings.realTimeVisibilityDetection.enabled) {
-  name: '${prefix}cs-li-sub-deployment${suffix}'
-  scope: subscription(crowdstrikeInfraSubscriptionId)
+module logIngestion 'modules/cs-log-ingestion-sub.bicep' = if (logIngestionSettings.enabled) {
+  name: '${resourceNamePrefix}cs-log-sub-deployment${environment}${resourceNameSuffix}'
+  scope: subscription(csInfraSubscriptionId)
   params: {
-    targetScope: targetScope
-    csInfraSubscriptionId: crowdstrikeInfraSubscriptionId // DO NOT CHANGE
-    subscriptionIds: distinctSubscriptionIds
+    subscriptionIds: subscriptions
+    resourceGroupName: resourceGroupName
     falconIpAddresses: falconIpAddresses
-    prefix: prefix
-    suffix: suffix
-    featureSettings: featureSettings
-    region: region
+    resourceNamePrefix: resourceNamePrefix
+    resourceNameSuffix: resourceNameSuffix
+    azurePrincipalId: azurePrincipalId
+    activityLogSettings: logIngestionSettings.activityLogSettings
+    entraIdLogSettings: logIngestionSettings.entraIdLogSettings
+    location: location
     env: env
     tags: tags
   }
   dependsOn: [
-    global
+    resourceGroup
   ]
 }
+
+output customRoleNameForSubs array = assetInventory.outputs.customRoleNameForSubs
+output activityLogEventHubId string = logIngestionSettings.enabled ? logIngestion.outputs.activityLogEventHubId : ''
+output activityLogEventHubConsumerGroupName string = logIngestionSettings.enabled
+  ? logIngestion.outputs.activityLogEventHubConsumerGroupName
+  : ''
+output entraLogEventHubId string = logIngestionSettings.enabled ? logIngestion.outputs.entraLogEventHubId : ''
+output entraLogEventHubConsumerGroupName string = logIngestionSettings.enabled
+  ? logIngestion.outputs.entraLogEventHubConsumerGroupName
+  : ''

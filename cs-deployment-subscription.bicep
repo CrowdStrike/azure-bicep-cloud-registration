@@ -122,11 +122,11 @@ module logIngestion 'modules/cs-log-ingestion-sub.bicep' = if (logIngestionSetti
 }
 
 output customRoleNameForSubs array = assetInventory.outputs.customRoleNameForSubs
-// output activityLogEventHubId string = logIngestionSettings.enabled ? logIngestion.outputs.activityLogEventHubId : ''
-// output activityLogEventHubConsumerGroupName string = logIngestionSettings.enabled
-//   ? logIngestion.outputs.activityLogEventHubConsumerGroupName
-//   : ''
-// output entraLogEventHubId string = logIngestion.outputs.entraLogEventHubId
-// output entraLogEventHubConsumerGroupName string = logIngestionSettings.enabled
-//   ? logIngestion.outputs.entraLogEventHubConsumerGroupName
-//   : ''
+output activityLogEventHubId string = logIngestionSettings.enabled ? logIngestion.outputs.activityLogEventHubId : ''
+output activityLogEventHubConsumerGroupName string = logIngestionSettings.enabled
+  ? logIngestion.outputs.activityLogEventHubConsumerGroupName
+  : ''
+output entraLogEventHubId string = logIngestionSettings.enabled ? logIngestion.outputs.entraLogEventHubId : ''
+output entraLogEventHubConsumerGroupName string = logIngestionSettings.enabled
+  ? logIngestion.outputs.entraLogEventHubConsumerGroupName
+  : ''

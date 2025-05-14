@@ -21,7 +21,7 @@ param resourceNameSuffix string
 @description('Subscription ID where CrowdStrike infrastructure resources will be deployed. This subscription hosts shared resources like Event Hubs.')
 param csInfraSubscriptionId string
 
-@description('Resource ID of the Event Hub Authorization Rule that grants send permissions. Used to configure diagnostic settings to send logs to the Event Hub.')
+@description('Resource ID of the Event Hub Authorization Rule that grants "Send" permissions. Used to configure diagnostic settings to send logs to the Event Hub.')
 param eventHubAuthorizationRuleId string
 
 @description('Name of the resource group where CrowdStrike infrastructure resources will be deployed.')

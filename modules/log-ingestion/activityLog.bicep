@@ -6,7 +6,7 @@ targetScope = 'subscription'
   Copyright (c) 2025 CrowdStrike, Inc.
 */
 
-@description('Resource ID of the Event Hub Authorization Rule that grants send permissions. Used to configure diagnostic settings to send logs to the Event Hub.')
+@description('Resource ID of the Event Hub Authorization Rule that grants "Send" permissions. Used to configure diagnostic settings to send logs to the Event Hub.')
 param eventHubAuthorizationRuleId string
 
 @description('Name of the Event Hub instance where Activity Logs will be sent. This Event Hub must exist within the namespace referenced by the authorization rule.')

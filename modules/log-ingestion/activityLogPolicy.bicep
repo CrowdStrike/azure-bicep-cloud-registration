@@ -21,7 +21,7 @@ param eventhubResourceGroupName string
 @description('Resource ID of the Event Hub that will receive Activity Logs. Used for role assignments to grant access permissions.')
 param eventhubId string
 
-@description('Resource ID of the Event Hub Authorization Rule that grants send permissions. Used to configure diagnostic settings to send logs to the Event Hub.')
+@description('Resource ID of the Event Hub Authorization Rule that grants "Send" permissions. Used to configure diagnostic settings to send logs to the Event Hub.')
 param eventHubAuthorizationRuleId string
 
 @description('Name for the diagnostic settings configuration that sends Activity Logs to the Event Hub. Used for identification in the Azure portal.')

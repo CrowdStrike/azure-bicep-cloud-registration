@@ -87,7 +87,7 @@ resource activityLogEventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01
   name: '${resourceNamePrefix}${defaultSettings.activityLogEventHubName}${resourceNameSuffix}'
   parent: eventHubNamespace
   properties: {
-    partitionCount: 4
+    partitionCount: 16
     retentionDescription: {
       cleanupPolicy: 'Delete'
       retentionTimeInHours: 24

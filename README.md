@@ -181,6 +181,35 @@ To track progress of the deployment or if you encounter issues and want to see d
    - Select **Settings** > **Deployment stacks** from the left menu.
    - You will find the name you specified in the above command
 
+### Deployment Command for Registering the Whole Tenant
+
+To deploy Falcon Cloud Security integration for the entire tenant, you can use the management group deployment template with empty lists for both `managementGroupIds` and `subscriptionIds` parameters:
+
+```sh
+az stack mg create --name '<deployment stack name you want to use>' --location westus \
+  --management-group-id '<tenant root management group id>' \
+  --template-file cs-deployment-management-group.bicep \
+  --parameters '<file path of the Bicep parameter file storing all the input parameters>' \
+  --action-on-unmanage deleteAll \
+  --deny-settings-mode None \
+  --only-show-errors
+```
+
+In your parameters file, ensure both `managementGroupIds` and `subscriptionIds` are set to empty arrays:
+
+```bicep
+param managementGroupIds = []
+param subscriptionIds = []
+```
+
+This configuration will deploy Falcon Cloud Security integration at the tenant root level, effectively covering all management groups and subscriptions in your Azure tenant.
+
+To track progress of the deployment:
+   - Open the Azure Portal
+   - Go to **Management Groups** > **[tenant root management group]**
+   - Select **Governance** > **Deployment stacks** from the left menu
+   - You will find the name you specified in the above command
+
 ## Troubleshooting
 
 ### SSL Certificate Verification Failure

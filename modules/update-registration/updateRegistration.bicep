@@ -1,5 +1,5 @@
 /*
-  This Bicep template resolves Azure management groups to their constituent subscriptions for deployment scope determination.
+  This Bicep template update the Event Hub settings back to Falcon Cloud Security.
   Copyright (c) 2025 CrowdStrike, Inc.
 */
 
@@ -26,7 +26,7 @@ param env string
 param tags object
 
 resource subscriptionsInManagementGroup 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
-  name: guid('updateRegistration', resourceGroup().id, env)
+  name: guid('updateRegistration', resourceGroup().id, env, location)
   location: location
   kind: 'AzurePowerShell'
   tags: tags

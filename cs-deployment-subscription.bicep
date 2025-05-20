@@ -19,6 +19,16 @@ param subscriptionIds array = []
 @description('Subscription ID where CrowdStrike infrastructure resources will be deployed. This subscription hosts shared resources like Event Hubs.')
 param csInfraSubscriptionId string = ''
 
+@description('Base URL of the Falcon API.')
+param falconApiFqdn string
+
+@description('Client ID for the Falcon API.')
+param falconClientId string
+
+@description('Client secret for the Falcon API.')
+@secure()
+param falconClientSecret string
+
 @description('List of IP addresses of Crowdstrike Falcon service. Please refer to https://falcon.crowdstrike.com/documentation/page/re07d589/add-crowdstrike-ip-addresses-to-cloud-provider-allowlists-0 for the IP address list of your Falcon region.')
 param falconIpAddresses array = []
 
@@ -119,6 +129,25 @@ module logIngestion 'modules/cs-log-ingestion-sub.bicep' = if (logIngestionSetti
   dependsOn: [
     resourceGroup
   ]
+}
+
+module updateRegistration 'modules/cs-update-registration-rg.bicep' = if (logIngestionSettings.enabled) {
+  name: '${resourceNamePrefix}cs-update-reg-sub${environment}${resourceNameSuffix}'
+  scope: az.resourceGroup(csInfraSubscriptionId, resourceGroupName)
+  params: {
+    falconApiFqdn: falconApiFqdn
+    falconClientId: falconClientId
+    falconClientSecret: falconClientSecret
+    activityLogEventHubId: logIngestion.outputs.activityLogEventHubId
+    activityLogEventHubConsumerGroupName: logIngestion.outputs.activityLogEventHubConsumerGroupName
+    entraLogEventHubId: logIngestion.outputs.entraLogEventHubId
+    entraLogEventHubConsumerGroupName: logIngestion.outputs.entraLogEventHubConsumerGroupName
+    resourceNamePrefix: resourceNamePrefix
+    resourceNameSuffix: resourceNameSuffix
+    env: env
+    location: location
+    tags: tags
+  }
 }
 
 output customRoleNameForSubs array = assetInventory.outputs.customRoleNameForSubs

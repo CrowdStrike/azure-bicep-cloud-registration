@@ -26,6 +26,16 @@ param csInfraSubscriptionId string = ''
 @description('Principal ID of the CrowdStrike application registered in Entra ID. This ID is used for role assignments and access control.')
 param azurePrincipalId string
 
+@description('Base URL of the Falcon API.')
+param falconApiFqdn string
+
+@description('Client ID for the Falcon API.')
+param falconClientId string
+
+@description('Client secret for the Falcon API.')
+@secure()
+param falconClientSecret string
+
 @description('List of IP addresses of Crowdstrike Falcon service. Please refer to https://falcon.crowdstrike.com/documentation/page/re07d589/add-crowdstrike-ip-addresses-to-cloud-provider-allowlists-0 for the IP address list of your Falcon region.')
 param falconIpAddresses array = []
 
@@ -79,7 +89,10 @@ param logIngestionSettings LogIngestionSettings = {
 
 // ===========================================================================
 var subscriptions = union(subscriptionIds, [csInfraSubscriptionId]) // remove duplicated values
-var managementGroups = union(managementGroupIds, []) // remove duplicated values
+var managementGroups = union(
+  length(managementGroupIds) == 0 && length(subscriptionIds) == 0 ? [tenant().tenantId] : managementGroupIds,
+  []
+) // remove duplicated values
 var environment = length(env) > 0 ? '-${env}' : env
 
 /* Resources used across modules
@@ -165,6 +178,25 @@ module logIngestion 'modules/cs-log-ingestion-mg.bicep' = if (logIngestionSettin
   dependsOn: [
     resourceGroup
   ]
+}
+
+module updateRegistration 'modules/cs-update-registration-rg.bicep' = if (logIngestionSettings.enabled) {
+  name: '${resourceNamePrefix}cs-update-reg-mg${environment}${resourceNameSuffix}'
+  scope: az.resourceGroup(csInfraSubscriptionId, resourceGroupName)
+  params: {
+    falconApiFqdn: falconApiFqdn
+    falconClientId: falconClientId
+    falconClientSecret: falconClientSecret
+    activityLogEventHubId: logIngestion.outputs.activityLogEventHubId
+    activityLogEventHubConsumerGroupName: logIngestion.outputs.activityLogEventHubConsumerGroupName
+    entraLogEventHubId: logIngestion.outputs.entraLogEventHubId
+    entraLogEventHubConsumerGroupName: logIngestion.outputs.entraLogEventHubConsumerGroupName
+    resourceNamePrefix: resourceNamePrefix
+    resourceNameSuffix: resourceNameSuffix
+    env: env
+    location: location
+    tags: tags
+  }
 }
 
 output customReaderRoleNameForSubs array = assetInventory.outputs.customRoleNameForSubs

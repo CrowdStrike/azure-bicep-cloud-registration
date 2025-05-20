@@ -25,7 +25,7 @@ param tags object
 
 resource subscriptionsInManagementGroup 'Microsoft.Resources/deploymentScripts@2023-08-01' = [
   for mgmtGroupId in managementGroupIds: {
-    name: guid('resolveManagementGroupToSubscription', mgmtGroupId, resourceGroup().id, env)
+    name: guid('resolveManagementGroupToSubscription', mgmtGroupId, resourceGroup().id, env, location)
     location: location
     kind: 'AzurePowerShell'
     tags: tags

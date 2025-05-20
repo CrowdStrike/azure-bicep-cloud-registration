@@ -35,7 +35,7 @@ param tags object
 
 var environment = length(env) > 0 ? '-${env}' : env
 var defaultSettings = {
-  eventHubNamespace: 'evhns-cslog${environment}-${location}'
+  eventHubNamespace: 'evhns-cslog-${uniqueString(tenant().tenantId, subscription().subscriptionId, resourceGroup().name, env, location)}'
   activityLogEventHubName: 'evh-cslogact${environment}-${location}'
   entraLogEventHubName: 'evh-cslogentid${environment}-${location}'
 }

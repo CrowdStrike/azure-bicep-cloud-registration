@@ -81,7 +81,7 @@ param logIngestionSettings LogIngestionSettings = {
 }
 
 // ===========================================================================
-var subscriptions = union(subscriptionIds, [csInfraSubscriptionId]) // remove duplicated values
+var subscriptions = union(subscriptionIds, csInfraSubscriptionId == '' ? [] : [csInfraSubscriptionId]) // remove duplicated values
 var environment = length(env) > 0 ? '-${env}' : env
 
 /* Resources used across modules

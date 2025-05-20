@@ -88,7 +88,7 @@ param logIngestionSettings LogIngestionSettings = {
 }
 
 // ===========================================================================
-var subscriptions = union(subscriptionIds, [csInfraSubscriptionId]) // remove duplicated values
+var subscriptions = union(subscriptionIds, csInfraSubscriptionId == '' ? [] : [csInfraSubscriptionId]) // remove duplicated values
 var managementGroups = union(
   length(managementGroupIds) == 0 && length(subscriptionIds) == 0 ? [tenant().tenantId] : managementGroupIds,
   []

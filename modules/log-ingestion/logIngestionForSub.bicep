@@ -45,8 +45,8 @@ param subscriptionIds array
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
 var scope = az.resourceGroup(resourceGroupName)
-var shouldDeployEventhubForActivityLog = activityLogSettings.enabled && !activityLogSettings.existingEventhub.use
-var shouldDeployEventhubForEntraIdLog = entraIdLogSettings.enabled && !entraIdLogSettings.existingEventhub.use
+var shouldDeployEventhubForActivityLog = activityLogSettings.enabled && !(activityLogSettings.?existingEventhub.use ?? false)
+var shouldDeployEventhubForEntraIdLog = entraIdLogSettings.enabled && !(entraIdLogSettings.?existingEventhub.use ?? false)
 
 // Create EventHub Namespace and Eventhubs used by CrowdStrike
 module eventHub 'eventHub.bicep' = {

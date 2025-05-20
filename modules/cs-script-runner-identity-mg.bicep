@@ -48,7 +48,7 @@ module scriptRunnerIdentity 'common/managedIdentity.bicep' = {
 
 module roleAssignmentToMGs 'script-runner-identity/roleAssignmentToMgmtGroup.bicep' = [
   for (mgmtGroupId, i) in managementGroupIds: {
-    name: '${resourceNamePrefix}cs-inv-ra-mg${environment}${resourceNameSuffix}'
+    name: '${resourceNamePrefix}cs-ra-script-runner-mg${environment}${resourceNameSuffix}'
     scope: managementGroup(mgmtGroupId)
     params: {
       scriptRunnerIdentityId: scriptRunnerIdentity.outputs.principalId
@@ -60,7 +60,7 @@ module roleAssignmentToMGs 'script-runner-identity/roleAssignmentToMgmtGroup.bic
 // Need to assign Reader role in infra subscription so that the script can set context to the subscription
 // The reason why we need to do this is because that we can only guarantee "Microsoft.Management" resource provider is registered here.
 module roleAssignmentToInfraSub 'script-runner-identity/roleAssignmentToSub.bicep' = {
-  name: '${resourceNamePrefix}cs-inv-ra-infra-sub${environment}${resourceNameSuffix}'
+  name: '${resourceNamePrefix}cs-ra-script-runner-infra-sub${environment}${resourceNameSuffix}'
   scope: subscription(csInfraSubscriptionId)
   params: {
     scriptRunnerIdentityId: scriptRunnerIdentity.outputs.principalId

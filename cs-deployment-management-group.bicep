@@ -165,8 +165,12 @@ module logIngestion 'modules/cs-log-ingestion-mg.bicep' = if (logIngestionSettin
     subscriptionIds: deploymentScope.outputs.allSubscriptions
     csInfraSubscriptionId: csInfraSubscriptionId
     resourceGroupName: resourceGroupName
-    activityLogSettings: logIngestionSettings.activityLogSettings
-    entraIdLogSettings: logIngestionSettings.entraIdLogSettings
+    activityLogSettings: logIngestionSettings.?activityLogSettings ?? {
+      enabled: true
+    }
+    entraIdLogSettings: logIngestionSettings.?entraIdLogSettings ?? {
+      enabled: true
+    }
     falconIpAddresses: falconIpAddresses
     azurePrincipalId: azurePrincipalId
     resourceNamePrefix: resourceNamePrefix

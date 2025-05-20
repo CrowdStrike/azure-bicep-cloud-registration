@@ -120,8 +120,12 @@ module logIngestion 'modules/cs-log-ingestion-sub.bicep' = if (logIngestionSetti
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
     azurePrincipalId: azurePrincipalId
-    activityLogSettings: logIngestionSettings.activityLogSettings
-    entraIdLogSettings: logIngestionSettings.entraIdLogSettings
+    activityLogSettings: logIngestionSettings.?activityLogSettings ?? {
+      enabled: true
+    }
+    entraIdLogSettings: logIngestionSettings.?entraIdLogSettings ?? {
+      enabled: true
+    }
     location: location
     env: env
     tags: tags

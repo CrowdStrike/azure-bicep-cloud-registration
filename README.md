@@ -25,7 +25,7 @@ The Bicep files in this repo register Azure management groups (and all Subscript
   - Reader
 - Management group level deployment:
     - Creates a user-assigned managed identity with `Reader` permissions on the specified management groups to list enabled subscriptions
-- Assigns the **role-csreader-sub/\<management group name\>** custom role on the management group/subscription with the following actions:
+- Assigns the **role-csreader-\<subscription ID\>/\<management group ID\>** custom role on the management group/subscription with the following actions:
   - Microsoft.Web/sites/Read
   - Microsoft.Web/sites/config/Read
   - Microsoft.Web/sites/config/list/Action

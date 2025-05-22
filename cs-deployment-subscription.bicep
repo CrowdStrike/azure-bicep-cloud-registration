@@ -20,14 +20,14 @@ param subscriptionIds array = []
 param csInfraSubscriptionId string = ''
 
 @description('Base URL of the Falcon API.')
-param falconApiFqdn string
+param falconApiFqdn string = ''
 
 @description('Client ID for the Falcon API.')
-param falconClientId string
+param falconClientId string = ''
 
 @description('Client secret for the Falcon API.')
 @secure()
-param falconClientSecret string
+param falconClientSecret string = ''
 
 @description('List of IP addresses of Crowdstrike Falcon service. Please refer to https://falcon.crowdstrike.com/documentation/page/re07d589/add-crowdstrike-ip-addresses-to-cloud-provider-allowlists-0 for the IP address list of your Falcon region.')
 param falconIpAddresses array = []
@@ -54,7 +54,7 @@ param resourceNameSuffix string = ''
 
 @description('Configuration settings for the log ingestion module, which enables monitoring of Azure activity and Entra ID logs')
 param logIngestionSettings LogIngestionSettings = {
-  enabled: true
+  enabled: false
   activityLogSettings: {
     enabled: true
     deployRemediationPolicy: true
@@ -81,7 +81,7 @@ param logIngestionSettings LogIngestionSettings = {
 }
 
 // ===========================================================================
-var subscriptions = union(subscriptionIds, [csInfraSubscriptionId]) // remove duplicated values
+var subscriptions = union(subscriptionIds, csInfraSubscriptionId == '' ? [] : [csInfraSubscriptionId]) // remove duplicated values
 var environment = length(env) > 0 ? '-${env}' : env
 
 /* Resources used across modules
@@ -120,8 +120,12 @@ module logIngestion 'modules/cs-log-ingestion-sub.bicep' = if (logIngestionSetti
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
     azurePrincipalId: azurePrincipalId
-    activityLogSettings: logIngestionSettings.activityLogSettings
-    entraIdLogSettings: logIngestionSettings.entraIdLogSettings
+    activityLogSettings: logIngestionSettings.?activityLogSettings ?? {
+      enabled: true
+    }
+    entraIdLogSettings: logIngestionSettings.?entraIdLogSettings ?? {
+      enabled: true
+    }
     location: location
     env: env
     tags: tags

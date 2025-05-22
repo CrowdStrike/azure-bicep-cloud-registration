@@ -10,10 +10,10 @@ type LogIngestionSettings = {
   enabled: bool
 
   @description('Configuration settings for Azure Activity Log collection and monitoring')
-  activityLogSettings: ActivityLogSettings
+  activityLogSettings: ActivityLogSettings?
 
   @description('Configuration settings for Entra ID log collection and monitoring')
-  entraIdLogSettings: EntraIdLogSettings
+  entraIdLogSettings: EntraIdLogSettings?
 }
 
 @export()
@@ -22,10 +22,10 @@ type ActivityLogSettings = {
   enabled: bool
 
   @description('Controls whether to deploy a policy that automatically configures Activity Log Diagnostic Settings on new subscriptions')
-  deployRemediationPolicy: bool
+  deployRemediationPolicy: bool?
 
   @description('Configuration for using an existing Event Hub instead of creating a new one for Activity Logs')
-  existingEventhub: ExistingEventHub
+  existingEventhub: ExistingEventHub?
 }
 
 @export()
@@ -34,7 +34,7 @@ type EntraIdLogSettings = {
   enabled: bool
 
   @description('Configuration for using an existing Event Hub instead of creating a new one for Entra ID Logs')
-  existingEventhub: ExistingEventHub
+  existingEventhub: ExistingEventHub?
 }
 
 type ExistingEventHub = {
@@ -42,17 +42,17 @@ type ExistingEventHub = {
   use: bool
 
   @description('Subscription ID where the existing Event Hub is located')
-  subscriptionId: string
+  subscriptionId: string?
 
   @description('Resource group name where the existing Event Hub is located')
-  resourceGroupName: string
+  resourceGroupName: string?
 
   @description('Name of the existing Event Hub Namespace')
-  namespaceName: string
+  namespaceName: string?
 
   @description('Name of the existing Event Hub instance to use')
-  name: string
+  name: string?
 
   @description('Consumer group name in the existing Event Hub instance to use')
-  consumerGroupName: string
+  consumerGroupName: string?
 }

@@ -25,7 +25,7 @@ The Bicep files in this repo register Azure management groups (and all Subscript
   - Reader
 - Management group level deployment:
     - Creates a user-assigned managed identity with `Reader` permissions on the specified management groups to list enabled subscriptions
-- Assigns the **role-csreader-sub/\<management group name\>** custom role on the management group/subscription with the following actions:
+- Assigns the **role-csreader-\<subscription ID\>/\<management group ID\>** custom role on the management group/subscription with the following actions:
   - Microsoft.Web/sites/Read
   - Microsoft.Web/sites/config/Read
   - Microsoft.Web/sites/config/list/Action
@@ -94,10 +94,10 @@ You can use any of these methods to pass parameters:
 | `falconApiFqdn`                                                               | no       | Falcon API FQDN for your CrowdStrike environment (e.g., `api.crowdstrike.com`, `api.us-2.crowdstrike.com`, or `api.eu-1.crowdstrike.com`). Required when `logIngestionSettings.enabled` is set to `true`. |
 | `falconClientId`                                                              | no       | Falcon API Client ID with CSPM Registration Read and Write scopes. Required when `logIngestionSettings.enabled` is set to `true`.                                                                         |
 | `falconClientSecret`                                                          | no       | Falcon API Client Secret for the provided Client ID. Required when `logIngestionSettings.enabled` is set to `true`.                                                                                       |
-| `azurePrincipalId`                                                            | no       | Principal Id of Falcon Cloud Security App in Entra ID.                                                                                                                                                    |
+| `azurePrincipalId`                                                            | yes      | Principal Id of Falcon Cloud Security App in Entra ID.                                                                                                                                                    |
 | `env`                                                                         | no       | Environment label (e.g., prod, stag or dev) used for resource naming and tagging. Default set to `prod`                                                                                                   |
 | `tags`                                                                        | no       | Tags to be applied to all deployed resources. Used for resource organization and governance.                                                                                                              |
-| `logIngestionSettings.enabled`                                                | no       | Master toggle for the log ingestion module. When set to false, all related resources will not be deployed. Defaults to `true`.                                                                            |
+| `logIngestionSettings.enabled`                                                | no       | Master toggle for the log ingestion module. When set to true, all related resources will be deployed. Defaults to `false`.                                                                                |
 | `logIngestionSettings.activityLogSettings.enabled`                            | no       | Controls whether Activity Log Diagnostic Settings are deployed to monitored Azure subscriptions. Defaults to `true`.                                                                                      |
 | `logIngestionSettings.activityLogSettings.deployRemediationPolicy`            | no       | Controls whether to deploy a policy that automatically configures Activity Log Diagnostic Settings on new subscriptions. Defaults to `true`.                                                              |
 | `logIngestionSettings.entraIdLogSettings.enabled`                             | no       | Controls whether Entra ID Log Diagnostic Settings are deployed. When false, Entra ID logs will not be collected. Defaults to `true`.                                                                      |

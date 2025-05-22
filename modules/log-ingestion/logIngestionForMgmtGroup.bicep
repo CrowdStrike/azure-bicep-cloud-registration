@@ -42,7 +42,7 @@ param activityLogSettings ActivityLogSettings
 @description('Azure location (aka region) where global resources (Role definitions, Event Hub, etc.) will be deployed. These tenant-wide resources only need to be created once regardless of how many subscriptions are monitored.')
 param location string
 
-module activityLogDiagnosticSettingsPolicyAssignment 'activityLogPolicy.bicep' = if (activityLogSettings.enabled && !activityLogSettings.existingEventhub.use && activityLogSettings.deployRemediationPolicy) {
+module activityLogDiagnosticSettingsPolicyAssignment 'activityLogPolicy.bicep' = if (activityLogSettings.enabled && !(activityLogSettings.?existingEventhub.use ?? false) && (activityLogSettings.?deployRemediationPolicy ?? true)) {
   name: '${resourceNamePrefix}cs-log-policy-${location}${resourceNameSuffix}'
   params: {
     eventHubName: activityLogEventHubName

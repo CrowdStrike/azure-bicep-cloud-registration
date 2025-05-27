@@ -72,6 +72,8 @@ function Set-AzureEventHubsInfo {
             } | ConvertTo-Json -Depth 4
         }
         Write-Output "Update registration. Request body: $($Params.Body)"
+        $response = Invoke-WebRequest @Params
+        Write-Output "Update registration sucess. Response: $($response.Content)`n"
     }
     catch [System.Exception] { 
         Write-Error "An exception was caught: $($_.Exception.Message), $($_.ErrorDetails.Message)"
@@ -79,5 +81,5 @@ function Set-AzureEventHubsInfo {
     }
 }
 
-$accessToken = "test"
+$accessToken = $(Get-FalconAPIAccessToken -FalconAPIBaseUrl $Env:FALCON_API_BASE_URL -ClientId $Env:FALCON_CLIENT_ID -ClientSecret $Env:FALCON_CLIENT_SECRET)
 Set-AzureEventHubsInfo -FalconAPIBaseUrl $Env:FALCON_API_BASE_URL -AccessToken $accessToken -AzureTenantId $AzureTenantId -EventHubsJson $EventHubsJson

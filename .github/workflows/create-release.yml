@@ -12,13 +12,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Archive Release
-      uses: thedoctor0/zip-release@0.7.6
-      with:
-        type: 'zip'
-        filename: '${{ github.event.repository.name }}-${{ github.ref_name }}.zip'
-        exclusions: '.git/* .github/* .gitignore'
-
     - name: Create Bicep template release package
       run: zip -r ${{ github.event.repository.name }}-${{ github.ref_name }}.zip . -x ".git/*" ".github/*" ".gitignore"
 

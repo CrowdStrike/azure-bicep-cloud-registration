@@ -217,10 +217,10 @@ output eventhubs object = {
       : (shouldDeployEntraLog ? eventHubNamespace.name : '')
     eventHubName: shouldUseExistingEventHubForEntraLog
       ? existingEntraLogEventHub.name
-      : (shouldDeployEntraLog ? activityLogEventHub.name : '')
+      : (shouldDeployEntraLog ? entraLogEventHub.name : '')
     eventHubId: shouldUseExistingEventHubForEntraLog
       ? existingEntraLogEventHub.id
-      : (shouldDeployEntraLog ? activityLogEventHub.id : '')
+      : (shouldDeployEntraLog ? entraLogEventHub.id : '')
     eventHubNamespaceServiceBusEndpoint: shouldUseExistingEventHubForEntraLog
       ? existingEntraLogEventHubNamespace.properties.serviceBusEndpoint
       : (shouldDeployEntraLog ? eventHubNamespace.properties.serviceBusEndpoint : '')

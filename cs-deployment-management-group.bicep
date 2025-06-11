@@ -3,12 +3,12 @@ import { LogIngestionSettings } from 'models/log-ingestion.bicep'
 targetScope = 'managementGroup'
 
 metadata name = 'CrowdStrike Falcon Cloud Security Integration'
-metadata description = 'Deploys CrowdStrike Falcon Cloud Security integration for Asset Inventory and Real Time Visibility and Detection assessment'
+metadata description = 'Deploys CrowdStrike Falcon Cloud Security integration for asset inventory and real-time visibility and detection assessment'
 metadata owner = 'CrowdStrike'
 
 /*
   This Bicep template deploys CrowdStrike Falcon Cloud Security integration for
-  Asset Inventory and Real Time Visibility and Detection assessment.
+  asset inventory and real-time visibility and detection assessment.
 
   Copyright (c) 2025 CrowdStrike, Inc.
 */
@@ -20,7 +20,7 @@ param managementGroupIds array = []
 @description('List of Azure subscription IDs to monitor. These subscriptions will be configured for CrowdStrike monitoring.')
 param subscriptionIds array = []
 
-@description('Subscription ID where CrowdStrike infrastructure resources will be deployed. This subscription hosts shared resources like Event Hubs.')
+@description('Subscription ID where CrowdStrike infrastructure resources will be deployed. This subscription hosts shared resources like event hubs.')
 param csInfraSubscriptionId string = ''
 
 @description('Principal ID of the CrowdStrike application registered in Entra ID. This ID is used for role assignments and access control.')
@@ -36,14 +36,14 @@ param falconClientId string = ''
 @secure()
 param falconClientSecret string = ''
 
-@description('List of IP addresses of Crowdstrike Falcon service. Please refer to https://falcon.crowdstrike.com/documentation/page/re07d589/add-crowdstrike-ip-addresses-to-cloud-provider-allowlists-0 for the IP address list of your Falcon region.')
+@description('List of IP addresses of Crowdstrike Falcon service. For the IP address list for your Falcon region, refer to https://falcon.crowdstrike.com/documentation/page/re07d589/add-crowdstrike-ip-addresses-to-cloud-provider-allowlists-0.')
 param falconIpAddresses array = []
 
-@description('Azure location (aka region) where global resources (Role definitions, Event Hub, etc.) will be deployed. These tenant-wide resources only need to be created once regardless of how many subscriptions are monitored.')
+@description('Azure location (region) where global resources such as role definitions and event hub will be deployed. These tenant-wide resources only need to be created once regardless of how many subscriptions are monitored.')
 param location string = deployment().location
 
 @maxLength(4)
-@description('Environment label (e.g., prod, stag, dev) used for resource naming and tagging. Helps distinguish between different deployment environments.')
+@description('Environment label (for example, prod, stag, dev) used for resource naming and tagging. Helps distinguish between different deployment environments.')
 param env string = 'prod'
 
 @description('Tags to be applied to all deployed resources. Used for resource organization and governance.')
@@ -59,7 +59,7 @@ param resourceNamePrefix string = ''
 @description('Optional suffix added to all resource names for organization and identification purposes.')
 param resourceNameSuffix string = ''
 
-@description('Controls whether to enable Real Time Visibility and Detection feature that provides immediate insight into security events and threats across monitored Azure resources')
+@description('Controls whether to enable real-time visibility and detection, which provides immediate insight into security events and threats across monitored Azure resources.')
 param enableRealTimeVisibility bool = false
 
 @description('Configuration settings for the log ingestion module, which enables monitoring of Azure activity and Entra ID logs')

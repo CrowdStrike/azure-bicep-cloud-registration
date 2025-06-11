@@ -26,7 +26,7 @@ process, involving the following steps:
 + Preparation of patches for all releases still under maintenance.
   + These patches will be submitted as a separate pull request and contain a version update.
   + This pull request will be flagged as a security fix.
-  + Once merged, and after post-merge unit testing has been completed, the patch will be immediately published to both PyPI repositories.
+  + Once merged, and after post-merge unit testing has been completed, the patch will be immediately published to the GitHub repository.
 
 ## Comments
 

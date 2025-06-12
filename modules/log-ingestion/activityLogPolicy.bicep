@@ -2,32 +2,32 @@ targetScope = 'managementGroup'
 
 /*
   This Bicep template creates and assigns an Azure Policy used to ensure
-  that Activity Log data is forwarded to CrowdStrike
+  that activity log data is forwarded to CrowdStrike
   Copyright (c) 2025 CrowdStrike, Inc.
 */
 
 /* Parameters */
-@description('Azure region where the policy resources will be deployed. This should match the region of your monitored resources for optimal performance.')
+@description('Azure region where the policy resources will be deployed. For optimal performance, this should match the region of your monitored resources.')
 param location string
 
 @minLength(36)
 @maxLength(36)
-@description('Subscription ID where the Event Hub for Activity Logs is located. Used to target the correct Event Hub for diagnostic settings.')
+@description('Subscription ID where the event hub for activity logs is located. Used to target the correct event hub for diagnostic settings.')
 param eventhubSubscriptionId string
 
-@description('Resource group name where the Event Hub for Activity Logs is located. Used to target the correct Event Hub for diagnostic settings.')
+@description('Resource group name where the event hub for activity logs is located. Used to target the correct event hub for diagnostic settings.')
 param eventhubResourceGroupName string
 
-@description('Resource ID of the Event Hub that will receive Activity Logs. Used for role assignments to grant access permissions.')
+@description('Resource ID of the event hub that will receive activity logs. Used for role assignments to grant access permissions.')
 param eventhubId string
 
-@description('Resource ID of the Event Hub Authorization Rule that grants "Send" permissions. Used to configure diagnostic settings to send logs to the Event Hub.')
+@description('Resource ID of the Event Hub Authorization Rule that grants "Send" permissions. Used to configure diagnostic settings to send logs to the event hub.')
 param eventHubAuthorizationRuleId string
 
-@description('Name for the diagnostic settings configuration that sends Activity Logs to the Event Hub. Used for identification in the Azure portal.')
+@description('Name for the diagnostic settings configuration that sends activity logs to the event hub. Used for identification in the Azure portal.')
 param activityLogDiagnosticSettingsName string
 
-@description('Name of the Event Hub instance where Activity Logs will be sent. This Event Hub must exist within the namespace referenced by the authorization rule.')
+@description('Name of the event hub instance where activity logs will be sent. This event hub must exist within the namespace referenced by the authorization rule.')
 param eventHubName string
 
 @description('Optional prefix added to all resource names for organization and identification purposes.')

@@ -1,5 +1,9 @@
 ![CrowdStrike Falcon](https://raw.githubusercontent.com/CrowdStrike/falconpy/main/docs/asset/cs-logo.png)
 
+> [!IMPORTANT]
+> This repository only supports Falcon Cloud Security integration via Falcon portal. 
+> Please go to Cloud Security > Settings > Account registration > Azure tab to start a new registration
+
 # Falcon Cloud Security Registration with Azure Bicep
 
 The Azure Bicep templates in this repository allow for an easy and seamless registration of Azure environments into CrowdStrike Falcon Cloud Security for asset inventory and real-time visibility and detection.

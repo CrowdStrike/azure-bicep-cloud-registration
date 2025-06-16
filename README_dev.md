@@ -1,8 +1,8 @@
 ![CrowdStrike Falcon](https://raw.githubusercontent.com/CrowdStrike/falconpy/main/docs/asset/cs-logo.png)
 
 > [!IMPORTANT]
-> This repository only supports Falcon Cloud Security integration via Falcon portal. 
-> Please go to Cloud Security > Settings > Account registration > Azure tab to start a new registration
+> This repository only supports Falcon Cloud Security registrations that are initiated using the Falcon console. 
+> To start a new registration, go to **Cloud Security > Settings > Account registration**. Then on the **Azure** tab, click **Add new account**.  
 
 # Falcon Cloud Security Registration with Azure Bicep
 

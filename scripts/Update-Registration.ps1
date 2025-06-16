@@ -58,7 +58,7 @@ function Set-AzureEventHubsInfo {
     )
     try {
         $Params = @{
-            Uri     = "https://${FalconAPIBaseUrl}/cloud-security-registration-azure/entities/registrations/v1"
+            Uri     = "https://${FalconAPIBaseUrl}/cloud-security-registration-azure/entities/registrations/partial/v1"
             Method  = "PATCH"
             Headers = @{
                 "Authorization" = "Bearer ${AccessToken}"

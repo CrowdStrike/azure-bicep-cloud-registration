@@ -3,7 +3,7 @@
 > [!WARNING]
 > **This repository contains a new Bicep deployment method that is currently in closed beta.**
 > 
-> This repository is not yet officially released. Please use the following Bicep template repository for your Azure integration needs: [CrowdStrike Azure Integration Bicep Repository](https://github.com/CrowdStrike/cs-azure-integration-bicep)
+> This repository is currently in closed beta and not yet officially released. Please use the following Bicep template repository for your Azure integration needs: [CrowdStrike Azure Integration Bicep Repository](https://github.com/CrowdStrike/cs-azure-integration-bicep)
 > 
 > This repository is being actively developed to provide an improved deployment method for integrating Azure environments with CrowdStrike Falcon Cloud Security. The new method will offer enhanced capabilities and a more streamlined experience.
 > 

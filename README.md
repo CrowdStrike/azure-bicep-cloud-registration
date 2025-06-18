@@ -44,6 +44,7 @@ The Bicep templates perform the following actions:
   - Microsoft.Web/sites/Read
   - Microsoft.Web/sites/config/Read
   - Microsoft.Web/sites/config/list/Action
+  - Microsoft.Web/sites/publish/action
 - If the `enableRealTimeVisibility` parameter is set to true, the templates also:
    - Deploy an Azure Event Hubs namespace, two event hubs, and additional infrastructure to the subscription that has been designated as the default subscription, which is done via the `csInfraSubscriptionId` parameter. CrowdStrike uses this infrastructure to stream Entra ID sign-in and audit logs, as well as Azure activity logs, to Falcon Cloud Security.
    - Create a Microsoft Entra ID diagnostic setting that forwards sign-in and audit logs to the newly-created event hub.

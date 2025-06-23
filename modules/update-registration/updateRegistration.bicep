@@ -25,6 +25,9 @@ param env string
 @description('Tags to be applied to all deployed resources. Used for resource organization, governance, and cost tracking.')
 param tags object
 
+@description('Indicates whether this is the initial registration')
+param isInitialRegistration bool
+
 resource subscriptionsInManagementGroup 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
   name: guid('updateRegistration', resourceGroup().id, env, location)
   location: location
@@ -46,7 +49,7 @@ resource subscriptionsInManagementGroup 'Microsoft.Resources/deploymentScripts@2
         secureValue: falconClientSecret
       }
     ]
-    arguments: '-AzureTenantId \\"${tenant().tenantId}\\" -EventHubsJson \'${replace(string(eventHubs), '"', '\\"')}\''
+    arguments: '-AzureTenantId \\"${tenant().tenantId}\\" -IsInitialRegistration ${isInitialRegistration ? '$True' : '$False'} -EventHubsJson \'${replace(string(eventHubs), '"', '\\"')}\''
     scriptContent: loadTextContent('../../scripts/Update-Registration.ps1')
     retentionInterval: 'PT1H'
     cleanupPreference: 'OnSuccess'

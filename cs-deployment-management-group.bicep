@@ -39,6 +39,9 @@ param falconClientSecret string = ''
 @description('List of IP addresses of Crowdstrike Falcon service. For the IP address list for your Falcon region, refer to https://falcon.crowdstrike.com/documentation/page/re07d589/add-crowdstrike-ip-addresses-to-cloud-provider-allowlists-0.')
 param falconIpAddresses array = []
 
+@description('Indicates whether this is the initial registration')
+param isInitialRegistration bool = true
+
 @description('Azure location (region) where global resources such as role definitions and event hub will be deployed. These tenant-wide resources only need to be created once regardless of how many subscriptions are monitored.')
 param location string = deployment().location
 
@@ -191,6 +194,7 @@ module updateRegistration 'modules/cs-update-registration-rg.bicep' = if (should
   name: '${resourceNamePrefix}cs-update-reg-mg${environment}${resourceNameSuffix}'
   scope: az.resourceGroup(csInfraSubscriptionId, resourceGroupName)
   params: {
+    isInitialRegistration: isInitialRegistration
     falconApiFqdn: falconApiFqdn
     falconClientId: falconClientId
     falconClientSecret: falconClientSecret

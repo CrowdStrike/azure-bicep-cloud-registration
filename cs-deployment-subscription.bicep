@@ -38,6 +38,9 @@ param azurePrincipalId string
 @description('Azure location (region) where global resources such as role definitions and event hub will be deployed. These tenant-wide resources only need to be created once regardless of how many subscriptions are monitored.')
 param location string = deployment().location
 
+@description('Indicates whether this is the initial registration')
+param isInitialRegistration bool = true
+
 @description('Environment label (for example, prod, stag, dev) used for resource naming and tagging. Helps distinguish between different deployment environments.')
 param env string = 'prod'
 
@@ -142,6 +145,7 @@ module updateRegistration 'modules/cs-update-registration-rg.bicep' = if (should
   name: '${resourceNamePrefix}cs-update-reg-sub${environment}${resourceNameSuffix}'
   scope: az.resourceGroup(csInfraSubscriptionId, resourceGroupName)
   params: {
+    isInitialRegistration: isInitialRegistration
     falconApiFqdn: falconApiFqdn
     falconClientId: falconClientId
     falconClientSecret: falconClientSecret

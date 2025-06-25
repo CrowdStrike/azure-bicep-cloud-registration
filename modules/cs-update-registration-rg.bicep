@@ -37,6 +37,9 @@ param env string
 @description('Tags to be applied to all deployed resources. Used for resource organization, governance, and cost tracking.')
 param tags object
 
+@description('Indicates whether this is the initial registration')
+param isInitialRegistration bool
+
 var environment = length(env) > 0 ? '-${env}' : env
 
 module deploymentScope 'update-registration/updateRegistration.bicep' = {
@@ -45,6 +48,7 @@ module deploymentScope 'update-registration/updateRegistration.bicep' = {
     falconApiFqdn: falconApiFqdn
     falconClientId: falconClientId
     falconClientSecret: falconClientSecret
+    isInitialRegistration: isInitialRegistration
     eventHubs: concat(
       activityLogEventHubId != ''
         ? [

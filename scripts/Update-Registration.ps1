@@ -7,6 +7,9 @@ param (
     [string]$AzureTenantId,
 
     [Parameter(Mandatory = $true)]
+    [System.Boolean]$IsInitialRegistration,
+
+    [Parameter(Mandatory = $true)]
     [string]$EventHubsJson
 )
 
@@ -45,6 +48,9 @@ function Get-FalconAPIAccessToken {
 function Set-AzureEventHubsInfo {
     param (
         [Parameter(Mandatory = $true)]
+        [System.Boolean]$IsInitialRegistration,
+
+        [Parameter(Mandatory = $true)]
         [string]$FalconAPIBaseUrl,
 
         [Parameter(Mandatory = $true)]
@@ -58,7 +64,7 @@ function Set-AzureEventHubsInfo {
     )
     try {
         $Params = @{
-            Uri     = "https://${FalconAPIBaseUrl}/cloud-security-registration-azure/entities/registrations/partial/v1"
+            Uri     = ($IsInitialRegistration) ? "https://${FalconAPIBaseUrl}/cloud-security-registration-azure/entities/registrations/partial/v1" : "https://${FalconAPIBaseUrl}/cloud-security-registration-azure/entities/registrations/v1"
             Method  = "PATCH"
             Headers = @{
                 "Authorization" = "Bearer ${AccessToken}"
@@ -71,6 +77,7 @@ function Set-AzureEventHubsInfo {
                 }
             } | ConvertTo-Json -Depth 4
         }
+        Write-Output "Update registration. Url: $($Params.Uri)"
         Write-Output "Update registration. Request body: $($Params.Body)"
         $response = Invoke-WebRequest @Params
         Write-Output "Update registration sucess. Response: $($response.Content)`n"
@@ -82,4 +89,4 @@ function Set-AzureEventHubsInfo {
 }
 
 $accessToken = $(Get-FalconAPIAccessToken -FalconAPIBaseUrl $Env:FALCON_API_BASE_URL -ClientId $Env:FALCON_CLIENT_ID -ClientSecret $Env:FALCON_CLIENT_SECRET)
-Set-AzureEventHubsInfo -FalconAPIBaseUrl $Env:FALCON_API_BASE_URL -AccessToken $accessToken -AzureTenantId $AzureTenantId -EventHubsJson $EventHubsJson
+Set-AzureEventHubsInfo -IsInitialRegistration $IsInitialRegistration -FalconAPIBaseUrl $Env:FALCON_API_BASE_URL -AccessToken $accessToken -AzureTenantId $AzureTenantId -EventHubsJson $EventHubsJson

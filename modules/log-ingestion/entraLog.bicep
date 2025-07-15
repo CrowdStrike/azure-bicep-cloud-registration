@@ -24,7 +24,7 @@ param diagnosticSettingsName string
    - To export SignInLogs a P1 or P2 Microsoft Entra ID license is required
    - 'Security Administrator' or 'Global Administrator' Entra ID permissions are required
 */
-resource entraDiagnosticSettings 'microsoft.aadiam/diagnosticSettings@2017-04-01' = {
+resource entraDiagnosticSettings 'microsoft.aadiam/diagnosticSettings@2017-04-01-preview' = {
   name: diagnosticSettingsName
   scope: tenant()
   properties: {

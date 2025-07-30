@@ -89,10 +89,10 @@ param logIngestionSettings LogIngestionSettings = {
 var subscriptions = union(subscriptionIds, csInfraSubscriptionId == '' ? [] : [csInfraSubscriptionId]) // remove duplicated values
 var environment = length(env) > 0 ? '-${env}' : env
 var shouldDeployLogIngestion = enableRealTimeVisibility
-var validatedFalconClientID = enableRealTimeVisibility && length(falconClientId) == 0
+var validatedFalconClientID = enableRealTimeVisibility && empty(falconClientId)
   ? fail('"falconClientId" is required when real-time visibility and detection is enabled, please specify it in parameters.bicepparam')
   : falconClientId
-var validatedFalconClientSecret = enableRealTimeVisibility && length(falconClientSecret) == 0
+var validatedFalconClientSecret = enableRealTimeVisibility && empty(falconClientSecret)
   ? fail('"falconClientSecret" is required when real-time visibility and detection is enabled, please specify it to environment variable, "FALCON_CLIENT_SECRET"')
   : falconClientSecret
 

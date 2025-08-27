@@ -56,6 +56,8 @@ var existingEntraLogEventHubSettings = {
   namespace: entraLogSettings.?existingEventhub.?namespaceName ?? ''
   name: entraLogSettings.?existingEventhub.?name ?? ''
 }
+var isSameExistingEventHubNamespace = shouldUseExistingEventHubForActivityLog && shouldUseExistingEventHubForEntraLog && existingActivityLogEventHubSettings.namespace == existingEntraLogEventHubSettings.namespace
+var isSameExistingEventHub = isSameExistingEventHubNamespace && existingActivityLogEventHubSettings.name == existingEntraLogEventHubSettings.name
 
 resource eventHubNamespace 'Microsoft.EventHub/namespaces@2024-01-01' = if (shouldDeployEventHubNamespace) {
   name: '${resourceNamePrefix}${defaultSettings.eventHubNamespace}${resourceNameSuffix}'
@@ -137,7 +139,7 @@ resource existingActivityLogEventHubNamespace 'Microsoft.EventHub/namespaces@202
   )
 }
 
-resource existingEntraLogEventHubNamespace 'Microsoft.EventHub/namespaces@2024-01-01' existing = if (shouldUseExistingEventHubForEntraLog) {
+resource existingEntraLogEventHubNamespace 'Microsoft.EventHub/namespaces@2024-01-01' existing = if (shouldUseExistingEventHubForEntraLog && !isSameExistingEventHubNamespace) {
   name: existingEntraLogEventHubSettings.namespace
   scope: resourceGroup(existingEntraLogEventHubSettings.subscriptionId, existingEntraLogEventHubSettings.resourceGroup)
 }
@@ -147,7 +149,7 @@ resource existingActivityLogEventHub 'Microsoft.EventHub/namespaces/eventhubs@20
   parent: existingActivityLogEventHubNamespace
 }
 
-resource existingEntraLogEventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' existing = if (shouldUseExistingEventHubForEntraLog) {
+resource existingEntraLogEventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' existing = if (shouldUseExistingEventHubForEntraLog && !isSameExistingEventHub) {
   name: existingEntraLogEventHubSettings.name
   parent: existingEntraLogEventHubNamespace
 }
@@ -204,8 +206,8 @@ output eventhubs object = {
       ? existingActivityLogEventHub.id
       : (shouldDeployActivityLog ? activityLogEventHub.id : '')
     eventHubNamespaceServiceBusEndpoint: shouldUseExistingEventHubForActivityLog
-      ? existingActivityLogEventHubNamespace.properties.serviceBusEndpoint
-      : (shouldDeployActivityLog ? eventHubNamespace.properties.serviceBusEndpoint : '')
+      ? existingActivityLogEventHubNamespace.?properties.?serviceBusEndpoint ?? ''
+      : (shouldDeployActivityLog ? eventHubNamespace.?properties.?serviceBusEndpoint ?? '' : '')
     eventHubAuthorizationRuleId: shouldDeployActivityLog ? authorizationRule.id : ''
     eventHubConsumerGrouopName: shouldDeployActivityLog
       ? '$Default'
@@ -213,17 +215,21 @@ output eventhubs object = {
   }
   entraLog: {
     eventHubNamespaceName: shouldUseExistingEventHubForEntraLog
-      ? existingEntraLogEventHubNamespace.name
+      ? (isSameExistingEventHubNamespace
+          ? existingActivityLogEventHubNamespace.name
+          : existingEntraLogEventHubNamespace.name)
       : (shouldDeployEntraLog ? eventHubNamespace.name : '')
     eventHubName: shouldUseExistingEventHubForEntraLog
-      ? existingEntraLogEventHub.name
+      ? (isSameExistingEventHub ? existingActivityLogEventHub.name : existingEntraLogEventHub.name)
       : (shouldDeployEntraLog ? entraLogEventHub.name : '')
     eventHubId: shouldUseExistingEventHubForEntraLog
-      ? existingEntraLogEventHub.id
+      ? (isSameExistingEventHub ? existingActivityLogEventHub.id : existingEntraLogEventHub.id)
       : (shouldDeployEntraLog ? entraLogEventHub.id : '')
     eventHubNamespaceServiceBusEndpoint: shouldUseExistingEventHubForEntraLog
-      ? existingEntraLogEventHubNamespace.properties.serviceBusEndpoint
-      : (shouldDeployEntraLog ? eventHubNamespace.properties.serviceBusEndpoint : '')
+      ? (isSameExistingEventHubNamespace
+          ? existingActivityLogEventHubNamespace.?properties.?serviceBusEndpoint ?? ''
+          : existingEntraLogEventHubNamespace.?properties.?serviceBusEndpoint ?? '')
+      : (shouldDeployEntraLog ? eventHubNamespace.?properties.?serviceBusEndpoint : '')
     eventHubAuthorizationRuleId: shouldDeployEntraLog ? authorizationRule.id : ''
     eventHubConsumerGrouopName: shouldDeployEntraLog
       ? '$Default'

@@ -29,7 +29,7 @@ param falconClientId string = ''
 @secure()
 param falconClientSecret string = ''
 
-@description('List of IP addresses of Crowdstrike Falcon service. For the IP address list for your Falcon region, refer to https://falcon.crowdstrike.com/documentation/page/re07d589/add-crowdstrike-ip-addresses-to-cloud-provider-allowlists-0.')
+@description('List of IP addresses of CrowdStrike Falcon service. For the IP address list for your Falcon region, refer to https://falcon.crowdstrike.com/documentation/page/re07d589/add-crowdstrike-ip-addresses-to-cloud-provider-allowlists-0.')
 param falconIpAddresses array = []
 
 @description('Principal ID of the CrowdStrike application registered in Entra ID. This ID is used for role assignments and access control.')
@@ -46,12 +46,14 @@ param env string = 'prod'
 
 @description('Tags to be applied to all deployed resources. Used for resource organization and governance.')
 param tags object = {
-  CSTagVendor: 'crowdstrike'
+  CSTagVendor: 'CrowdStrike'
 }
 
+@maxLength(10)
 @description('Optional prefix added to all resource names for organization and identification purposes.')
 param resourceNamePrefix string = ''
 
+@maxLength(10)
 @description('Optional suffix added to all resource names for organization and identification purposes.')
 param resourceNameSuffix string = ''
 
@@ -103,7 +105,7 @@ var validatedResourceNameSuffix = length(resourceNamePrefix) + length(resourceNa
   : resourceNameSuffix
 
 /* Resources used across modules
-1. Role assignments to the Crowdstrike's app service principal
+1. Role assignments to the CrowdStrike's app service principal
 */
 module assetInventory 'modules/cs-asset-inventory-sub.bicep' = {
   name: '${validatedResourceNamePrefix}cs-inv-sub-deployment${environment}${validatedResourceNameSuffix}'

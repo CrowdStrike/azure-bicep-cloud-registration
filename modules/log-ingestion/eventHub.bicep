@@ -80,7 +80,7 @@ resource eventHubNamespace 'Microsoft.EventHub/namespaces@2024-01-01' = if (shou
   }
 }
 
-// Allow Crowdstrike Falcon to access the Eventhub
+// Allow CrowdStrike Falcon to access the Eventhub
 resource eventHubNamespaceNetworkRuleSet 'Microsoft.EventHub/namespaces/networkRuleSets@2024-01-01' = if (shouldDeployEventHubNamespace) {
   name: 'default' // This is fixed
   parent: eventHubNamespace

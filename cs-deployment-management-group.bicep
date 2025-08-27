@@ -160,7 +160,7 @@ module deploymentScope 'modules/cs-deployment-scope-mg.bicep' = if (shouldDeploy
     managementGroupIds: managementGroups
     subscriptionIds: subscriptions
     resourceGroupName: resourceGroupName
-    scriptRunnerIdentityId: scriptRunnerIdentity.outputs.id
+    scriptRunnerIdentityId: scriptRunnerIdentity!.outputs.id
     csInfraSubscriptionId: csInfraSubscriptionId
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
@@ -174,7 +174,7 @@ module logIngestion 'modules/cs-log-ingestion-mg.bicep' = if (shouldDeployLogIng
   name: '${resourceNamePrefix}cs-log-mg-deployment${environment}${resourceNameSuffix}'
   params: {
     managementGroupIds: managementGroups
-    subscriptionIds: deploymentScope.outputs.allSubscriptions
+    subscriptionIds: deploymentScope!.outputs.allSubscriptions
     csInfraSubscriptionId: csInfraSubscriptionId
     resourceGroupName: resourceGroupName
     activityLogSettings: logIngestionSettings.?activityLogSettings ?? {
@@ -204,10 +204,10 @@ module updateRegistration 'modules/cs-update-registration-rg.bicep' = if (should
     falconApiFqdn: falconApiFqdn
     falconClientId: validatedFalconClientID
     falconClientSecret: validatedFalconClientSecret
-    activityLogEventHubId: logIngestion.outputs.activityLogEventHubId
-    activityLogEventHubConsumerGroupName: logIngestion.outputs.activityLogEventHubConsumerGroupName
-    entraLogEventHubId: logIngestion.outputs.entraLogEventHubId
-    entraLogEventHubConsumerGroupName: logIngestion.outputs.entraLogEventHubConsumerGroupName
+    activityLogEventHubId: logIngestion!.outputs.activityLogEventHubId
+    activityLogEventHubConsumerGroupName: logIngestion!.outputs.activityLogEventHubConsumerGroupName
+    entraLogEventHubId: logIngestion!.outputs.entraLogEventHubId
+    entraLogEventHubConsumerGroupName: logIngestion!.outputs.entraLogEventHubConsumerGroupName
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
     env: env
@@ -218,11 +218,11 @@ module updateRegistration 'modules/cs-update-registration-rg.bicep' = if (should
 
 output customReaderRoleNameForSubs array = assetInventory.outputs.customRoleNameForSubs
 output customReaderRoleNameForMGs array = assetInventory.outputs.customRoleNameForMGs
-output activityLogEventHubId string = shouldDeployLogIngestion ? logIngestion.outputs.activityLogEventHubId : ''
+output activityLogEventHubId string = shouldDeployLogIngestion ? logIngestion!.outputs.activityLogEventHubId : ''
 output activityLogEventHubConsumerGroupName string = shouldDeployLogIngestion
-  ? logIngestion.outputs.activityLogEventHubConsumerGroupName
+  ? logIngestion!.outputs.activityLogEventHubConsumerGroupName
   : ''
-output entraLogEventHubId string = shouldDeployLogIngestion ? logIngestion.outputs.entraLogEventHubId : ''
+output entraLogEventHubId string = shouldDeployLogIngestion ? logIngestion!.outputs.entraLogEventHubId : ''
 output entraLogEventHubConsumerGroupName string = shouldDeployLogIngestion
-  ? logIngestion.outputs.entraLogEventHubConsumerGroupName
+  ? logIngestion!.outputs.entraLogEventHubConsumerGroupName
   : ''

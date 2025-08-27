@@ -155,10 +155,10 @@ module updateRegistration 'modules/cs-update-registration-rg.bicep' = if (should
     falconApiFqdn: falconApiFqdn
     falconClientId: validatedFalconClientID
     falconClientSecret: validatedFalconClientSecret
-    activityLogEventHubId: logIngestion.outputs.activityLogEventHubId
-    activityLogEventHubConsumerGroupName: logIngestion.outputs.activityLogEventHubConsumerGroupName
-    entraLogEventHubId: logIngestion.outputs.entraLogEventHubId
-    entraLogEventHubConsumerGroupName: logIngestion.outputs.entraLogEventHubConsumerGroupName
+    activityLogEventHubId: logIngestion!.outputs.activityLogEventHubId
+    activityLogEventHubConsumerGroupName: logIngestion!.outputs.activityLogEventHubConsumerGroupName
+    entraLogEventHubId: logIngestion!.outputs.entraLogEventHubId
+    entraLogEventHubConsumerGroupName: logIngestion!.outputs.entraLogEventHubConsumerGroupName
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
     env: env
@@ -168,11 +168,11 @@ module updateRegistration 'modules/cs-update-registration-rg.bicep' = if (should
 }
 
 output customRoleNameForSubs array = assetInventory.outputs.customRoleNameForSubs
-output activityLogEventHubId string = shouldDeployLogIngestion ? logIngestion.outputs.activityLogEventHubId : ''
+output activityLogEventHubId string = shouldDeployLogIngestion ? logIngestion!.outputs.activityLogEventHubId : ''
 output activityLogEventHubConsumerGroupName string = shouldDeployLogIngestion
-  ? logIngestion.outputs.activityLogEventHubConsumerGroupName
+  ? logIngestion!.outputs.activityLogEventHubConsumerGroupName
   : ''
-output entraLogEventHubId string = shouldDeployLogIngestion ? logIngestion.outputs.entraLogEventHubId : ''
+output entraLogEventHubId string = shouldDeployLogIngestion ? logIngestion!.outputs.entraLogEventHubId : ''
 output entraLogEventHubConsumerGroupName string = shouldDeployLogIngestion
-  ? logIngestion.outputs.entraLogEventHubConsumerGroupName
+  ? logIngestion!.outputs.entraLogEventHubConsumerGroupName
   : ''

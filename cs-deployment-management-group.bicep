@@ -106,26 +106,32 @@ var validatedFalconClientID = enableRealTimeVisibility && empty(falconClientId)
 var validatedFalconClientSecret = enableRealTimeVisibility && empty(falconClientSecret)
   ? fail('"falconClientSecret" is required when real-time visibility and detection is enabled, please specify it to environment variable, "FALCON_CLIENT_SECRET"')
   : falconClientSecret
+var validatedResourceNamePrefix = length(resourceNamePrefix) + length(resourceNameSuffix) > 10
+  ? fail('Combined prefix and suffix length must not exceed 10 characters')
+  : resourceNamePrefix
+var validatedResourceNameSuffix = length(resourceNamePrefix) + length(resourceNameSuffix) > 10
+  ? fail('Combined prefix and suffix length must not exceed 10 characters')
+  : resourceNameSuffix
 
 /* Resources used across modules
 1. Role assignments to the Crowdstrike's app service principal
 2. Discover subscriptions of the specified management groups
 */
 module assetInventory 'modules/cs-asset-inventory-mg.bicep' = {
-  name: '${resourceNamePrefix}cs-inv-mg-deployment${environment}${resourceNameSuffix}'
+  name: '${validatedResourceNamePrefix}cs-inv-mg-deployment${environment}${validatedResourceNameSuffix}'
   params: {
     managementGroupIds: managementGroups
     subscriptionIds: subscriptions
     azurePrincipalId: azurePrincipalId
-    resourceNamePrefix: resourceNamePrefix
-    resourceNameSuffix: resourceNameSuffix
+    resourceNamePrefix: validatedResourceNamePrefix
+    resourceNameSuffix: validatedResourceNameSuffix
     env: env
   }
 }
 
-var resourceGroupName = '${resourceNamePrefix}rg-cs${environment}${resourceNameSuffix}'
+var resourceGroupName = '${validatedResourceNamePrefix}rg-cs${environment}${validatedResourceNameSuffix}'
 module resourceGroup 'modules/common/resourceGroup.bicep' = if (shouldDeployLogIngestion) {
-  name: '${resourceNamePrefix}cs-rg${environment}${resourceNameSuffix}'
+  name: '${validatedResourceNamePrefix}cs-rg${environment}${validatedResourceNameSuffix}'
   scope: subscription(csInfraSubscriptionId)
 
   params: {
@@ -136,14 +142,14 @@ module resourceGroup 'modules/common/resourceGroup.bicep' = if (shouldDeployLogI
 }
 
 module scriptRunnerIdentity 'modules/cs-script-runner-identity-mg.bicep' = if (shouldDeployLogIngestion) {
-  name: '${resourceNamePrefix}cs-script-runner-identity${environment}${resourceNameSuffix}'
+  name: '${validatedResourceNamePrefix}cs-script-runner-identity${environment}${validatedResourceNameSuffix}'
 
   params: {
     csInfraSubscriptionId: csInfraSubscriptionId
     managementGroupIds: managementGroups
     resourceGroupName: resourceGroupName
-    resourceNamePrefix: resourceNamePrefix
-    resourceNameSuffix: resourceNameSuffix
+    resourceNamePrefix: validatedResourceNamePrefix
+    resourceNameSuffix: validatedResourceNameSuffix
     env: env
     location: location
     tags: tags
@@ -155,15 +161,15 @@ module scriptRunnerIdentity 'modules/cs-script-runner-identity-mg.bicep' = if (s
 }
 
 module deploymentScope 'modules/cs-deployment-scope-mg.bicep' = if (shouldDeployLogIngestion) {
-  name: '${resourceNamePrefix}cs-deployment-scope${environment}${resourceNameSuffix}'
+  name: '${validatedResourceNamePrefix}cs-deployment-scope${environment}${validatedResourceNameSuffix}'
   params: {
     managementGroupIds: managementGroups
     subscriptionIds: subscriptions
     resourceGroupName: resourceGroupName
     scriptRunnerIdentityId: scriptRunnerIdentity!.outputs.id
     csInfraSubscriptionId: csInfraSubscriptionId
-    resourceNamePrefix: resourceNamePrefix
-    resourceNameSuffix: resourceNameSuffix
+    resourceNamePrefix: validatedResourceNamePrefix
+    resourceNameSuffix: validatedResourceNameSuffix
     env: env
     location: location
     tags: tags
@@ -171,7 +177,7 @@ module deploymentScope 'modules/cs-deployment-scope-mg.bicep' = if (shouldDeploy
 }
 
 module logIngestion 'modules/cs-log-ingestion-mg.bicep' = if (shouldDeployLogIngestion) {
-  name: '${resourceNamePrefix}cs-log-mg-deployment${environment}${resourceNameSuffix}'
+  name: '${validatedResourceNamePrefix}cs-log-mg-deployment${environment}${validatedResourceNameSuffix}'
   params: {
     managementGroupIds: managementGroups
     subscriptionIds: deploymentScope!.outputs.allSubscriptions
@@ -185,8 +191,8 @@ module logIngestion 'modules/cs-log-ingestion-mg.bicep' = if (shouldDeployLogIng
     }
     falconIpAddresses: falconIpAddresses
     azurePrincipalId: azurePrincipalId
-    resourceNamePrefix: resourceNamePrefix
-    resourceNameSuffix: resourceNameSuffix
+    resourceNamePrefix: validatedResourceNamePrefix
+    resourceNameSuffix: validatedResourceNameSuffix
     location: location
     env: env
     tags: tags
@@ -197,7 +203,7 @@ module logIngestion 'modules/cs-log-ingestion-mg.bicep' = if (shouldDeployLogIng
 }
 
 module updateRegistration 'modules/cs-update-registration-rg.bicep' = if (shouldDeployLogIngestion) {
-  name: '${resourceNamePrefix}cs-update-reg-mg${environment}${resourceNameSuffix}'
+  name: '${validatedResourceNamePrefix}cs-update-reg-mg${environment}${validatedResourceNameSuffix}'
   scope: az.resourceGroup(csInfraSubscriptionId, resourceGroupName)
   params: {
     isInitialRegistration: isInitialRegistration
@@ -208,8 +214,8 @@ module updateRegistration 'modules/cs-update-registration-rg.bicep' = if (should
     activityLogEventHubConsumerGroupName: logIngestion!.outputs.activityLogEventHubConsumerGroupName
     entraLogEventHubId: logIngestion!.outputs.entraLogEventHubId
     entraLogEventHubConsumerGroupName: logIngestion!.outputs.entraLogEventHubConsumerGroupName
-    resourceNamePrefix: resourceNamePrefix
-    resourceNameSuffix: resourceNameSuffix
+    resourceNamePrefix: validatedResourceNamePrefix
+    resourceNameSuffix: validatedResourceNameSuffix
     env: env
     location: location
     tags: tags

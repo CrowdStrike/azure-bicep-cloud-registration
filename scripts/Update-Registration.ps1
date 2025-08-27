@@ -1,5 +1,5 @@
 ## CrowdStrike API Client Scopes required:
-## - CSPM Registration (read/write)
+## - Cloud security Azure registration (Write)
 using namespace System.Runtime.Serialization
 
 param (

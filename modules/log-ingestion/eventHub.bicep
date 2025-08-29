@@ -56,6 +56,8 @@ var existingEntraLogEventHubSettings = {
   namespace: entraLogSettings.?existingEventhub.?namespaceName ?? ''
   name: entraLogSettings.?existingEventhub.?name ?? ''
 }
+
+// Event Hub namespace is globally unique
 var isSameExistingEventHubNamespace = shouldUseExistingEventHubForActivityLog && shouldUseExistingEventHubForEntraLog && existingActivityLogEventHubSettings.namespace == existingEntraLogEventHubSettings.namespace
 var isSameExistingEventHub = isSameExistingEventHubNamespace && existingActivityLogEventHubSettings.name == existingEntraLogEventHubSettings.name
 
@@ -181,7 +183,7 @@ module existingActivityLogEventHubRoleAssignment 'eventHubRoleAssignment.bicep' 
   }
 }
 
-module existingEntraLogEventHubRoleAssignment 'eventHubRoleAssignment.bicep' = if (shouldUseExistingEventHubForEntraLog && existingEntraLogEventHubSettings.resourceGroup != existingActivityLogEventHubSettings.resourceGroup) {
+module existingEntraLogEventHubRoleAssignment 'eventHubRoleAssignment.bicep' = if (shouldUseExistingEventHubForEntraLog && (existingEntraLogEventHubSettings.subscriptionId != existingActivityLogEventHubSettings.subscriptionId || existingEntraLogEventHubSettings.resourceGroup != existingActivityLogEventHubSettings.resourceGroup)) {
   name: guid(azurePrincipalId, eventHubsDataReceiverRole, entraLogEventHub.id)
   scope: az.resourceGroup(
     existingEntraLogEventHubSettings.subscriptionId,

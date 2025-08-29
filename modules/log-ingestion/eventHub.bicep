@@ -181,7 +181,7 @@ module existingActivityLogEventHubRoleAssignment 'eventHubRoleAssignment.bicep' 
   }
 }
 
-module existingEntraLogEventHubRoleAssignment 'eventHubRoleAssignment.bicep' = if (shouldUseExistingEventHubForEntraLog && existingEntraLogEventHubSettings.resourceGroup != existingActivityLogEventHubSettings.resourceGroup && existingEntraLogEventHubSettings.subscriptionId != existingActivityLogEventHubSettings.subscriptionId) {
+module existingEntraLogEventHubRoleAssignment 'eventHubRoleAssignment.bicep' = if (shouldUseExistingEventHubForEntraLog && existingEntraLogEventHubSettings.resourceGroup != existingActivityLogEventHubSettings.resourceGroup) {
   name: guid(azurePrincipalId, eventHubsDataReceiverRole, entraLogEventHub.id)
   scope: az.resourceGroup(
     existingEntraLogEventHubSettings.subscriptionId,

@@ -42,11 +42,20 @@ param falconIpAddresses array
 @description('List of Azure subscription IDs to monitor. These subscriptions will be configured for CrowdStrike monitoring.')
 param subscriptionIds array
 
+@description('Maximum number of subscriptions per batch for Activity Log deployment. Default is 750 to stay safely under the 800 limit.')
+@minValue(1)
+@maxValue(800)
+param batchSize int = 750
+
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
 var scope = az.resourceGroup(resourceGroupName)
 var shouldDeployEventhubForActivityLog = activityLogSettings.enabled && !(activityLogSettings.?existingEventhub.use ?? false)
 var shouldDeployEventhubForEntraIdLog = entraIdLogSettings.enabled && !(entraIdLogSettings.?existingEventhub.use ?? false)
+
+// Calculate batching for Activity Log deployment
+var totalSubscriptions = length(subscriptionIds)
+var numberOfBatches = (totalSubscriptions + batchSize - 1) / batchSize // Ceiling division
 
 // Create EventHub Namespace and Eventhubs used by CrowdStrike
 module eventHub 'eventHub.bicep' = {
@@ -65,16 +74,20 @@ module eventHub 'eventHub.bicep' = {
   }
 }
 
-/* Deploy Activity Log Diagnostic Settings for current Azure subscription */
+/* Deploy Activity Log Diagnostic Settings in batches to handle 800+ subscriptions */
 var activityLogDiagnosticSettingsName = '${resourceNamePrefix}diag-cslogact${environment}${resourceNameSuffix}'
-module activityDiagnosticSettings 'activityLog.bicep' = [
-  for subId in subscriptionIds: if (shouldDeployEventhubForActivityLog) {
-    name: '${resourceNamePrefix}cs-log-activity-diag${environment}${resourceNameSuffix}'
-    scope: subscription(subId)
+module activityDiagnosticSettings 'activityLog-batch.bicep' = [
+  for i in range(0, numberOfBatches): if (shouldDeployEventhubForActivityLog) {
+    name: '${resourceNamePrefix}cs-activity-batch-${i}${environment}${resourceNameSuffix}'
     params: {
+      subscriptionIds: take(skip(subscriptionIds, i * batchSize), batchSize)
       diagnosticSettingsName: activityLogDiagnosticSettingsName
       eventHubName: eventHub.outputs.eventhubs.activityLog.eventHubName
       eventHubAuthorizationRuleId: eventHub.outputs.eventhubs.activityLog.eventHubAuthorizationRuleId
+      resourceNamePrefix: resourceNamePrefix
+      resourceNameSuffix: resourceNameSuffix
+      env: env
+      batchNumber: i
     }
   }
 ]

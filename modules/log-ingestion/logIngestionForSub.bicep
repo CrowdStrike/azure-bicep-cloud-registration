@@ -53,10 +53,6 @@ var scope = az.resourceGroup(resourceGroupName)
 var shouldDeployEventhubForActivityLog = activityLogSettings.enabled && !(activityLogSettings.?existingEventhub.use ?? false)
 var shouldDeployEventhubForEntraIdLog = entraIdLogSettings.enabled && !(entraIdLogSettings.?existingEventhub.use ?? false)
 
-// Calculate batching for Activity Log deployment
-var totalSubscriptions = length(subscriptionIds)
-var numberOfBatches = (totalSubscriptions + batchSize - 1) / batchSize // Ceiling division
-
 // Create EventHub Namespace and Eventhubs used by CrowdStrike
 module eventHub 'eventHub.bicep' = {
   name: '${resourceNamePrefix}cs-log-eventhub${environment}-${location}${resourceNameSuffix}'
@@ -76,6 +72,9 @@ module eventHub 'eventHub.bicep' = {
 
 /* Deploy Activity Log Diagnostic Settings in batches to handle 800+ subscriptions */
 var activityLogDiagnosticSettingsName = '${resourceNamePrefix}diag-cslogact${environment}${resourceNameSuffix}'
+// Calculate batching for Activity Log deployment
+var totalSubscriptions = length(subscriptionIds)
+var numberOfBatches = (totalSubscriptions + batchSize - 1) / batchSize // Ceiling division
 module activityDiagnosticSettings 'activityLog-batch.bicep' = [
   for i in range(0, numberOfBatches): if (shouldDeployEventhubForActivityLog) {
     name: '${resourceNamePrefix}cs-activity-batch-${i}${environment}${resourceNameSuffix}'

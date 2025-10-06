@@ -75,7 +75,7 @@ var activityLogDiagnosticSettingsName = '${resourceNamePrefix}diag-cslogact${env
 // Calculate batching for Activity Log deployment
 var totalSubscriptions = length(subscriptionIds)
 var numberOfBatches = (totalSubscriptions + batchSize - 1) / batchSize // Ceiling division
-module activityDiagnosticSettings 'activityLog-batch.bicep' = [
+module activityDiagnosticSettings 'activityLogBatch.bicep' = [
   for i in range(0, numberOfBatches): if (shouldDeployEventhubForActivityLog) {
     name: '${resourceNamePrefix}cs-activity-batch-${i}${environment}${resourceNameSuffix}'
     params: {

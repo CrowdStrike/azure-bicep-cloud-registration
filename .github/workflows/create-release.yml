@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Create Bicep template release package
       run: zip -r ${{ github.event.repository.name }}-${{ github.ref_name }}.zip . -x ".git/*" ".github/*" ".gitignore"

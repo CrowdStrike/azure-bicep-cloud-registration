@@ -41,6 +41,7 @@ param location string = deployment().location
 @description('Indicates whether this is the initial registration')
 param isInitialRegistration bool = true
 
+@maxLength(4)
 @description('Environment label (for example, prod, stag, dev) used for resource naming and tagging. Helps distinguish between different deployment environments.')
 param env string = 'prod'
 
@@ -87,15 +88,25 @@ param logIngestionSettings LogIngestionSettings = {
   }
 }
 
-// ===========================================================================
+@description('Controls whether to enable DSPM.')
+param enableDspm bool = false
+
+@description('Azure locations (regions) where DSPM will be deployed.')
+param dspmLocations array = []
+
+@description('Azure locations (regions) where DSPM will be deployed as Subscription ID to locations map. When this parameter is used dspmLocations parameter will be ignored.')
+param dspmLocationsPerSubscription object = {}
+
+/* Variables */
 var subscriptions = union(subscriptionIds, csInfraSubscriptionId == '' ? [] : [csInfraSubscriptionId]) // remove duplicated values
 var environment = length(env) > 0 ? '-${env}' : env
 var shouldDeployLogIngestion = enableRealTimeVisibility
-var validatedFalconClientID = enableRealTimeVisibility && empty(falconClientId)
-  ? fail('"falconClientId" is required when real-time visibility and detection is enabled, please specify it in parameters.bicepparam')
+var shouldDeployScanningEnvironment = enableDspm && (!empty(dspmLocationsPerSubscription) || !empty(dspmLocations))
+var validatedFalconClientID = (shouldDeployLogIngestion || shouldDeployScanningEnvironment) && empty(falconClientId)
+  ? fail('"falconClientId" is required when real-time visibility and detection or DSPM are enabled, please specify it in parameters.bicepparam')
   : falconClientId
-var validatedFalconClientSecret = enableRealTimeVisibility && empty(falconClientSecret)
-  ? fail('"falconClientSecret" is required when real-time visibility and detection is enabled, please specify it to environment variable, "FALCON_CLIENT_SECRET"')
+var validatedFalconClientSecret = (shouldDeployLogIngestion || shouldDeployScanningEnvironment) && empty(falconClientSecret)
+  ? fail('"falconClientSecret" is required when real-time visibility and detection or DSPM are enabled, please specify it to environment variable, "FALCON_CLIENT_SECRET"')
   : falconClientSecret
 var validatedResourceNamePrefix = length(resourceNamePrefix) + length(resourceNameSuffix) > 10
   ? fail('Combined prefix and suffix length must not exceed 10 characters')
@@ -103,6 +114,15 @@ var validatedResourceNamePrefix = length(resourceNamePrefix) + length(resourceNa
 var validatedResourceNameSuffix = length(resourceNamePrefix) + length(resourceNameSuffix) > 10
   ? fail('Combined prefix and suffix length must not exceed 10 characters')
   : resourceNameSuffix
+var scanningEnvironmentLocationsPerSubscriptionMap = !empty(dspmLocationsPerSubscription)
+  ? map(items(dspmLocationsPerSubscription), entity => {
+      subscriptionId: entity.key
+      locations: entity.value
+    })
+  : map(subscriptions, subscriptionId => {
+      subscriptionId: subscriptionId
+      locations: dspmLocations
+    })
 
 /* Resources used across modules
 1. Role assignments to the CrowdStrike's app service principal
@@ -119,12 +139,28 @@ module assetInventory 'modules/cs-asset-inventory-sub.bicep' = {
 }
 
 var resourceGroupName = '${validatedResourceNamePrefix}rg-cs${environment}${validatedResourceNameSuffix}'
-module resourceGroup 'modules/common/resourceGroup.bicep' = if (shouldDeployLogIngestion) {
+module infraResourceGroup 'modules/common/resourceGroup.bicep' = if (shouldDeployLogIngestion || shouldDeployScanningEnvironment) {
   name: '${validatedResourceNamePrefix}cs-rg${environment}${validatedResourceNameSuffix}'
   scope: subscription(csInfraSubscriptionId)
-
   params: {
     resourceGroupName: resourceGroupName
+    location: location
+    tags: tags
+  }
+}
+
+var subscriptionIdsWithResourceGroup = empty(dspmLocationsPerSubscription)
+  ? subscriptions
+  : objectKeys(dspmLocationsPerSubscription)
+module perSubscriptionResourceGroups 'modules/cs-resource-groups-sub.bicep' = if (shouldDeployScanningEnvironment) {
+  name: '${validatedResourceNamePrefix}cs-per-subscription-rg${environment}${validatedResourceNameSuffix}'
+  params: {
+    subscriptionIds: subscriptionIdsWithResourceGroup
+    ignoredSubscriptionIds: [csInfraSubscriptionId == '' ? subscription().subscriptionId : csInfraSubscriptionId]
+    resourceGroupName: resourceGroupName
+    resourceNamePrefix: validatedResourceNamePrefix
+    resourceNameSuffix: validatedResourceNameSuffix
+    env: env
     location: location
     tags: tags
   }
@@ -151,7 +187,27 @@ module logIngestion 'modules/cs-log-ingestion-sub.bicep' = if (shouldDeployLogIn
     tags: tags
   }
   dependsOn: [
-    resourceGroup
+    infraResourceGroup
+  ]
+}
+
+module scanningEnvironment 'modules/cs-scanning-sub.bicep' = if (shouldDeployScanningEnvironment) {
+  name: '${resourceNamePrefix}cs-scanning-sub-deployment${environment}${resourceNameSuffix}'
+  scope: subscription(csInfraSubscriptionId)
+  params: {
+    falconClientId: validatedFalconClientID
+    falconClientSecret: validatedFalconClientSecret
+    scanningPrincipalId: azurePrincipalId
+    scanningEnvironmentLocationsPerSubscriptionMap: scanningEnvironmentLocationsPerSubscriptionMap
+    resourceGroupName: resourceGroupName
+    resourceNamePrefix: resourceNamePrefix
+    resourceNameSuffix: resourceNameSuffix
+    env: env
+    tags: tags
+  }
+  dependsOn: [
+    infraResourceGroup
+    perSubscriptionResourceGroups
   ]
 }
 

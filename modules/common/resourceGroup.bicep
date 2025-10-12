@@ -5,10 +5,11 @@ targetScope = 'subscription'
   Copyright (c) 2025 CrowdStrike, Inc.
 */
 
-param resourceGroupName string
-
 @description('Azure region where the resource group will be created. Should be selected based on data residency requirements and proximity to monitored resources.')
 param location string
+
+@description('Name of the resource group that will be deployed.')
+param resourceGroupName string
 
 @description('Tags to be applied to the resource group. Used for resource organization, governance, and cost tracking.')
 param tags object
@@ -16,7 +17,7 @@ param tags object
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-11-01' = {
   name: resourceGroupName
   location: location
-  tags: tags
+  tags: union(tags, { CSTagResourceType: 'ResourceGroup' })
 }
 
 output id string = resourceGroup.id

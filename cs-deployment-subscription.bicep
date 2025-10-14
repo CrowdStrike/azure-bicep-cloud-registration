@@ -192,7 +192,7 @@ module logIngestion 'modules/cs-log-ingestion-sub.bicep' = if (shouldDeployLogIn
 }
 
 module scanningEnvironment 'modules/cs-scanning-sub.bicep' = if (shouldDeployScanningEnvironment) {
-  name: '${resourceNamePrefix}cs-scanning-sub-deployment${environment}${resourceNameSuffix}'
+  name: '${validatedResourceNamePrefix}cs-scanning-sub-deployment${environment}${validatedResourceNameSuffix}'
   scope: subscription(csInfraSubscriptionId)
   params: {
     falconClientId: validatedFalconClientID
@@ -200,8 +200,8 @@ module scanningEnvironment 'modules/cs-scanning-sub.bicep' = if (shouldDeploySca
     scanningPrincipalId: azurePrincipalId
     scanningEnvironmentLocationsPerSubscriptionMap: scanningEnvironmentLocationsPerSubscriptionMap
     resourceGroupName: resourceGroupName
-    resourceNamePrefix: resourceNamePrefix
-    resourceNameSuffix: resourceNameSuffix
+    resourceNamePrefix: validatedResourceNamePrefix
+    resourceNameSuffix: validatedResourceNameSuffix
     env: env
     tags: tags
   }

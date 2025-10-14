@@ -239,15 +239,15 @@ var scanningEnvironmentLocationsPerSubscriptionMap = !empty(dspmLocationsPerSubs
       locations: dspmLocations
     })
 module scanningEnvironment 'modules/cs-scanning-mg.bicep' = if (shouldDeployScanningEnvironment) {
-  name: '${resourceNamePrefix}cs-scanning-mg${environment}${resourceNameSuffix}'
+  name: '${validatedResourceNamePrefix}cs-scanning-mg${environment}${validatedResourceNameSuffix}'
   params: {
     falconClientId: validatedFalconClientID
     falconClientSecret: validatedFalconClientSecret
     scanningPrincipalId: azurePrincipalId
     scanningEnvironmentLocationsPerSubscriptionMap: scanningEnvironmentLocationsPerSubscriptionMap
     resourceGroupName: resourceGroupName
-    resourceNamePrefix: resourceNamePrefix
-    resourceNameSuffix: resourceNameSuffix
+    resourceNamePrefix: validatedResourceNamePrefix
+    resourceNameSuffix: validatedResourceNameSuffix
     env: env
     tags: tags
   }

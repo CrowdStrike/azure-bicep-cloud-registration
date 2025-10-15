@@ -28,6 +28,9 @@ param tags object
 @description('Indicates whether this is the initial registration')
 param isInitialRegistration bool
 
+@description('A unique string generated for each deployment, to make sure the script is always run.')
+param forceUpdateTag string = newGuid()
+
 resource subscriptionsInManagementGroup 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
   name: guid('updateRegistration', resourceGroup().id, env, location)
   location: location
@@ -52,6 +55,7 @@ resource subscriptionsInManagementGroup 'Microsoft.Resources/deploymentScripts@2
     arguments: '-AzureTenantId \\"${tenant().tenantId}\\" -IsInitialRegistration ${isInitialRegistration ? '$True' : '$False'} -EventHubsJson \'${replace(string(eventHubs), '"', '\\"')}\''
     scriptContent: loadTextContent('../../scripts/Update-Registration.ps1')
     retentionInterval: 'PT1H'
-    cleanupPreference: 'OnSuccess'
+    cleanupPreference: 'Always'
+    forceUpdateTag: forceUpdateTag
   }
 }

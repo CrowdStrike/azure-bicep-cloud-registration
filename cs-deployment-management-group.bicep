@@ -92,7 +92,16 @@ param logIngestionSettings LogIngestionSettings = {
   }
 }
 
-// ===========================================================================
+@description('Controls whether to enable DSPM.')
+param enableDspm bool = false
+
+@description('Azure locations (regions) where DSPM will be deployed.')
+param dspmLocations array = []
+
+@description('Azure locations (regions) where DSPM will be deployed as Subscription ID to locations map. When this parameter is used dspmLocations parameter will be ignored.')
+param dspmLocationsPerSubscription object = {}
+
+/* Variables */
 var subscriptions = union(subscriptionIds, csInfraSubscriptionId == '' ? [] : [csInfraSubscriptionId]) // remove duplicated values
 var managementGroups = union(
   length(managementGroupIds) == 0 && length(subscriptionIds) == 0 ? [tenant().tenantId] : managementGroupIds,
@@ -100,10 +109,11 @@ var managementGroups = union(
 ) // remove duplicated values
 var environment = length(env) > 0 ? '-${env}' : env
 var shouldDeployLogIngestion = enableRealTimeVisibility
-var validatedFalconClientID = enableRealTimeVisibility && empty(falconClientId)
+var shouldDeployScanningEnvironment = enableDspm && (!empty(dspmLocationsPerSubscription) || !empty(dspmLocations))
+var validatedFalconClientID = (shouldDeployLogIngestion || shouldDeployScanningEnvironment) && empty(falconClientId)
   ? fail('"falconClientId" is required when real-time visibility and detection is enabled, please specify it in parameters.bicepparam')
   : falconClientId
-var validatedFalconClientSecret = enableRealTimeVisibility && empty(falconClientSecret)
+var validatedFalconClientSecret = (shouldDeployLogIngestion || shouldDeployScanningEnvironment) && empty(falconClientSecret)
   ? fail('"falconClientSecret" is required when real-time visibility and detection is enabled, please specify it to environment variable, "FALCON_CLIENT_SECRET"')
   : falconClientSecret
 var validatedResourceNamePrefix = length(resourceNamePrefix) + length(resourceNameSuffix) > 10
@@ -112,6 +122,7 @@ var validatedResourceNamePrefix = length(resourceNamePrefix) + length(resourceNa
 var validatedResourceNameSuffix = length(resourceNamePrefix) + length(resourceNameSuffix) > 10
   ? fail('Combined prefix and suffix length must not exceed 10 characters')
   : resourceNameSuffix
+var shouldResolveDeploymentScope = shouldDeployLogIngestion || shouldDeployScanningEnvironment
 
 /* Resources used across modules
 1. Role assignments to the CrowdStrike's app service principal
@@ -130,10 +141,9 @@ module assetInventory 'modules/cs-asset-inventory-mg.bicep' = {
 }
 
 var resourceGroupName = '${validatedResourceNamePrefix}rg-cs${environment}${validatedResourceNameSuffix}'
-module resourceGroup 'modules/common/resourceGroup.bicep' = if (shouldDeployLogIngestion) {
+module infraResourceGroup 'modules/common/resourceGroup.bicep' = if (shouldDeployLogIngestion || shouldResolveDeploymentScope) {
   name: '${validatedResourceNamePrefix}cs-rg${environment}${validatedResourceNameSuffix}'
   scope: subscription(csInfraSubscriptionId)
-
   params: {
     resourceGroupName: resourceGroupName
     location: location
@@ -141,7 +151,7 @@ module resourceGroup 'modules/common/resourceGroup.bicep' = if (shouldDeployLogI
   }
 }
 
-module scriptRunnerIdentity 'modules/cs-script-runner-identity-mg.bicep' = if (shouldDeployLogIngestion) {
+module scriptRunnerIdentity 'modules/cs-script-runner-identity-mg.bicep' = if (shouldResolveDeploymentScope) {
   name: '${validatedResourceNamePrefix}cs-script-runner-identity${environment}${validatedResourceNameSuffix}'
 
   params: {
@@ -156,11 +166,11 @@ module scriptRunnerIdentity 'modules/cs-script-runner-identity-mg.bicep' = if (s
   }
 
   dependsOn: [
-    resourceGroup
+    infraResourceGroup
   ]
 }
 
-module deploymentScope 'modules/cs-deployment-scope-mg.bicep' = if (shouldDeployLogIngestion) {
+module deploymentScope 'modules/cs-deployment-scope-mg.bicep' = if (shouldResolveDeploymentScope) {
   name: '${validatedResourceNamePrefix}cs-deployment-scope${environment}${validatedResourceNameSuffix}'
   params: {
     managementGroupIds: managementGroups
@@ -168,6 +178,23 @@ module deploymentScope 'modules/cs-deployment-scope-mg.bicep' = if (shouldDeploy
     resourceGroupName: resourceGroupName
     scriptRunnerIdentityId: scriptRunnerIdentity!.outputs.id
     csInfraSubscriptionId: csInfraSubscriptionId
+    resourceNamePrefix: validatedResourceNamePrefix
+    resourceNameSuffix: validatedResourceNameSuffix
+    env: env
+    location: location
+    tags: tags
+  }
+}
+
+var subscriptionIdsWithResourceGroup = !empty(dspmLocationsPerSubscription)
+  ? objectKeys(dspmLocationsPerSubscription)
+  : deploymentScope.outputs.allSubscriptions
+module perSubscriptionResourceGroups 'modules/cs-resource-groups-mg.bicep' = if (shouldResolveDeploymentScope) {
+  name: '${validatedResourceNamePrefix}cs-per-subscription-rg${environment}${validatedResourceNameSuffix}'
+  params: {
+    subscriptionIds: subscriptionIdsWithResourceGroup
+    ignoredSubscriptionIds: [csInfraSubscriptionId]
+    resourceGroupName: resourceGroupName
     resourceNamePrefix: validatedResourceNamePrefix
     resourceNameSuffix: validatedResourceNameSuffix
     env: env
@@ -198,7 +225,35 @@ module logIngestion 'modules/cs-log-ingestion-mg.bicep' = if (shouldDeployLogIng
     tags: tags
   }
   dependsOn: [
-    resourceGroup
+    infraResourceGroup
+  ]
+}
+
+var scanningEnvironmentLocationsPerSubscriptionMap = !empty(dspmLocationsPerSubscription)
+  ? map(items(dspmLocationsPerSubscription), entity => {
+      subscriptionId: entity.key
+      locations: entity.value
+    })
+  : map(deploymentScope.outputs.allSubscriptions, subscriptionId => {
+      subscriptionId: subscriptionId
+      locations: dspmLocations
+    })
+module scanningEnvironment 'modules/cs-scanning-mg.bicep' = if (shouldDeployScanningEnvironment) {
+  name: '${validatedResourceNamePrefix}cs-scanning-mg${environment}${validatedResourceNameSuffix}'
+  params: {
+    falconClientId: validatedFalconClientID
+    falconClientSecret: validatedFalconClientSecret
+    scanningPrincipalId: azurePrincipalId
+    scanningEnvironmentLocationsPerSubscriptionMap: scanningEnvironmentLocationsPerSubscriptionMap
+    resourceGroupName: resourceGroupName
+    resourceNamePrefix: validatedResourceNamePrefix
+    resourceNameSuffix: validatedResourceNameSuffix
+    env: env
+    tags: tags
+  }
+  dependsOn: [
+    infraResourceGroup
+    perSubscriptionResourceGroups
   ]
 }
 

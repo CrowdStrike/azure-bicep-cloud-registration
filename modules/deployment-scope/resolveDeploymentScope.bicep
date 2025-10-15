@@ -23,6 +23,9 @@ param env string
 @description('Tags to be applied to all deployed resources. Used for resource organization, governance, and cost tracking.')
 param tags object
 
+@description('A unique string generated for each deployment, to make sure the script is always run.')
+param forceUpdateTag string = newGuid()
+
 resource subscriptionsInManagementGroup 'Microsoft.Resources/deploymentScripts@2023-08-01' = [
   for mgmtGroupId in managementGroupIds: {
     name: guid('resolveManagementGroupToSubscription', mgmtGroupId, resourceGroup().id, env, location)
@@ -40,7 +43,8 @@ resource subscriptionsInManagementGroup 'Microsoft.Resources/deploymentScripts@2
       arguments: '-AzureTenantId ${tenant().tenantId} -ManagementGroupId "${mgmtGroupId}" -CSInfraSubscriptionId "${csInfraSubscriptionId}"'
       scriptContent: loadTextContent('../../scripts/Resolve-Deployment-Scope.ps1')
       retentionInterval: 'PT1H'
-      cleanupPreference: 'OnSuccess'
+      cleanupPreference: 'Always'
+      forceUpdateTag: forceUpdateTag
     }
   }
 ]

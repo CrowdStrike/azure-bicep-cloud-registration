@@ -189,7 +189,7 @@ module deploymentScope 'modules/cs-deployment-scope-mg.bicep' = if (shouldResolv
 var subscriptionIdsWithResourceGroup = !empty(dspmLocationsPerSubscription)
   ? objectKeys(dspmLocationsPerSubscription)
   : deploymentScope.outputs.allSubscriptions
-module perSubscriptionResourceGroups 'modules/cs-resource-groups-mg.bicep' = if (shouldResolveDeploymentScope) {
+module perSubscriptionResourceGroups 'modules/cs-resource-groups-mg.bicep' = if (shouldDeployScanningEnvironment) {
   name: '${validatedResourceNamePrefix}cs-per-subscription-rg${environment}${validatedResourceNameSuffix}'
   params: {
     subscriptionIds: subscriptionIdsWithResourceGroup

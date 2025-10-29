@@ -49,6 +49,7 @@ param location string = deployment().location
 @description('Environment label (for example, prod, stag, dev) used for resource naming and tagging. Helps distinguish between different deployment environments.')
 param env string = 'prod'
 
+@maxProperties(45)
 @description('Tags to be applied to all deployed resources. Used for resource organization and governance.')
 param tags object = {
   CSTagVendor: 'CrowdStrike'

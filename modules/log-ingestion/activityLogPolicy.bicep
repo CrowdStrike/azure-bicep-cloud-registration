@@ -53,7 +53,7 @@ resource activityLogPolicyDefinition 'Microsoft.Authorization/policyDefinitions@
   }
 }
 
-resource activityLogPolicyAssignment 'Microsoft.Authorization/policyAssignments@2024-04-01' = {
+resource activityLogPolicyAssignment 'Microsoft.Authorization/policyAssignments@2024-05-01' = {
   name: '${resourceNamePrefix}pas-cslogact${resourceNameSuffix}' // The maximum length is 24 characters
   location: location
   identity: {

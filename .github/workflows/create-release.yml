@@ -24,10 +24,10 @@ jobs:
         # Check if the tag name ends with "-pre"
         if [[ "$TAG_NAME" == *"-pre" ]]; then
           echo "::notice::Detected specific pre-release suffix '-pre' for tag: $TAG_NAME"
-          echo "::set-output name=is_prerelease::true"
+          echo "is_prerelease=true" >> $GITHUB_OUTPUT
         else
           echo "::notice::Tag does not end with '-pre': $TAG_NAME"
-          echo "::set-output name=is_prerelease::false"
+          echo "is_prerelease=false" >> $GITHUB_OUTPUT
         fi
       shell: bash
 

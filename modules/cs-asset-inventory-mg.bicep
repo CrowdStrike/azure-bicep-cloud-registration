@@ -26,7 +26,7 @@ param env string
 var environment = length(env) > 0 ? '-${env}' : env
 
 module deploymentForSubs 'asset-inventory/assetInventoryForSub.bicep' = [
-  for subId in subscriptionIds: {
+  for subId in subscriptionIds: if (!contains(managementGroupIds, tenant().tenantId)) {
     name: '${resourceNamePrefix}cs-inv-deployment-sub${environment}${resourceNameSuffix}'
     scope: subscription(subId)
     params: {
@@ -52,7 +52,7 @@ module deploymentForMGs 'asset-inventory/assetInventoryForMgmtGroup.bicep' = [
   }
 ]
 
-output customRoleNameForSubs array = [for (sub, i) in subscriptionIds: deploymentForSubs[i].outputs.customRoleName]
+output customRoleNameForSubs array = [for (sub, i) in subscriptionIds: deploymentForSubs[i]!.outputs.customRoleName]
 output customRoleNameForMGs array = [
   for (mgmtGroupId, i) in managementGroupIds: deploymentForMGs[i].outputs.customRoleName
 ]

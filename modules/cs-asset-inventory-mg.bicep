@@ -24,10 +24,11 @@ param azurePrincipalId string
 param env string
 
 var environment = length(env) > 0 ? '-${env}' : env
+var shouldDeployForSubs = !contains(managementGroupIds, tenant().tenantId)
 
 module deploymentForSubs 'asset-inventory/assetInventoryForSub.bicep' = [
-  for subId in subscriptionIds: if (!contains(managementGroupIds, tenant().tenantId)) {
-    name: '${resourceNamePrefix}cs-inv-deployment-sub${environment}${resourceNameSuffix}'
+  for subId in subscriptionIds: if (shouldDeployForSubs) {
+    name: '${resourceNamePrefix}cs-inv-deployment-sub-${uniqueString(subId)}${environment}${resourceNameSuffix}'
     scope: subscription(subId)
     params: {
       azurePrincipalId: azurePrincipalId
@@ -41,7 +42,7 @@ module deploymentForSubs 'asset-inventory/assetInventoryForSub.bicep' = [
 /* Define required permissions at Azure Management Group scope */
 module deploymentForMGs 'asset-inventory/assetInventoryForMgmtGroup.bicep' = [
   for mgmtGroupId in managementGroupIds: {
-    name: '${resourceNamePrefix}cs-inv-deployment-mg${environment}${resourceNameSuffix}'
+    name: '${resourceNamePrefix}cs-inv-deployment-mg-${uniqueString(mgmtGroupId)}${environment}${resourceNameSuffix}'
     scope: managementGroup(mgmtGroupId)
     params: {
       azurePrincipalId: azurePrincipalId
@@ -52,7 +53,9 @@ module deploymentForMGs 'asset-inventory/assetInventoryForMgmtGroup.bicep' = [
   }
 ]
 
-output customRoleNameForSubs array = [for (sub, i) in subscriptionIds: deploymentForSubs[i]!.outputs.customRoleName]
+output customRoleNameForSubs array = [
+  for (sub, i) in subscriptionIds: shouldDeployForSubs ? deploymentForSubs[i]!.outputs.customRoleName : ''
+]
 output customRoleNameForMGs array = [
   for (mgmtGroupId, i) in managementGroupIds: deploymentForMGs[i].outputs.customRoleName
 ]

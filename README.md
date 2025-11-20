@@ -114,7 +114,7 @@ You can use any of these methods to pass parameters:
 | `isInitialRegistration`                                                       | no       | Indicates whether this is the initial registration. Default is `true`.                                                                                                                                    |
 | `enableRealTimeVisibility`                                                    | no       | Main toggle for the log ingestion module. When set to true, all related resources will be deployed. Default is `false`.                                                                                   |
 | `logIngestionSettings.activityLogSettings.enabled`                            | no       | Controls whether activity log diagnostic settings are deployed to monitored Azure subscriptions. Default is `true`.                                                                                       |
-| `logIngestionSettings.activityLogSettings.deployRemediationPolicy`            | no       | Controls whether to deploy a policy that automatically configures activity log diagnostic settings on new subscriptions. Default is `true`.                                                               |
+| `logIngestionSettings.activityLogSettings.deployRemediationPolicy`            | no       | Controls whether to deploy a policy that automatically configures activity log diagnostic settings on new subscriptions. Default is `true`. Not available when `logIngestionSettings.activityLogSettings.existingEventhub.use` is set to `true`                                                              |
 | `logIngestionSettings.entraIdLogSettings.enabled`                             | no       | Controls whether Entra ID log diagnostic settings are deployed. When false, Entra ID logs are not collected. Default is `true`.                                                                           |
 | `logIngestionSettings.activityLogSettings.existingEventhub`                   | no       | Collection of settings used to configure an existing event hub instead of creating a new one for activity logs.                                                                                           |
 | `logIngestionSettings.activityLogSettings.existingEventhub.use`               | no       | When set to true, an existing event hub will be used instead of creating a new one. Default is `false`.                                                                                                   |
@@ -133,6 +133,67 @@ You can use any of these methods to pass parameters:
 | `enableDspm`                                                                  | no       | Main toggle for Data Security Posture Management (DSPM).                                                                                                                                                  |
 | `dspmLocations`                                                               | no       | List of locations (regions) to deploy Data Security Posture Management (DSPM) scanning environment.                                                                                                       |
 | `dspmLocationsPerSubscription`                                                | no       | A map of subscriptions to list of locations where Data Security Posture Management (DSPM) scanning environment will be deployed                                                                           |
+
+## Bicep parameter file example
+```bicep
+using './cs-deployment-management-group.bicep'
+
+// Required: Client ID for the Falcon API.
+param falconClientId = '<Falcon API Client ID>'
+// Required: Client Secret for the Falcon API. Input the value of the secret.
+param falconClientSecret = readEnvironmentVariable('FALCON_CLIENT_SECRET', '')
+
+// Required: Falcon API FQDN for your CrowdStrike environment
+param falconApiFqdn = '<Falcon API FQDN>'
+// Required: Principal Id of Falcon Cloud Security App in Entra ID.
+param azurePrincipalId = '<Service principal ID of the Falcon Cloud Security App in Entra ID>'
+// Azure resources to monitor - You can use subscriptions, management groups, or both.
+// If both are empty list, the entire tenant will be monitored
+param managementGroupIds = []
+param subscriptionIds = []
+// Required: Azure subscription that will host CrowdStrike infrastructure
+param csInfraSubscriptionId = '<subscription ID>'
+// Optional: CrowdStrike IP addresses for network security
+param falconIpAddresses = ['10.1.1.1', '10.1.1.2']
+param isInitialRegistration = true
+param enableRealTimeVisibility = true
+// Optional: Configure log ingestion settings
+param logIngestionSettings = {
+  activityLogSettings: {
+    enabled: true
+    // deployRemediationPolicy is not available if using existing Event Hub settings
+    deployRemediationPolicy: true
+    existingEventhub: {
+      use: true
+      subscriptionId: '<subscription ID of the Event Hub>'
+      resourceGroupName: '<resource group name of the Event Hub>'
+      namespaceName: '<Event Hub namespace>'
+      name: '<Event Hub instance name>'
+      consumerGroupName: '<consumer group name>'
+    }
+  }
+  entraIdLogSettings: {
+    enabled: true
+    existingEventhub: {
+      use: true
+      subscriptionId: '<subscription ID of the Event Hub>'
+      resourceGroupName: '<resource group name of the Event Hub>'
+      namespaceName: '<Event Hub namespace>'
+      name: '<Event Hub instance name>'
+      consumerGroupName: '<consumer group name>'
+    }
+  }
+}
+// Optional: Resource naming customization
+param resourceNamePrefix = 'pfx-'
+param resourceNameSuffix = '-sux'
+param env = 'prod'
+param tags = {
+  key: 'value'
+}
+// Required: Resource region
+param location = 'westeurope'
+```
 
 ## Deployment
 

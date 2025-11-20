@@ -188,10 +188,13 @@ param logIngestionSettings = {
 param resourceNamePrefix = 'pfx-'
 param resourceNameSuffix = '-sux'
 param env = 'prod'
+
+// Optional
 param tags = {
   key: 'value'
 }
-// Required: Resource region
+
+// Optional: Resource region
 param location = 'westeurope'
 ```
 

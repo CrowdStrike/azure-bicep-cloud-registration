@@ -122,6 +122,7 @@ module scanningResourceGroupModule 'scanningResourceGroup.bicep' = {
     resourceNameSuffix: resourceNameSuffix
     env: env
     tags: tags
+    natGateway: natGateway
   }
 }
 

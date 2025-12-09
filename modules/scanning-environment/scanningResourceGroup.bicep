@@ -90,6 +90,10 @@ resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-0
           'Microsoft.Resources/deployments/write'
           'Microsoft.Resources/deployments/delete'
           'Microsoft.Resources/deployments/operationStatuses/read'
+          'Microsoft.Network/publicIPAddresses/read'
+          'Microsoft.Network/publicIPAddresses/write'
+          'Microsoft.Network/publicIPAddresses/delete'
+          'Microsoft.Network/publicIPAddresses/join/action'
           'Microsoft.Resources/deploymentStacks/*'
 
           // ============ Validation ============

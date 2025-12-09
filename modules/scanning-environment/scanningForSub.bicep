@@ -37,6 +37,9 @@ param env string
 @description('Tags to be applied to all deployed resources. Used for resource organization, governance, and cost tracking.')
 param tags object
 
+@description('Controls whether to deploy NAT Gateway for scanning environment.')
+param natGateway bool = false
+
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
 var subscriptionAccessRoleName = '${resourceNamePrefix}role-csscanning-access-${subscription().subscriptionId}${resourceNameSuffix}'
@@ -141,6 +144,7 @@ module scanningRegion 'scanningRegion.bicep' = [
       env: env
       location: location
       tags: tags
+      natGateway: natGateway
     }
     dependsOn: [
       scanningResourceGroupModule

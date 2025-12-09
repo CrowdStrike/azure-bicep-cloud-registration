@@ -101,6 +101,9 @@ param dspmLocations array = []
 @description('Azure locations (regions) where DSPM will be deployed as Subscription ID to locations map. When this parameter is used dspmLocations parameter will be ignored.')
 param dspmLocationsPerSubscription object = {}
 
+@description('Controls whether to deploy NAT Gateway for scanning environment.')
+param natGateway bool = false
+
 /* Variables */
 var subscriptions = union(subscriptionIds, csInfraSubscriptionId == '' ? [] : [csInfraSubscriptionId]) // remove duplicated values
 var managementGroups = union(
@@ -250,6 +253,7 @@ module scanningEnvironment 'modules/cs-scanning-mg.bicep' = if (shouldDeployScan
     resourceNameSuffix: validatedResourceNameSuffix
     env: env
     tags: tags
+    natGateway: natGateway
   }
   dependsOn: [
     infraResourceGroup

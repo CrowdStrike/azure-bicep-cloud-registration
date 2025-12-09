@@ -37,6 +37,9 @@ param env string
 @description('Tags to be applied to all deployed resources. Used for resource organization, governance, and cost tracking.')
 param tags object
 
+@description('Controls whether to deploy NAT Gateway for scanning environment.')
+param natGateway bool = false
+
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
 
@@ -54,6 +57,7 @@ module scanningSub 'scanning-environment/scanningForSub.bicep' = [
       resourceNameSuffix: resourceNameSuffix
       env: env
       tags: tags
+      natGateway: natGateway
     }
   }
 ]

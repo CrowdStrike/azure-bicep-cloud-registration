@@ -38,7 +38,7 @@ param env string
 param tags object
 
 @description('Controls whether to deploy NAT Gateway for scanning environment.')
-param natGateway bool = false
+param agentlessScanningDeployNatGateway bool = true
 
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
@@ -118,11 +118,11 @@ module scanningResourceGroupModule 'scanningResourceGroup.bicep' = {
     falconClientId: falconClientId
     falconClientSecret: falconClientSecret
     scanningPrincipalId: scanningPrincipalId
+    agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
     env: env
     tags: tags
-    natGateway: natGateway
   }
 }
 

@@ -25,7 +25,7 @@ param env string
 param tags object
 
 @description('Controls whether to deploy NAT Gateway for scanning environment.')
-param natGateway bool = false
+param agentlessScanningDeployNatGateway bool = true
 
 /* Variables */
 var vnetAddressPrefix = '10.1.0.0/22'
@@ -44,7 +44,7 @@ var vaultSubnetName = '${resourceNamePrefix}snet-csscanning-vault${environment}-
 var scannersSubnetName = '${resourceNamePrefix}snet-csscanning-scanners${environment}-${location}${resourceNameSuffix}'
 var vaultVirtualLinkName = '${keyVaultPrivateZone}/${resourceNamePrefix}vnl-csscanning-vault${environment}-${location}${resourceNameSuffix}'
 
-resource scannersPublicIp 'Microsoft.Network/publicIPAddresses@2024-07-01' = if (natGateway) {
+resource scannersPublicIp 'Microsoft.Network/publicIPAddresses@2024-07-01' = if (agentlessScanningDeployNatGateway) {
   location: location
   name: scannersPublicIpName
   properties: {
@@ -56,7 +56,7 @@ resource scannersPublicIp 'Microsoft.Network/publicIPAddresses@2024-07-01' = if 
   tags: tags
 }
 
-resource scannersNatGateway 'Microsoft.Network/natGateways@2024-07-01' = if (natGateway) {
+resource scannersNatGateway 'Microsoft.Network/natGateways@2024-07-01' = if (agentlessScanningDeployNatGateway) {
   location: location
   name: scannersNatGatewayName
   properties: {
@@ -128,7 +128,7 @@ resource scannersSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-07-01' =
   properties: {
     addressPrefixes: [scannersSubnetPrefix]
     defaultOutboundAccess: false
-    natGateway: natGateway ? {
+    natGateway: agentlessScanningDeployNatGateway ? {
       id: scannersNatGateway.id
     } : null
     networkSecurityGroup: {

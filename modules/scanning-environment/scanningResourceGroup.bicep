@@ -31,7 +31,7 @@ param env string
 param tags object
 
 @description('Whether NAT Gateway is enabled. When false, public IP permissions are included for VM connectivity.')
-param natGateway bool = false
+param agentlessScanningDeployNatGateway bool = true
 
 /* Variables */
 var vaultIPAddress = '10.1.3.30'
@@ -116,7 +116,7 @@ resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-0
     type: 'CustomRole'
     permissions: [
       {
-        actions: union(basePermissions, !natGateway ? conditionalPublicIPPermissions : [])
+        actions: union(basePermissions, !agentlessScanningDeployNatGateway ? conditionalPublicIPPermissions : [])
         notActions: []
         dataActions: []
         notDataActions: []

@@ -40,66 +40,66 @@ var environment = length(env) > 0 ? '-${env}' : env
 // NOTE: key vault has name limit constraints, so prefix and suffix are omitted 
 var keyVaultName = 'kv-cs-${uniqueString(resourceGroup().id, 'CrowdStrikeScanningKeyVault')}'
 var managedIdentityName = '${resourceNamePrefix}id-csscanning${environment}${resourceNameSuffix}'
-var resourceGroupAccessRoleName = '${resourceNamePrefix}role-csscanning-rgaccess-${subscription().subscriptionId}${resourceNameSuffix}'
-var resourceGroupAccessDescription = 'CrowdStrike Scanning Resource Group Access Role'
 var clientCredentialsName = 'client-credentials'
+var resourceGroupCustomRole = {
+  roleName: '${resourceNamePrefix}role-csscanning-rgaccess-${subscription().subscriptionId}${resourceNameSuffix}'
+  roleDescription: 'CrowdStrike Agentless Scanning Resource Group Access Role'
+  roleActions: [
+                 // ============ Blob Storage ============
+                 // Private Endpoint
+                 'Microsoft.Network/privateEndpoints/read'
+                 'Microsoft.Network/privateEndpoints/write'
+                 'Microsoft.Network/privateEndpoints/delete'
+                 'Microsoft.Network/virtualNetworks/subnets/join/action'
+                 // DNS Zone
+                 'Microsoft.Resources/subscriptions/resourceGroups/read'
+                 'Microsoft.Network/privateDnsZones/read'
+                 'Microsoft.Network/privateDnsZones/write'
+                 'Microsoft.Network/privateDnsZones/delete'
+                 // DNS Zone Link vNet
+                 'Microsoft.Network/privateDnsZones/virtualNetworkLinks/read'
+                 'Microsoft.Network/privateDnsZones/virtualNetworkLinks/write'
+                 'Microsoft.Network/privateDnsZones/virtualNetworkLinks/delete'
+                 'Microsoft.Network/virtualNetworks/join/action'
+                 // DNS Zone Group
+                 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups/read'
+                 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups/write'
+                 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups/delete'
+                 'Microsoft.Network/privateDnsZones/join/action'
 
-// Base permissions that are always included
-var basePermissions = [
-  // ============ Blob Storage ============
-  // Private Endpoint
-  'Microsoft.Network/privateEndpoints/read'
-  'Microsoft.Network/privateEndpoints/write'
-  'Microsoft.Network/privateEndpoints/delete'
-  'Microsoft.Network/virtualNetworks/subnets/join/action'
-  // DNS Zone
-  'Microsoft.Resources/subscriptions/resourceGroups/read'
-  'Microsoft.Network/privateDnsZones/read'
-  'Microsoft.Network/privateDnsZones/write'
-  'Microsoft.Network/privateDnsZones/delete'
-  // DNS Zone Link vNet
-  'Microsoft.Network/privateDnsZones/virtualNetworkLinks/read'
-  'Microsoft.Network/privateDnsZones/virtualNetworkLinks/write'
-  'Microsoft.Network/privateDnsZones/virtualNetworkLinks/delete'
-  'Microsoft.Network/virtualNetworks/join/action'
-  // DNS Zone Group
-  'Microsoft.Network/privateEndpoints/privateDnsZoneGroups/read'
-  'Microsoft.Network/privateEndpoints/privateDnsZoneGroups/write'
-  'Microsoft.Network/privateEndpoints/privateDnsZoneGroups/delete'
-  'Microsoft.Network/privateDnsZones/join/action'
+                 // ============ Scanner VM ============
+                 'Microsoft.Network/networkSecurityGroups/read'
+                 'Microsoft.Network/networkSecurityGroups/write'
+                 'Microsoft.Network/networkSecurityGroups/delete'
+                 'Microsoft.Network/networkInterfaces/read'
+                 'Microsoft.Network/networkInterfaces/write'
+                 'Microsoft.Network/networkInterfaces/delete'
+                 'Microsoft.Network/networkInterfaces/join/action'
+                 'Microsoft.Compute/virtualMachines/read'
+                 'Microsoft.Compute/virtualMachines/write'
+                 'Microsoft.Compute/virtualMachines/delete'
+                 'Microsoft.Network/virtualNetworks/read'
+                 'Microsoft.ManagedIdentity/userAssignedIdentities/read'
+                 'Microsoft.ManagedIdentity/userAssignedIdentities/assign/action'
+                 'Microsoft.Resources/deployments/read'
+                 'Microsoft.Resources/deployments/write'
+                 'Microsoft.Resources/deployments/delete'
+                 'Microsoft.Resources/deployments/operationStatuses/read'
+                 'Microsoft.Resources/deploymentStacks/*'
+                 // Always include delete permission for public IPs
+                 'Microsoft.Network/publicIPAddresses/delete'
 
-  // ============ Scanner VM ============
-  'Microsoft.Network/networkSecurityGroups/read'
-  'Microsoft.Network/networkSecurityGroups/write'
-  'Microsoft.Network/networkSecurityGroups/delete'
-  'Microsoft.Network/networkInterfaces/read'
-  'Microsoft.Network/networkInterfaces/write'
-  'Microsoft.Network/networkInterfaces/delete'
-  'Microsoft.Network/networkInterfaces/join/action'
-  'Microsoft.Compute/virtualMachines/read'
-  'Microsoft.Compute/virtualMachines/write'
-  'Microsoft.Compute/virtualMachines/delete'
-  'Microsoft.Network/virtualNetworks/read'
-  'Microsoft.ManagedIdentity/userAssignedIdentities/read'
-  'Microsoft.ManagedIdentity/userAssignedIdentities/assign/action'
-  'Microsoft.Resources/deployments/read'
-  'Microsoft.Resources/deployments/write'
-  'Microsoft.Resources/deployments/delete'
-  'Microsoft.Resources/deployments/operationStatuses/read'
-  // Always include delete permission for public IPs
-  'Microsoft.Network/publicIPAddresses/delete'
-  'Microsoft.Resources/deploymentStacks/*'
-
-  // ============ Validation ============
-  'Microsoft.Network/virtualNetworks/subnets/read'
-  'Microsoft.Resources/deployments/whatIf/action'
-  'Microsoft.Resources/deployments/validate/action'
-  'Microsoft.Resources/deploymentScripts/read'
-  'Microsoft.KeyVault/vaults/read'
-  'Microsoft.Compute/virtualMachines/retrieveBootDiagnosticsData/action'
-  'Microsoft.Resources/templateSpecs/read'
-  'Microsoft.Resources/templateSpecs/versions/read'
-]
+                 // ============ Validation ============
+                 'Microsoft.Network/virtualNetworks/subnets/read'
+                 'Microsoft.Resources/deployments/whatIf/action'
+                 'Microsoft.Resources/deployments/validate/action'
+                 'Microsoft.Resources/deploymentScripts/read'
+                 'Microsoft.KeyVault/vaults/read'
+                 'Microsoft.Compute/virtualMachines/retrieveBootDiagnosticsData/action'
+                 'Microsoft.Resources/templateSpecs/read'
+                 'Microsoft.Resources/templateSpecs/versions/read'
+               ]
+}
 
 // Conditional permissions for public IPs when NAT Gateway is disabled
 var conditionalPublicIPPermissions = [
@@ -111,12 +111,12 @@ var conditionalPublicIPPermissions = [
 resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
   name: guid(resourceGroup().id, resourceGroupAccessRoleName)
   properties: {
-    roleName: resourceGroupAccessRoleName
-    description: resourceGroupAccessDescription
+    roleName: resourceGroupCustomRole.roleName
+    description: resourceGroupCustomRole.roleDescription
     type: 'CustomRole'
     permissions: [
       {
-        actions: union(basePermissions, !agentlessScanningDeployNatGateway ? conditionalPublicIPPermissions : [])
+        actions: union(resourceGroupCustomRole.roleActions, !agentlessScanningDeployNatGateway ? conditionalPublicIPPermissions : [])
         notActions: []
         dataActions: []
         notDataActions: []

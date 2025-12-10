@@ -109,7 +109,7 @@ var conditionalPublicIPPermissions = [
 ]
 
 resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
-  name: guid(resourceGroup().id, resourceGroupAccessRoleName)
+  name: guid(resourceGroup().id, resourceGroupCustomRole.roleName)
   properties: {
     roleName: resourceGroupCustomRole.roleName
     description: resourceGroupCustomRole.roleDescription

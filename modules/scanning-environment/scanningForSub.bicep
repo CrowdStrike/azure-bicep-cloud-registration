@@ -140,12 +140,12 @@ module scanningRegion 'scanningRegion.bicep' = [
     name: '${resourceNamePrefix}cs-scanning-env${environment}-${location}${resourceNameSuffix}'
     scope: scanningResourceGroup
     params: {
+      agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix
       env: env
       location: location
       tags: tags
-      natGateway: natGateway
     }
     dependsOn: [
       scanningResourceGroupModule

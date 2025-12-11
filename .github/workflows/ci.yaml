@@ -23,7 +23,8 @@ jobs:
       - name: Bicep Build (Validation)
         run: |
           exit_code=0
-          for file in $(find . -name "*.bicep" -type f); do
+          # Only build root-level templates; modules are validated automatically
+          for file in $(find . -maxdepth 1 -name "*.bicep" -type f); do
             echo "Building: $file"
             if ! az bicep build --file "$file"; then
               echo "❌ Build failed for $file"

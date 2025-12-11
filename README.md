@@ -49,7 +49,7 @@ The Bicep templates perform the following actions:
       - Assign built-in "Reader" role at resource group scope to the Scanner Managed Identity.
       - Assign built-in "Key Vault Secrets User" role at created Key vault scope to the Scanner Managed Identity for key access.
    - Per location in `dspmLocations` or `dspmLocationsPerSubscription` in each deployed resource group:
-      - Deploy regional scanning resources like Virtual Network, Key vault's Private Endpoint, and optionally NAT Gateway and Public IP (controlled by `agentlessScanningDeployNatGateway` parameter).
+      - Deploy regional scanning resources like Virtual Network, Key vault's Private Endpoint, and optionally NAT Gateway with Public IP when `agentlessScanningDeployNatGateway` is set to true (default).
 
 
 > [!NOTE]

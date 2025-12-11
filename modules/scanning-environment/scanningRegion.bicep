@@ -84,7 +84,7 @@ resource scanningVnet 'Microsoft.Network/virtualNetworks@2024-07-01' = {
       addressPrefixes: [vnetAddressPrefix]
     }
   }
-  tags: union(tags, {CSTagResourceType: 'VirtualNetwork'})
+  tags: union(tags, { CSTagResourceType: 'VirtualNetwork' })
 }
 
 resource clonesSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-07-01' = {

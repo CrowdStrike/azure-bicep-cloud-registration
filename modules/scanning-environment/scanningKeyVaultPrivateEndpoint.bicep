@@ -38,7 +38,6 @@ var vaultPrivateEndpointName = '${resourceNamePrefix}pep-csscanning-vault${envir
 var vaultPrivateLinkServiceConnectionName = '${resourceNamePrefix}plsc-csscanning-vault${environment}-${location}${resourceNameSuffix}'
 var vaultIpConfigurationName = '${resourceNamePrefix}ipconfig-csscanning${environment}-${location}${resourceNameSuffix}'
 
-
 resource vaultPrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-07-01' = {
   location: location
   name: vaultPrivateEndpointName
@@ -50,7 +49,12 @@ resource vaultPrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-07-01' = 
           groupIds: [
             'vault'
           ]
-          privateLinkServiceId: resourceId(subscription().subscriptionId, resourceGroup().name, 'Microsoft.KeyVault/vaults', scanningKeyVaultName)
+          privateLinkServiceId: resourceId(
+            subscription().subscriptionId,
+            resourceGroup().name,
+            'Microsoft.KeyVault/vaults',
+            scanningKeyVaultName
+          )
         }
       }
     ]

@@ -16,7 +16,7 @@ param falconClientSecret string
 @description('Principal ID of the CrowdStrike application registered in Entra ID. This ID is used for role assignments and access control.')
 param scanningPrincipalId string
 
-@description('Azure locations (regions) where scanning environments will be deployed as Subscription ID to locations map.')
+@description('Azure locations (regions) where scanning environments will be deployed as subscription ID to locations map.')
 param scanningEnvironmentLocationsPerSubscriptionMap array = []
 
 @description('Name of the resource group where CrowdStrike infrastructure resources will be deployed.')

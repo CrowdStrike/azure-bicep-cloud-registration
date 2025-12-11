@@ -98,7 +98,7 @@ param enableDspm bool = false
 @description('Azure locations (regions) where DSPM will be deployed.')
 param dspmLocations array = []
 
-@description('Azure locations (regions) where DSPM will be deployed as Subscription ID to locations map. When this parameter is used dspmLocations parameter will be ignored.')
+@description('Azure locations (regions) where DSPM will be deployed as subscription ID to locations map. When this parameter is used dspmLocations parameter will be ignored.')
 param dspmLocationsPerSubscription object = {}
 
 @description('Controls whether to deploy NAT Gateway for scanning environment.')

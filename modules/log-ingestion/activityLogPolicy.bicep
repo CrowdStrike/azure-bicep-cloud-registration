@@ -85,8 +85,6 @@ resource activityLogPolicyAssignment 'Microsoft.Authorization/policyAssignments@
 resource activityLogPolicyRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [
   for roleDefinitionId in [
     '749f88d5-cbae-40b8-bcfc-e573ddc772fa' // Monitoring Contributor
-    '2a5c394f-5eb7-4d4f-9c8e-e8eae39faebc' // Lab Services Reader
-    'f526a384-b230-433a-b45c-95f59c4a2dec' // Azure Event Hubs Data Owner
   ]: {
     name: guid(activityLogPolicyAssignment.id, roleDefinitionId)
     properties: {

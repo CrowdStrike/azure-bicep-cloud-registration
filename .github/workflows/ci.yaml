@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions: read-all
+
+jobs:
+  bicep-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+
+      - name: Install Azure CLI
+        run: curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
+      - name: Bicep Build (Validation)
+        run: |
+          exit_code=0
+          # Only build root-level templates; modules are validated automatically
+          for file in $(find . -maxdepth 1 -name "*.bicep" -type f); do
+            echo "Building: $file"
+            if ! az bicep build --file "$file"; then
+              echo "❌ Build failed for $file"
+              exit_code=1
+            else
+              echo "✅ Build succeeded for $file"
+            fi
+          done
+          exit $exit_code
+
+  bicep-lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+
+      - name: Install Azure CLI
+        run: curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
+      - name: Bicep Lint
+        run: |
+          exit_code=0
+          for file in $(find . -name "*.bicep" -type f); do
+            echo "Linting: $file"
+            if ! az bicep lint --file "$file"; then
+              echo "❌ Lint failed for $file"
+              exit_code=1
+            else
+              echo "✅ Lint succeeded for $file"
+            fi
+          done
+          exit $exit_code
+
+  bicep-format:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+
+      - name: Install Azure CLI
+        run: curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
+      - name: Bicep Format Check
+        run: |
+          exit_code=0
+          for file in $(find . -name "*.bicep" -type f); do
+            echo "Checking format: $file"
+            # Create a backup of the original file
+            cp "$file" "$file.backup"
+
+            # Format the file in place
+            az bicep format --file "$file"
+
+            # Compare original with formatted version
+            if ! diff -u "$file.backup" "$file"; then
+              echo "❌ Format check failed for $file - file is not properly formatted"
+              echo "Run 'az bicep format --file $file' to fix formatting"
+              echo ""
+              exit_code=1
+            else
+              echo "✅ Format check passed for $file"
+            fi
+
+            # Restore the original file
+            mv "$file.backup" "$file"
+          done
+          exit $exit_code

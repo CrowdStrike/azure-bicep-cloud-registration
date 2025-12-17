@@ -36,10 +36,13 @@ param resourceNameSuffix string = ''
 
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
-var filteredSubscriptionIds = filter(subscriptionIds, subscriptionId => !contains(ignoredSubscriptionIds, subscriptionId))
+var filteredSubscriptionIds = filter(
+  subscriptionIds,
+  subscriptionId => !contains(ignoredSubscriptionIds, subscriptionId)
+)
 
 module resourceGroups 'common/resourceGroup.bicep' = [
-  for subscriptionId in filteredSubscriptionIds:  {
+  for subscriptionId in filteredSubscriptionIds: {
     name: '${resourceNamePrefix}cs-rg-${uniqueString(subscriptionId)}${environment}${resourceNameSuffix}'
     scope: subscription(subscriptionId)
     params: {

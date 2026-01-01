@@ -15,7 +15,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout code
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
 
       - name: Install Azure CLI
         run: curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
@@ -41,7 +41,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout code
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
 
       - name: Install Azure CLI
         run: curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
@@ -66,7 +66,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout code
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
 
       - name: Install Azure CLI
         run: curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash

@@ -98,8 +98,11 @@ param enableDspm bool = false
 @description('Azure locations (regions) where DSPM will be deployed.')
 param dspmLocations array = []
 
-@description('Azure locations (regions) where DSPM will be deployed as Subscription ID to locations map. When this parameter is used dspmLocations parameter will be ignored.')
+@description('Azure locations (regions) where DSPM will be deployed as subscription ID to locations map. When this parameter is used dspmLocations parameter will be ignored.')
 param dspmLocationsPerSubscription object = {}
+
+@description('Controls whether to deploy NAT Gateway for scanning environment.')
+param agentlessScanningDeployNatGateway bool = true
 
 /* Variables */
 var subscriptions = union(subscriptionIds, csInfraSubscriptionId == '' ? [] : [csInfraSubscriptionId]) // remove duplicated values
@@ -245,6 +248,7 @@ module scanningEnvironment 'modules/cs-scanning-mg.bicep' = if (shouldDeployScan
     falconClientSecret: validatedFalconClientSecret
     scanningPrincipalId: azurePrincipalId
     scanningEnvironmentLocationsPerSubscriptionMap: scanningEnvironmentLocationsPerSubscriptionMap
+    agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
     resourceGroupName: resourceGroupName
     resourceNamePrefix: validatedResourceNamePrefix
     resourceNameSuffix: validatedResourceNameSuffix

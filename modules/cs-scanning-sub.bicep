@@ -16,7 +16,7 @@ param falconClientSecret string
 @description('Principal ID of the CrowdStrike application registered in Entra ID. This ID is used for role assignments and access control.')
 param scanningPrincipalId string
 
-@description('Azure locations (regions) where scanning environments will be deployed as Subscription ID to locations map.')
+@description('Azure locations (regions) where scanning environments will be deployed as subscription ID to locations map.')
 param scanningEnvironmentLocationsPerSubscriptionMap array = []
 
 @description('Name of the resource group where CrowdStrike infrastructure resources will be deployed.')
@@ -37,6 +37,9 @@ param env string
 @description('Tags to be applied to all deployed resources. Used for resource organization, governance, and cost tracking.')
 param tags object
 
+@description('Controls whether to deploy NAT Gateway for scanning environment.')
+param agentlessScanningDeployNatGateway bool = true
+
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
 
@@ -49,6 +52,7 @@ module scanningSub 'scanning-environment/scanningForSub.bicep' = [
       falconClientSecret: falconClientSecret
       scanningPrincipalId: scanningPrincipalId
       scanningEnvironmentLocations: sub.locations
+      agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
       resourceGroupName: resourceGroupName
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix

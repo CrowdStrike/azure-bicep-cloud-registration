@@ -37,6 +37,9 @@ param env string
 @description('Tags to be applied to all deployed resources. Used for resource organization, governance, and cost tracking.')
 param tags object
 
+@description('Controls whether to deploy NAT Gateway for scanning environment.')
+param agentlessScanningDeployNatGateway bool = true
+
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
 var subscriptionAccessRoleName = '${resourceNamePrefix}role-csscanning-access-${subscription().subscriptionId}${resourceNameSuffix}'
@@ -115,6 +118,7 @@ module scanningResourceGroupModule 'scanningResourceGroup.bicep' = {
     falconClientId: falconClientId
     falconClientSecret: falconClientSecret
     scanningPrincipalId: scanningPrincipalId
+    agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
     env: env
@@ -136,6 +140,7 @@ module scanningRegion 'scanningRegion.bicep' = [
     name: '${resourceNamePrefix}cs-scanning-env${environment}-${location}${resourceNameSuffix}'
     scope: scanningResourceGroup
     params: {
+      agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix
       env: env

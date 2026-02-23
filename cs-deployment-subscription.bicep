@@ -100,11 +100,15 @@ param dspmLocationsPerSubscription object = {}
 @description('Controls whether to deploy NAT Gateway for scanning environment.')
 param agentlessScanningDeployNatGateway bool = true
 
+@description('Azure agentless scanning host subscription ID. When set, cross-account mode is enabled: scanning infrastructure is deployed only to this subscription, while all other subscriptions receive role assignments only.')
+param agentlessScanningHostSubscriptionId string = ''
+
 /* Variables */
 var subscriptions = union(subscriptionIds, csInfraSubscriptionId == '' ? [] : [csInfraSubscriptionId]) // remove duplicated values
 var environment = length(env) > 0 ? '-${env}' : env
 var shouldDeployLogIngestion = enableRealTimeVisibility
 var shouldDeployScanningEnvironment = enableDspm
+var agentlessScanningMode = !empty(agentlessScanningHostSubscriptionId) ? 'cross-account' : 'per-account'
 var validatedFalconClientID = (shouldDeployLogIngestion || shouldDeployScanningEnvironment) && empty(falconClientId)
   ? fail('"falconClientId" is required when real-time visibility and detection or DSPM are enabled, please specify it in parameters.bicepparam')
   : falconClientId
@@ -209,6 +213,8 @@ module scanningEnvironment 'modules/cs-scanning-sub.bicep' = if (shouldDeploySca
     scanningPrincipalId: azurePrincipalId
     scanningEnvironmentLocationsPerSubscriptionMap: scanningEnvironmentLocationsPerSubscriptionMap
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
+    agentlessScanningMode: agentlessScanningMode
+    agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
     inputEnableDspm: enableDspm
     inputAgentlessScanningLocations: validatedDspmLocations
     inputAgentlessScanningLocationsPerSubscription: validatedDspmLocationsPerSubscription

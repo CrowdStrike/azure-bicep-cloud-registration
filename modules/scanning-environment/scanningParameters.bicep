@@ -24,6 +24,9 @@ param inputAgentlessScanningLocationsPerSubscription object
 @description('Controls whether to deploy NAT Gateway for scanning environment.')
 param inputAgentlessScanningDeployNatGateway bool
 
+@description('Azure agentless scanning host subscription ID.')
+param inputAgentlessScanningHostSubscriptionId string
+
 @maxLength(10)
 @description('Optional prefix added to all resource names for organization and identification purposes.')
 param inputResourceNamePrefix string
@@ -58,6 +61,7 @@ var parameterDefinitions = {
   agentlessScanningLocations: string(inputAgentlessScanningLocations)
   agentlessScanningLocationsPerSubscription: string(inputAgentlessScanningLocationsPerSubscription)
   agentlessScanningDeployNatGateway: boolToJson(inputAgentlessScanningDeployNatGateway)
+  agentlessScanningHostSubscriptionId: stringToJson(inputAgentlessScanningHostSubscriptionId)
   resourceNamePrefix: stringToJson(inputResourceNamePrefix)
   resourceNameSuffix: stringToJson(inputResourceNameSuffix)
   env: stringToJson(inputEnv)

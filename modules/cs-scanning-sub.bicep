@@ -40,6 +40,12 @@ param tags object
 @description('Controls whether to deploy NAT Gateway for scanning environment.')
 param agentlessScanningDeployNatGateway bool = true
 
+@description('Azure agentless scanning mode.')
+param agentlessScanningMode string = 'per-account'
+
+@description('Azure agentless scanning host subscription ID.')
+param agentlessScanningHostSubscriptionId string = ''
+
 @description('Controls whether to enable DSPM.')
 param inputEnableDspm bool = false
 
@@ -51,9 +57,41 @@ param inputAgentlessScanningLocationsPerSubscription object = {}
 
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
+var isCrossAccount = agentlessScanningMode == 'cross-account'
+var hostSubEntry = isCrossAccount
+  ? filter(scanningEnvironmentLocationsPerSubscriptionMap, sub => sub.subscriptionId == agentlessScanningHostSubscriptionId)
+  : []
+var nonHostSubEntries = isCrossAccount
+  ? filter(scanningEnvironmentLocationsPerSubscriptionMap, sub => sub.subscriptionId != agentlessScanningHostSubscriptionId)
+  : scanningEnvironmentLocationsPerSubscriptionMap
 
+// Cross-account mode: deploy full infra to host subscription first
+module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCrossAccount && length(hostSubEntry) > 0) {
+  name: '${resourceNamePrefix}cs-scanning-host${environment}${resourceNameSuffix}'
+  scope: subscription(agentlessScanningHostSubscriptionId)
+  params: {
+    falconClientId: falconClientId
+    falconClientSecret: falconClientSecret
+    scanningPrincipalId: scanningPrincipalId
+    scanningEnvironmentLocations: hostSubEntry[0].locations
+    agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
+    agentlessScanningMode: agentlessScanningMode
+    agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
+    inputEnableDspm: inputEnableDspm
+    inputAgentlessScanningLocations: inputAgentlessScanningLocations
+    inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
+    resourceGroupName: resourceGroupName
+    resourceNamePrefix: resourceNamePrefix
+    resourceNameSuffix: resourceNameSuffix
+    env: env
+    tags: tags
+  }
+}
+
+// Per-account mode: deploy full infra to every subscription
+// Cross-account mode: deploy role assignments only to non-host subscriptions
 module scanningSub 'scanning-environment/scanningForSub.bicep' = [
-  for sub in scanningEnvironmentLocationsPerSubscriptionMap: {
+  for sub in nonHostSubEntries: {
     name: '${resourceNamePrefix}cs-scanning-sub${environment}${resourceNameSuffix}'
     scope: subscription(sub.subscriptionId)
     params: {
@@ -61,7 +99,10 @@ module scanningSub 'scanning-environment/scanningForSub.bicep' = [
       falconClientSecret: falconClientSecret
       scanningPrincipalId: scanningPrincipalId
       scanningEnvironmentLocations: sub.locations
+      scanningManagedIdentityPrincipalId: isCrossAccount ? scanningHostSub!.outputs.scanningManagedIdentityPrincipalId : ''
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
+      agentlessScanningMode: agentlessScanningMode
+      agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
       inputEnableDspm: inputEnableDspm
       inputAgentlessScanningLocations: inputAgentlessScanningLocations
       inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription

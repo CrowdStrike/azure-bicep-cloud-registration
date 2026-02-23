@@ -1,6 +1,7 @@
 # Global code owners
 * @CrowdStrike/fcs-engineering
 
-# DSPM specific files
-*DSPM* @CrowdStrike/fcs-dspm
-*dspm* @CrowdStrike/fcs-dspm
+# DSPM scanning
+/modules/scanning-environment/ @CrowdStrike/fcs-dspm
+/modules/cs-scanning-mg.bicep @CrowdStrike/fcs-dspm
+/modules/cs-scanning-sub.bicep @CrowdStrike/fcs-dspm

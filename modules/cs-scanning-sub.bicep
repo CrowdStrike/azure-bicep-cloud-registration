@@ -74,7 +74,10 @@ var nonHostSubEntries = isCrossAccount
 // Cross-account mode: deploy full infra to host subscription first
 module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCrossAccount && length(hostSubEntry) > 0) {
   name: '${resourceNamePrefix}cs-scanning-host${environment}${resourceNameSuffix}'
-  scope: subscription(agentlessScanningHostSubscriptionId)
+  // Note: Azure will resolve this subscription regardless of the condition, so we need to provide a valid subscription ID
+  scope: subscription(isCrossAccount
+    ? agentlessScanningHostSubscriptionId
+    : scanningEnvironmentLocationsPerSubscriptionMap[0].subscriptionId)
   params: {
     falconClientId: falconClientId
     falconClientSecret: falconClientSecret

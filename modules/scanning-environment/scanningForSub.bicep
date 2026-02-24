@@ -40,6 +40,15 @@ param tags object
 @description('Controls whether to deploy NAT Gateway for scanning environment.')
 param agentlessScanningDeployNatGateway bool = true
 
+@description('Controls whether to enable DSPM.')
+param inputEnableDspm bool = false
+
+@description('Azure locations (regions) where DSPM will be deployed.')
+param inputAgentlessScanningLocations array = []
+
+@description('Azure locations (regions) where DSPM will be deployed as subscription ID to locations map.')
+param inputAgentlessScanningLocationsPerSubscription object = {}
+
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
 var subscriptionAccessRoleName = '${resourceNamePrefix}role-csscanning-access-${subscription().subscriptionId}${resourceNameSuffix}'
@@ -62,6 +71,7 @@ resource subscriptionAccessRole 'Microsoft.Authorization/roleDefinitions@2022-04
 
           // ============ Validation ============
           'Microsoft.Authorization/roleAssignments/read'
+          'Microsoft.Authorization/policyDefinitions/read'
         ]
         notActions: []
         dataActions: []
@@ -169,3 +179,24 @@ module scanningKeyVaultPrivateEndpoint 'scanningKeyVaultPrivateEndpoint.bicep' =
     }
   }
 ]
+
+module scanningParametersModule 'scanningParameters.bicep' = {
+  name: '${resourceNamePrefix}cs-scanning-params${environment}${resourceNameSuffix}'
+  params: {
+    scanningPrincipalId: scanningPrincipalId
+    inputFalconClientId: falconClientId
+    inputEnableDspm: inputEnableDspm
+    inputAgentlessScanningLocations: inputAgentlessScanningLocations
+    inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
+    inputAgentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
+    inputResourceNamePrefix: resourceNamePrefix
+    inputResourceNameSuffix: resourceNameSuffix
+    inputEnv: env
+    inputTags: tags
+  }
+  dependsOn: [
+    scannerRoleAssignment
+    scanningRegion
+    scanningKeyVaultPrivateEndpoint
+  ]
+}

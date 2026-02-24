@@ -209,6 +209,9 @@ module scanningEnvironment 'modules/cs-scanning-sub.bicep' = if (shouldDeploySca
     scanningPrincipalId: azurePrincipalId
     scanningEnvironmentLocationsPerSubscriptionMap: scanningEnvironmentLocationsPerSubscriptionMap
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
+    inputEnableDspm: enableDspm
+    inputAgentlessScanningLocations: validatedDspmLocations
+    inputAgentlessScanningLocationsPerSubscription: validatedDspmLocationsPerSubscription
     resourceGroupName: resourceGroupName
     resourceNamePrefix: validatedResourceNamePrefix
     resourceNameSuffix: validatedResourceNameSuffix

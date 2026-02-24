@@ -40,6 +40,15 @@ param tags object
 @description('Controls whether to deploy NAT Gateway for scanning environment.')
 param agentlessScanningDeployNatGateway bool = true
 
+@description('Controls whether to enable DSPM.')
+param inputEnableDspm bool = false
+
+@description('Azure locations (regions) where DSPM will be deployed.')
+param inputAgentlessScanningLocations array = []
+
+@description('Azure locations (regions) where DSPM will be deployed as subscription ID to locations map.')
+param inputAgentlessScanningLocationsPerSubscription object = {}
+
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
 
@@ -53,6 +62,9 @@ module scanningSub 'scanning-environment/scanningForSub.bicep' = [
       scanningPrincipalId: scanningPrincipalId
       scanningEnvironmentLocations: sub.locations
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
+      inputEnableDspm: inputEnableDspm
+      inputAgentlessScanningLocations: inputAgentlessScanningLocations
+      inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
       resourceGroupName: resourceGroupName
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix

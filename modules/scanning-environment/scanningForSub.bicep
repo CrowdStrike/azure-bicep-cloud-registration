@@ -147,7 +147,9 @@ module scanningResourceGroupModule 'scanningResourceGroup.bicep' = if (shouldDep
 }
 
 resource scannerRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(subscription().id, 'scanningManagedIdentityPrincipalId', scannerRole.id)
+  name: shouldDeployResources
+    ? guid(subscription().id, 'scanningManagedIdentityPrincipalId', scannerRole.id)
+    : guid(subscription().id, scanningManagedIdentityPrincipalId, scannerRole.id)
   properties: {
     principalId: shouldDeployResources
       ? scanningResourceGroupModule!.outputs.scanningManagedIdentityPrincipalId

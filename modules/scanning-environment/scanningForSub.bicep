@@ -159,7 +159,7 @@ resource scannerRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-
   }
 }
 
-module scanningRegion 'scanningRegion.bicep' = [
+module scanningRegions 'scanningRegion.bicep' = [
   for location in scanningEnvironmentLocations: if (shouldDeployResources) {
     name: '${resourceNamePrefix}cs-scanning-env${environment}-${location}${resourceNameSuffix}'
     scope: scanningResourceGroup

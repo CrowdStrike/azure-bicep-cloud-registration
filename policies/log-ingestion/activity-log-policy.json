@@ -26,8 +26,7 @@
       "eventHubName": {
         "type": "String",
         "metadata": {
-          "displayName": "Event Hub Name",
-          "strongType": "Microsoft.EventHub/Namespaces/EventHubs"
+          "displayName": "Event Hub Name"
         }
       },
       "policyEffect": {

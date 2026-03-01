@@ -40,9 +40,6 @@ param tags object
 @description('Controls whether to deploy NAT Gateway for scanning environment.')
 param agentlessScanningDeployNatGateway bool = true
 
-@description('Azure agentless scanning mode.')
-param agentlessScanningMode string = 'per-account'
-
 @description('Azure agentless scanning host subscription ID.')
 param agentlessScanningHostSubscriptionId string = ''
 
@@ -57,7 +54,7 @@ param inputAgentlessScanningLocationsPerSubscription object = {}
 
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
-var isCrossAccount = agentlessScanningMode == 'cross-account'
+var isCrossAccount = !empty(agentlessScanningHostSubscriptionId)
 var hostSubEntry = isCrossAccount
   ? filter(
       scanningEnvironmentLocationsPerSubscriptionMap,
@@ -70,6 +67,10 @@ var nonHostSubEntries = isCrossAccount
       sub => sub.subscriptionId != agentlessScanningHostSubscriptionId
     )
   : scanningEnvironmentLocationsPerSubscriptionMap
+#disable-next-line no-unused-vars
+var _validateHostSub = isCrossAccount && length(hostSubEntry) == 0
+  ? fail('"agentlessScanningHostSubscriptionId" must match a subscription in the scanning environment subscriptions map')
+  : true
 
 // Cross-account mode: deploy full infra to host subscription first
 module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCrossAccount && length(hostSubEntry) > 0) {
@@ -84,7 +85,6 @@ module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCross
     scanningPrincipalId: scanningPrincipalId
     scanningEnvironmentLocations: hostSubEntry[0].locations
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
-    agentlessScanningMode: agentlessScanningMode
     agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
     inputEnableDspm: inputEnableDspm
     inputAgentlessScanningLocations: inputAgentlessScanningLocations
@@ -112,7 +112,6 @@ module scanningSub 'scanning-environment/scanningForSub.bicep' = [
         ? scanningHostSub!.outputs.scanningManagedIdentityPrincipalId
         : ''
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
-      agentlessScanningMode: agentlessScanningMode
       agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
       inputEnableDspm: inputEnableDspm
       inputAgentlessScanningLocations: inputAgentlessScanningLocations

@@ -43,9 +43,6 @@ param tags object
 @description('Controls whether to deploy NAT Gateway for scanning environment.')
 param agentlessScanningDeployNatGateway bool = true
 
-@description('Azure agentless scanning mode.')
-param agentlessScanningMode string = 'per-account'
-
 @description('Azure agentless scanning host subscription ID.')
 param agentlessScanningHostSubscriptionId string = ''
 
@@ -60,7 +57,7 @@ param inputAgentlessScanningLocationsPerSubscription object = {}
 
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
-var shouldDeployResources = agentlessScanningMode != 'cross-account' || subscription().subscriptionId == agentlessScanningHostSubscriptionId
+var shouldDeployResources = empty(agentlessScanningHostSubscriptionId) || subscription().subscriptionId == agentlessScanningHostSubscriptionId
 var subscriptionAccessRoleName = '${resourceNamePrefix}role-csscanning-access-${subscription().subscriptionId}${resourceNameSuffix}'
 var subscriptionAccessRoleDescription = 'CrowdStrike Scanning Subscription Access Role'
 var scannerRoleName = '${resourceNamePrefix}role-csscanning-scanner-${subscription().subscriptionId}${resourceNameSuffix}'
@@ -68,6 +65,7 @@ var scannerRoleDescription = 'CrowdStrike Scanning Subscription Scanner Role'
 
 resource subscriptionAccessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
   name: guid(subscription().id, subscriptionAccessRoleName)
+  scope: tenant()
   properties: {
     roleName: subscriptionAccessRoleName
     description: subscriptionAccessRoleDescription

@@ -65,7 +65,6 @@ var scannerRoleDescription = 'CrowdStrike Scanning Subscription Scanner Role'
 
 resource subscriptionAccessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
   name: guid(subscription().id, subscriptionAccessRoleName)
-  scope: tenant()
   properties: {
     roleName: subscriptionAccessRoleName
     description: subscriptionAccessRoleDescription

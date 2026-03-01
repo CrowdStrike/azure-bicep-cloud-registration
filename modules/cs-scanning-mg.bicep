@@ -54,36 +54,35 @@ param inputAgentlessScanningLocationsPerSubscription object = {}
 
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
-var isCrossAccount = !empty(agentlessScanningHostSubscriptionId)
-var hostSubEntry = isCrossAccount
+var isCrossSubscriptionDeployment = !empty(agentlessScanningHostSubscriptionId)
+var crossHostSubscriptionEntry = isCrossSubscriptionDeployment
   ? filter(
       scanningEnvironmentLocationsPerSubscriptionMap,
       sub => sub.subscriptionId == agentlessScanningHostSubscriptionId
     )
   : []
-var nonHostSubEntries = isCrossAccount
+var nonCrossHostSubscriptionEntries = isCrossSubscriptionDeployment
   ? filter(
       scanningEnvironmentLocationsPerSubscriptionMap,
       sub => sub.subscriptionId != agentlessScanningHostSubscriptionId
     )
   : scanningEnvironmentLocationsPerSubscriptionMap
-#disable-next-line no-unused-vars
-var _validateHostSub = isCrossAccount && length(hostSubEntry) == 0
+var verifiedCrossHostSubscriptionEntry = isCrossSubscriptionDeployment && length(crossHostSubscriptionEntry) == 0
   ? fail('"agentlessScanningHostSubscriptionId" must match a subscription in the scanning environment subscriptions map')
-  : true
+  : crossHostSubscriptionEntry
 
 // Cross-account mode: deploy full infra to host subscription first
-module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCrossAccount && length(hostSubEntry) > 0) {
+module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCrossSubscriptionDeployment && length(verifiedCrossHostSubscriptionEntry) > 0) {
   name: '${resourceNamePrefix}cs-scanning-host${environment}${resourceNameSuffix}'
   // Note: Azure will resolve this subscription regardless of the condition, so we need to provide a valid subscription ID
-  scope: subscription(isCrossAccount
+  scope: subscription(isCrossSubscriptionDeployment
     ? agentlessScanningHostSubscriptionId
     : scanningEnvironmentLocationsPerSubscriptionMap[0].subscriptionId)
   params: {
     falconClientId: falconClientId
     falconClientSecret: falconClientSecret
     scanningPrincipalId: scanningPrincipalId
-    scanningEnvironmentLocations: hostSubEntry[0].locations
+    scanningEnvironmentLocations: verifiedCrossHostSubscriptionEntry[0].locations
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
     agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
     inputEnableDspm: inputEnableDspm
@@ -100,7 +99,7 @@ module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCross
 // Per-account mode: deploy full infra to every subscription
 // Cross-account mode: deploy role assignments only to non-host subscriptions
 module scanningSub 'scanning-environment/scanningForSub.bicep' = [
-  for sub in nonHostSubEntries: {
+  for sub in nonCrossHostSubscriptionEntries: {
     name: '${resourceNamePrefix}cs-scanning-sub${environment}${resourceNameSuffix}'
     scope: subscription(sub.subscriptionId)
     params: {
@@ -108,7 +107,7 @@ module scanningSub 'scanning-environment/scanningForSub.bicep' = [
       falconClientSecret: falconClientSecret
       scanningPrincipalId: scanningPrincipalId
       scanningEnvironmentLocations: sub.locations
-      scanningManagedIdentityPrincipalId: isCrossAccount
+      scanningManagedIdentityPrincipalId: isCrossSubscriptionDeployment
         ? scanningHostSub!.outputs.scanningManagedIdentityPrincipalId
         : ''
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway

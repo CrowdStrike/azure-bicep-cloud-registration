@@ -45,7 +45,7 @@ param inputTags object
 /* Variables */
 var environment = length(inputEnv) > 0 ? '-${inputEnv}' : inputEnv
 var policyDefinitionName = '${inputResourceNamePrefix}policy-csscanning-parameters${environment}${inputResourceNameSuffix}'
-var version = '1.0.0+bicep.1'
+var version = '1.0.1+bicep.1'
 
 /* Functions */
 func boolToJson(value bool) string => value ? 'true' : 'false'

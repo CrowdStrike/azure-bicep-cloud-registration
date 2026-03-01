@@ -104,7 +104,7 @@ param dspmLocationsPerSubscription object = {}
 @description('Controls whether to deploy NAT Gateway for scanning environment.')
 param agentlessScanningDeployNatGateway bool = true
 
-@description('Azure agentless scanning host subscription ID. When set, cross-account mode is enabled: scanning infrastructure is deployed only to this subscription, while all other subscriptions receive role assignments only.')
+@description('Azure agentless scanning host subscription ID. When set, cross-subscription mode is enabled and scanning infrastructure is deployed only to this subscription.')
 param agentlessScanningHostSubscriptionId string = ''
 
 /* Variables */

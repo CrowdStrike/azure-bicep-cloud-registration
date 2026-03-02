@@ -100,6 +100,9 @@ param dspmLocationsPerSubscription object = {}
 @description('Controls whether to deploy NAT Gateway for scanning environment.')
 param agentlessScanningDeployNatGateway bool = true
 
+@description('Azure agentless scanning host subscription ID. When set, cross-subscription mode is enabled and scanning infrastructure is deployed only to this subscription.')
+param agentlessScanningHostSubscriptionId string = ''
+
 /* Variables */
 var subscriptions = union(subscriptionIds, csInfraSubscriptionId == '' ? [] : [csInfraSubscriptionId]) // remove duplicated values
 var environment = length(env) > 0 ? '-${env}' : env
@@ -209,6 +212,7 @@ module scanningEnvironment 'modules/cs-scanning-sub.bicep' = if (shouldDeploySca
     scanningPrincipalId: azurePrincipalId
     scanningEnvironmentLocationsPerSubscriptionMap: scanningEnvironmentLocationsPerSubscriptionMap
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
+    agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
     inputEnableDspm: enableDspm
     inputAgentlessScanningLocations: validatedDspmLocations
     inputAgentlessScanningLocationsPerSubscription: validatedDspmLocationsPerSubscription

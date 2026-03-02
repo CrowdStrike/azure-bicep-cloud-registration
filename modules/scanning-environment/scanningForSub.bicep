@@ -19,6 +19,9 @@ param scanningEnvironmentLocations array
 @description('Principal ID of the CrowdStrike application registered in Entra ID. This ID is used for role assignments and access control.')
 param scanningPrincipalId string
 
+@description('Principal ID of the scanning managed identity from the host subscription. Used in cross-account mode for non-host subscriptions.')
+param scanningManagedIdentityPrincipalId string = ''
+
 @description('Name of the resource group where CrowdStrike infrastructure resources will be deployed.')
 param resourceGroupName string
 
@@ -40,6 +43,9 @@ param tags object
 @description('Controls whether to deploy NAT Gateway for scanning environment.')
 param agentlessScanningDeployNatGateway bool = true
 
+@description('Azure agentless scanning host subscription ID.')
+param agentlessScanningHostSubscriptionId string = ''
+
 @description('Controls whether to enable DSPM.')
 param inputEnableDspm bool = false
 
@@ -51,6 +57,7 @@ param inputAgentlessScanningLocationsPerSubscription object = {}
 
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
+var shouldDeployResources = empty(agentlessScanningHostSubscriptionId) || subscription().subscriptionId == agentlessScanningHostSubscriptionId
 var subscriptionAccessRoleName = '${resourceNamePrefix}role-csscanning-access-${subscription().subscriptionId}${resourceNameSuffix}'
 var subscriptionAccessRoleDescription = 'CrowdStrike Scanning Subscription Access Role'
 var scannerRoleName = '${resourceNamePrefix}role-csscanning-scanner-${subscription().subscriptionId}${resourceNameSuffix}'
@@ -121,7 +128,7 @@ resource scanningResourceGroup 'Microsoft.Resources/resourceGroups@2025-04-01' e
   name: resourceGroupName
 }
 
-module scanningResourceGroupModule 'scanningResourceGroup.bicep' = {
+module scanningResourceGroupModule 'scanningResourceGroup.bicep' = if (shouldDeployResources) {
   name: '${resourceNamePrefix}cs-scanning-rg-${uniqueString(subscription().subscriptionId)}${resourceNameSuffix}'
   scope: scanningResourceGroup
   params: {
@@ -137,16 +144,20 @@ module scanningResourceGroupModule 'scanningResourceGroup.bicep' = {
 }
 
 resource scannerRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(subscription().id, 'scanningManagedIdentityPrincipalId', scannerRole.id)
+  name: shouldDeployResources
+    ? guid(subscription().id, 'scanningManagedIdentityPrincipalId', scannerRole.id)
+    : guid(subscription().id, scanningManagedIdentityPrincipalId, scannerRole.id)
   properties: {
-    roleDefinitionId: scannerRole.id
-    principalId: scanningResourceGroupModule.outputs.scanningManagedIdentityPrincipalId
+    principalId: shouldDeployResources
+      ? scanningResourceGroupModule!.outputs.scanningManagedIdentityPrincipalId
+      : scanningManagedIdentityPrincipalId
     principalType: 'ServicePrincipal'
+    roleDefinitionId: scannerRole.id
   }
 }
 
 module scanningRegion 'scanningRegion.bicep' = [
-  for location in scanningEnvironmentLocations: {
+  for location in scanningEnvironmentLocations: if (shouldDeployResources) {
     name: '${resourceNamePrefix}cs-scanning-env${environment}-${location}${resourceNameSuffix}'
     scope: scanningResourceGroup
     params: {
@@ -165,12 +176,12 @@ module scanningRegion 'scanningRegion.bicep' = [
 
 @batchSize(1)
 module scanningKeyVaultPrivateEndpoint 'scanningKeyVaultPrivateEndpoint.bicep' = [
-  for (location, index) in scanningEnvironmentLocations: {
+  for (location, index) in scanningEnvironmentLocations: if (shouldDeployResources) {
     name: '${resourceNamePrefix}cs-scanning-vault-pe${environment}-${location}${resourceNameSuffix}'
     scope: scanningResourceGroup
     params: {
-      scanningKeyVaultSubnetId: scanningRegion[index].outputs.clonesSubnetId
-      scanningKeyVaultName: scanningResourceGroupModule.outputs.scanningKeyVaultName
+      scanningKeyVaultName: scanningResourceGroupModule!.outputs.scanningKeyVaultName
+      scanningKeyVaultSubnetId: scanningRegion[index]!.outputs.clonesSubnetId
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix
       env: env
@@ -189,6 +200,7 @@ module scanningParametersModule 'scanningParameters.bicep' = {
     inputAgentlessScanningLocations: inputAgentlessScanningLocations
     inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
     inputAgentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
+    inputAgentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
     inputResourceNamePrefix: resourceNamePrefix
     inputResourceNameSuffix: resourceNameSuffix
     inputEnv: env
@@ -200,3 +212,10 @@ module scanningParametersModule 'scanningParameters.bicep' = {
     scanningKeyVaultPrivateEndpoint
   ]
 }
+
+output scanningManagedIdentityId string = shouldDeployResources
+  ? scanningResourceGroupModule!.outputs.scanningManagedIdentityId
+  : ''
+output scanningManagedIdentityPrincipalId string = shouldDeployResources
+  ? scanningResourceGroupModule!.outputs.scanningManagedIdentityPrincipalId
+  : ''

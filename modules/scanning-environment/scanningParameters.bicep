@@ -24,6 +24,9 @@ param inputAgentlessScanningLocationsPerSubscription object
 @description('Controls whether to deploy NAT Gateway for scanning environment.')
 param inputAgentlessScanningDeployNatGateway bool
 
+@description('Azure agentless scanning host subscription ID.')
+param inputAgentlessScanningHostSubscriptionId string
+
 @maxLength(10)
 @description('Optional prefix added to all resource names for organization and identification purposes.')
 param inputResourceNamePrefix string
@@ -42,7 +45,7 @@ param inputTags object
 /* Variables */
 var environment = length(inputEnv) > 0 ? '-${inputEnv}' : inputEnv
 var policyDefinitionName = '${inputResourceNamePrefix}policy-csscanning-parameters${environment}${inputResourceNameSuffix}'
-var version = '1.0.0+bicep.1'
+var version = '1.0.1+bicep.1'
 
 /* Functions */
 func boolToJson(value bool) string => value ? 'true' : 'false'
@@ -58,6 +61,7 @@ var parameterDefinitions = {
   agentlessScanningLocations: string(inputAgentlessScanningLocations)
   agentlessScanningLocationsPerSubscription: string(inputAgentlessScanningLocationsPerSubscription)
   agentlessScanningDeployNatGateway: boolToJson(inputAgentlessScanningDeployNatGateway)
+  agentlessScanningHostSubscriptionId: stringToJson(inputAgentlessScanningHostSubscriptionId)
   resourceNamePrefix: stringToJson(inputResourceNamePrefix)
   resourceNameSuffix: stringToJson(inputResourceNameSuffix)
   env: stringToJson(inputEnv)

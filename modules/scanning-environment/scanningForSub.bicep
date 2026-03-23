@@ -55,7 +55,14 @@ param inputAgentlessScanningLocations array = []
 @description('Azure locations (regions) where DSPM will be deployed as subscription ID to locations map.')
 param inputAgentlessScanningLocationsPerSubscription object = {}
 
+@description('Optional existing custom scanners subnet ID to use instead of creating a new one.')
+param customScannersSubnet string = ''
+
+@description('Optional existing custom clones subnet ID to use instead of creating a new one.')
+param customClonesSubnet string = ''
+
 /* Variables */
+var useCustomSubnets = !empty(customClonesSubnet) && !empty(customScannersSubnet)
 var environment = length(env) > 0 ? '-${env}' : env
 var shouldDeployResources = empty(agentlessScanningHostSubscriptionId) || subscription().subscriptionId == agentlessScanningHostSubscriptionId
 var subscriptionAccessRoleName = '${resourceNamePrefix}role-csscanning-access-${subscription().subscriptionId}${resourceNameSuffix}'
@@ -124,6 +131,30 @@ resource scannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
   }
 }
 
+resource customVnetSubnetRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (useCustomSubnets) {
+  name: guid(subscription().id, 'customVnetSubnetAccess')
+  properties: {
+    roleName: 'CrowdStrike Custom VNet Subnet Access'
+    description: 'Allows joining subnets for CrowdStrike scanning private endpoints'
+    type: 'CustomRole'
+    permissions: [
+      {
+        actions: [
+          'Microsoft.Network/virtualNetworks/subnets/join/action'
+          'Microsoft.Network/virtualNetworks/read'
+          'Microsoft.Network/virtualNetworks/subnets/read'
+        ]
+        notActions: []
+        dataActions: []
+        notDataActions: []
+      }
+    ]
+    assignableScopes: [
+      subscription().id
+    ]
+  }
+}
+
 resource scanningResourceGroup 'Microsoft.Resources/resourceGroups@2025-04-01' existing = {
   name: resourceGroupName
 }
@@ -136,6 +167,9 @@ module scanningResourceGroupModule 'scanningResourceGroup.bicep' = if (shouldDep
     falconClientSecret: falconClientSecret
     scanningPrincipalId: scanningPrincipalId
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
+    customClonesSubnet: customClonesSubnet
+    customScannersSubnet: customScannersSubnet
+    customVnetSubnetRoleId: customVnetSubnetRole.id
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
     env: env
@@ -162,6 +196,8 @@ module scanningRegion 'scanningRegion.bicep' = [
     scope: scanningResourceGroup
     params: {
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
+      customScannersSubnet: customScannersSubnet
+      customClonesSubnet: customClonesSubnet
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix
       env: env

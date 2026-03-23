@@ -52,6 +52,13 @@ param inputAgentlessScanningLocations array = []
 @description('Azure locations (regions) where DSPM will be deployed as subscription ID to locations map.')
 param inputAgentlessScanningLocationsPerSubscription object = {}
 
+@description('Optional existing custom scanners subnet ID to use instead of creating a new one.')
+param customScannersSubnet string = ''
+
+@description('Optional existing custom clones subnet ID to use instead of creating a new one.')
+param customClonesSubnet string = ''
+
+
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
 var isCrossSubscriptionDeployment = !empty(agentlessScanningHostSubscriptionId)
@@ -70,6 +77,15 @@ var nonCrossHostSubscriptionEntries = isCrossSubscriptionDeployment
 var verifiedCrossHostSubscriptionEntry = isCrossSubscriptionDeployment && length(crossHostSubscriptionEntry) == 0
   ? fail('"agentlessScanningHostSubscriptionId" must match a subscription in the scanning environment subscriptions map')
   : crossHostSubscriptionEntry
+var useCustomSubnets = !empty(customClonesSubnet) && !empty(customScannersSubnet) && !empty(customVaultSubnet)
+
+// Validate that all custom subnets are in the same VNet
+var scannersVnetId = useCustomSubnets ? '${split(customScannersSubnet, '/')[0]}/${split(customScannersSubnet, '/')[1]}/${split(customScannersSubnet, '/')[2]}/${split(customScannersSubnet, '/')[3]}/${split(customScannersSubnet, '/')[4]}/${split(customScannersSubnet, '/')[5]}/${split(customScannersSubnet, '/')[6]}/${split(customScannersSubnet, '/')[7]}/${split(customScannersSubnet, '/')[8]}' : ''
+var clonesVnetId = useCustomSubnets ? '${split(customClonesSubnet, '/')[0]}/${split(customClonesSubnet, '/')[1]}/${split(customClonesSubnet, '/')[2]}/${split(customClonesSubnet, '/')[3]}/${split(customClonesSubnet, '/')[4]}/${split(customClonesSubnet, '/')[5]}/${split(customClonesSubnet, '/')[6]}/${split(customClonesSubnet, '/')[7]}/${split(customClonesSubnet, '/')[8]}' : ''
+
+var validatedCustomSubnets = useCustomSubnets && (scannersVnetId != clonesVnetId || clonesVnetId != vaultVnetId)
+  ? fail('All custom subnets (customScannersSubnet, customClonesSubnet, customVaultSubnet) must be in the same VNet')
+  : true
 
 // Cross-account mode: deploy full infra to host subscription first
 module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCrossSubscriptionDeployment && length(verifiedCrossHostSubscriptionEntry) > 0) {
@@ -115,6 +131,8 @@ module scanningSub 'scanning-environment/scanningForSub.bicep' = [
       inputEnableDspm: inputEnableDspm
       inputAgentlessScanningLocations: inputAgentlessScanningLocations
       inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
+      customScannersSubnet: customScannersSubnet
+      customClonesSubnet: customClonesSubnet
       resourceGroupName: resourceGroupName
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix

@@ -55,20 +55,22 @@ param inputAgentlessScanningLocations array = []
 @description('Azure locations (regions) where DSPM will be deployed as subscription ID to locations map.')
 param inputAgentlessScanningLocationsPerSubscription object = {}
 
-@description('Optional existing custom scanners subnet ID to use instead of creating a new one.')
-param customScannersSubnet string = ''
-
-@description('Optional existing custom clones subnet ID to use instead of creating a new one.')
-param customClonesSubnet string = ''
+@description('Per-region custom VNet configuration for agentless scanning.')
+param inputAgentlessScanningCustomVnetConfiguration object = {}
 
 /* Variables */
-var useCustomSubnets = !empty(customClonesSubnet) && !empty(customScannersSubnet)
+var useCustomSubnets = length(filter(
+  scanningEnvironmentLocations,
+  location => !empty(location.customScannersSubnet) && !empty(location.customClonesSubnet)
+)) > 0
 var environment = length(env) > 0 ? '-${env}' : env
 var shouldDeployResources = empty(agentlessScanningHostSubscriptionId) || subscription().subscriptionId == agentlessScanningHostSubscriptionId
 var subscriptionAccessRoleName = '${resourceNamePrefix}role-csscanning-access-${subscription().subscriptionId}${resourceNameSuffix}'
 var subscriptionAccessRoleDescription = 'CrowdStrike Scanning Subscription Access Role'
 var scannerRoleName = '${resourceNamePrefix}role-csscanning-scanner-${subscription().subscriptionId}${resourceNameSuffix}'
 var scannerRoleDescription = 'CrowdStrike Scanning Subscription Scanner Role'
+var customVnetRoleName = '${resourceNamePrefix}role-csscanning-custom-vnet-${subscription().subscriptionId}${resourceNameSuffix}'
+var customVnetRoleDescription = 'CrowdStrike Custom VNet Subnet Access Role'
 
 resource subscriptionAccessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
   name: guid(subscription().id, subscriptionAccessRoleName)
@@ -134,8 +136,8 @@ resource scannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
 resource customVnetSubnetRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (useCustomSubnets) {
   name: guid(subscription().id, 'customVnetSubnetAccess')
   properties: {
-    roleName: 'CrowdStrike Custom VNet Subnet Access'
-    description: 'Allows joining subnets for CrowdStrike scanning private endpoints'
+    roleName: customVnetRoleName
+    description: customVnetRoleDescription
     type: 'CustomRole'
     permissions: [
       {
@@ -167,9 +169,6 @@ module scanningResourceGroupModule 'scanningResourceGroup.bicep' = if (shouldDep
     falconClientSecret: falconClientSecret
     scanningPrincipalId: scanningPrincipalId
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
-    customClonesSubnet: customClonesSubnet
-    customScannersSubnet: customScannersSubnet
-    customVnetSubnetRoleId: customVnetSubnetRole.id
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
     env: env
@@ -192,16 +191,18 @@ resource scannerRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-
 
 module scanningRegion 'scanningRegion.bicep' = [
   for location in scanningEnvironmentLocations: if (shouldDeployResources) {
-    name: '${resourceNamePrefix}cs-scanning-env${environment}-${location}${resourceNameSuffix}'
+    name: '${resourceNamePrefix}cs-scanning-env${environment}-${location.name}${resourceNameSuffix}'
     scope: scanningResourceGroup
     params: {
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
-      customScannersSubnet: customScannersSubnet
-      customClonesSubnet: customClonesSubnet
+      customScannersSubnet: location.customScannersSubnet
+      customClonesSubnet: location.customClonesSubnet
+      scanningPrincipalId: scanningPrincipalId
+      customVnetSubnetRoleId: useCustomSubnets ? customVnetSubnetRole.id : ''
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix
       env: env
-      location: location
+      location: location.name
       tags: tags
     }
     dependsOn: [
@@ -213,15 +214,16 @@ module scanningRegion 'scanningRegion.bicep' = [
 @batchSize(1)
 module scanningKeyVaultPrivateEndpoint 'scanningKeyVaultPrivateEndpoint.bicep' = [
   for (location, index) in scanningEnvironmentLocations: if (shouldDeployResources) {
-    name: '${resourceNamePrefix}cs-scanning-vault-pe${environment}-${location}${resourceNameSuffix}'
+    name: '${resourceNamePrefix}cs-scanning-vault-pe${environment}-${location.name}${resourceNameSuffix}'
     scope: scanningResourceGroup
     params: {
       scanningKeyVaultName: scanningResourceGroupModule!.outputs.scanningKeyVaultName
       scanningKeyVaultSubnetId: scanningRegion[index]!.outputs.clonesSubnetId
+      useCustomSubnets: !empty(location.customScannersSubnet) && !empty(location.customClonesSubnet)
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix
       env: env
-      location: location
+      location: location.name
       tags: tags
     }
   }
@@ -237,6 +239,7 @@ module scanningParametersModule 'scanningParameters.bicep' = {
     inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
     inputAgentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
     inputAgentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
+    inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
     inputResourceNamePrefix: resourceNamePrefix
     inputResourceNameSuffix: resourceNameSuffix
     inputEnv: env

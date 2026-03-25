@@ -33,14 +33,7 @@ param tags object
 @description('Whether NAT Gateway is enabled. When false, public IP permissions are included for VM connectivity.')
 param agentlessScanningDeployNatGateway bool = true
 
-@description('Optional existing custom subnets (required for cross-VNet role assignment).')
-param customClonesSubnet string = ''
-param customScannersSubnet string = ''
-
-param customVnetSubnetRoleId string = ''
-
 /* Variables */
-var useCustomSubnets = !empty(customClonesSubnet) && !empty(customScannersSubnet) && !empty(customVaultSubnet)
 var environment = length(env) > 0 ? '-${env}' : env
 // NOTE: key vault has name limit constraints, so prefix and suffix are omitted 
 var keyVaultName = 'kv-cs-${uniqueString(resourceGroup().id, 'CrowdStrikeScanningKeyVault', 'v2')}'
@@ -222,17 +215,6 @@ resource clientCredentials 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = {
     })
   }
   tags: tags
-}
-
-// Create role assignment in customer RG
-module customVnetAccessModule 'customVnetRoleAssignment.bicep' = if (useCustomSubnets) {
-  name: 'customVnetAccess-${uniqueString(resourceGroup().id)}'
-  scope: resourceGroup(split(customScannersSubnet, '/')[2], split(customScannersSubnet, '/')[4])
-  params: {
-    scanningPrincipalId: scanningPrincipalId
-    customVnetSubnetRoleId: customVnetSubnetRoleId
-    subnetResourceId: customScannersSubnet
-  }
 }
 
 output scanningKeyVaultName string = scanningKeyVault.name

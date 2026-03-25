@@ -33,9 +33,15 @@ param customScannersSubnet string = ''
 @description('Optional existing custom clones subnet ID to use instead of creating a new one.')
 param customClonesSubnet string = ''
 
+@description('Principal ID of the CrowdStrike application registered in Entra ID.')
+param scanningPrincipalId string
+
+@description('Custom VNet subnet role definition ID for role assignments.')
+param customVnetSubnetRoleId string = ''
+
 
 /* Variables */
-var useCustomSubnets = !empty(customClonesSubnet) && !empty(customScannersSubnet) && !empty(customVaultSubnet)
+var useCustomSubnets = !empty(customClonesSubnet) && !empty(customScannersSubnet)
 var vnetAddressPrefix = '10.1.0.0/22'
 var clonesSubnetPrefix = '10.1.1.0/24'
 var scannersSubnetPrefix = '10.1.2.0/24'
@@ -47,27 +53,24 @@ var scanningNsgName = '${resourceNamePrefix}nsg-csscanning${environment}-${locat
 var scanningVnetName = '${resourceNamePrefix}vnet-csscanning${environment}-${location}${resourceNameSuffix}'
 var clonesSubnetName = '${resourceNamePrefix}snet-csscanning-clones${environment}-${location}${resourceNameSuffix}'
 var scannersSubnetName = '${resourceNamePrefix}snet-csscanning-scanners${environment}-${location}${resourceNameSuffix}'
-var vaultVirtualLinkName = useCustomSubnets
-  ? '${keyVaultPrivateZone}/${resourceNamePrefix}vnl-csscanning-vault-custom${environment}-${location}${resourceNameSuffix}'
-  : '${keyVaultPrivateZone}/${resourceNamePrefix}vnl-csscanning-vault${environment}-${location}${resourceNameSuffix}'
 
-// Reference existing custom VNet and subnets if provided (all 3 custom subnets must be provided)
+// Reference existing custom VNet and subnets if provided (custom subnets must be in the same Vnet)
 resource existingCustomVnet 'Microsoft.Network/virtualNetworks@2024-07-01' existing = if (useCustomSubnets) {
-  name: split(customClonesSubnet, '/')[8]
-  scope: resourceGroup(split(customClonesSubnet, '/')[2], split(customClonesSubnet, '/')[4])
-}
-
-resource existingClonesSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-07-01' existing = if (useCustomSubnets) {
-  name: split(customClonesSubnet, '/')[10]
-  parent: existingCustomVnet
+  name: split(customScannersSubnet, '/')[8]
+  scope: resourceGroup(split(customScannersSubnet, '/')[2], split(customScannersSubnet, '/')[4])
 }
 
 resource existingScannersSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-07-01' existing = if (useCustomSubnets) {
-  name: split(customScannersSubnet, '/')[10]
+  name: last(split(customScannersSubnet, '/'))
   parent: existingCustomVnet
 }
 
-resource scannersPublicIp 'Microsoft.Network/publicIPAddresses@2024-07-01' = if (agentlessScanningDeployNatGateway) {
+resource existingClonesSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-07-01' existing = if (useCustomSubnets) {
+  name: last(split(customClonesSubnet, '/'))
+  parent: existingCustomVnet
+}
+
+resource scannersPublicIp 'Microsoft.Network/publicIPAddresses@2024-07-01' = if (agentlessScanningDeployNatGateway && !useCustomSubnets) {
   location: location
   name: scannersPublicIpName
   properties: {
@@ -145,4 +148,25 @@ resource scannersSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-07-01' =
   ]
 }
 
-output clonesSubnetId string = clonesSubnet.id
+// Role assignments for custom VNet subnets
+module customVnetAccessScanners 'customVnetRoleAssignment.bicep' = if (useCustomSubnets) {
+  name: '${resourceNamePrefix}cs-scanning-custom-vnet-${uniqueString(customScannersSubnet)}${resourceNameSuffix}'
+  scope: resourceGroup(split(customScannersSubnet, '/')[2], split(customScannersSubnet, '/')[4])
+  params: {
+    scanningPrincipalId: scanningPrincipalId
+    customVnetSubnetRoleId: customVnetSubnetRoleId
+    subnetResourceId: customScannersSubnet
+  }
+}
+
+module customVnetAccessClones 'customVnetRoleAssignment.bicep' = if (useCustomSubnets) {
+  name: '${resourceNamePrefix}cs-scanning-custom-vnet-${uniqueString(customClonesSubnet)}${resourceNameSuffix}'
+  scope: resourceGroup(split(customClonesSubnet, '/')[2], split(customClonesSubnet, '/')[4])
+  params: {
+    scanningPrincipalId: scanningPrincipalId
+    customVnetSubnetRoleId: customVnetSubnetRoleId
+    subnetResourceId: customClonesSubnet
+  }
+}
+
+output clonesSubnetId string = useCustomSubnets ? existingClonesSubnet.id : clonesSubnet.id

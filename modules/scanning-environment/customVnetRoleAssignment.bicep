@@ -1,13 +1,14 @@
 targetScope = 'resourceGroup'
 
 /*
-  This Bicep module creates both role definition AND role assignment for CrowdStrike scanning subnet access
+  This Bicep module creates a role assignment for CrowdStrike scanning subnet access
   Copyright (c) 2025 CrowdStrike, Inc.
 */
 
 @description('Principal ID of the CrowdStrike service principal.')
 param scanningPrincipalId string
 
+@description('Custom VNet subnet role definition ID for scoping the role assignment.')
 param customVnetSubnetRoleId string
 
 @description('The subnet resource ID to scope the role assignment to.')
@@ -20,7 +21,7 @@ resource existingVnet 'Microsoft.Network/virtualNetworks@2024-07-01' existing = 
 
 // Reference the existing subnet
 resource existingSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-07-01' existing = {
-  name: split(subnetResourceId, '/')[10]
+  name: last(split(subnetResourceId, '/'))
   parent: existingVnet
 }
 

@@ -55,7 +55,6 @@ param inputAgentlessScanningLocationsPerSubscription object = {}
 @description('Per-region custom VNet configuration for agentless scanning.')
 param inputAgentlessScanningCustomVnetConfiguration object = {}
 
-
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
 var isCrossSubscriptionDeployment = !empty(agentlessScanningHostSubscriptionId)

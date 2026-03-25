@@ -125,11 +125,21 @@ var validatedDspmLocations = enableDspm && (empty(dspmLocationsPerSubscription) 
   ? fail('either "dspmLocationsPerSubscription" or "dspmLocations" must be non-empty if DSPM is enabled')
   : dspmLocations
 // In cross-subscription mode with per-subscription locations, non-host subscriptions must only use regions available on the host
-var hostSubscriptionLocations = !empty(agentlessScanningHostSubscriptionId) && !empty(validatedDspmLocationsPerSubscription) && contains(validatedDspmLocationsPerSubscription, agentlessScanningHostSubscriptionId)
+var hostSubscriptionLocations = !empty(agentlessScanningHostSubscriptionId) && !empty(validatedDspmLocationsPerSubscription) && contains(
+    validatedDspmLocationsPerSubscription,
+    agentlessScanningHostSubscriptionId
+  )
   ? validatedDspmLocationsPerSubscription[agentlessScanningHostSubscriptionId]
   : []
 var subscriptionsWithInvalidLocations = !empty(agentlessScanningHostSubscriptionId) && !empty(validatedDspmLocationsPerSubscription)
-  ? filter(items(validatedDspmLocationsPerSubscription), entity => entity.key != agentlessScanningHostSubscriptionId && !empty(filter(entity.value, location => !contains(hostSubscriptionLocations, location))))
+  ? filter(
+      items(validatedDspmLocationsPerSubscription),
+      entity =>
+        entity.key != agentlessScanningHostSubscriptionId && !empty(filter(
+          entity.value,
+          location => !contains(hostSubscriptionLocations, location)
+        ))
+    )
   : []
 var validatedDspmLocationsPerSubscriptionMap = !empty(subscriptionsWithInvalidLocations)
   ? fail('In cross-subscription mode, non-host subscriptions must only use regions available on the host subscription. Invalid subscriptions: ${string(map(subscriptionsWithInvalidLocations, entity => entity.key))}')
@@ -139,17 +149,27 @@ var allEffectiveDspmLocations = !empty(validatedDspmLocationsPerSubscriptionMap)
   : validatedDspmLocations
 // If custom VNet config is provided, all DSPM locations must be present in it
 var missingCustomVnetLocations = !empty(agentlessScanningCustomVnetConfiguration)
-  ? filter(allEffectiveDspmLocations, location => !contains(objectKeys(agentlessScanningCustomVnetConfiguration), location))
+  ? filter(
+      allEffectiveDspmLocations,
+      location => !contains(objectKeys(agentlessScanningCustomVnetConfiguration), location)
+    )
   : []
 // Each entry must have both scanners_subnet_id and clones_subnet_id
 var incompleteCustomVnetEntries = !empty(agentlessScanningCustomVnetConfiguration)
-  ? filter(objectKeys(agentlessScanningCustomVnetConfiguration), location => !(contains(agentlessScanningCustomVnetConfiguration[location], 'scanners_subnet_id') && contains(agentlessScanningCustomVnetConfiguration[location], 'clones_subnet_id') && !empty(string(agentlessScanningCustomVnetConfiguration[location].scanners_subnet_id)) && !empty(string(agentlessScanningCustomVnetConfiguration[location].clones_subnet_id))))
+  ? filter(
+      objectKeys(agentlessScanningCustomVnetConfiguration),
+      location =>
+        !(contains(agentlessScanningCustomVnetConfiguration[location], 'scanners_subnet_id') && contains(
+          agentlessScanningCustomVnetConfiguration[location],
+          'clones_subnet_id'
+        ) && !empty(string(agentlessScanningCustomVnetConfiguration[location].scanners_subnet_id)) && !empty(string(agentlessScanningCustomVnetConfiguration[location].clones_subnet_id)))
+    )
   : []
 var validatedCustomVnetConfiguration = !empty(missingCustomVnetLocations)
   ? fail('agentlessScanningCustomVnetConfiguration must include all DSPM locations. Missing: ${string(missingCustomVnetLocations)}')
   : !empty(incompleteCustomVnetEntries)
-    ? fail('Each entry in agentlessScanningCustomVnetConfiguration must have both scanners_subnet_id and clones_subnet_id. Invalid entries: ${string(incompleteCustomVnetEntries)}')
-    : agentlessScanningCustomVnetConfiguration
+      ? fail('Each entry in agentlessScanningCustomVnetConfiguration must have both scanners_subnet_id and clones_subnet_id. Invalid entries: ${string(incompleteCustomVnetEntries)}')
+      : agentlessScanningCustomVnetConfiguration
 var shouldDeployScanningEnvironment = enableDspm
 var validatedFalconClientID = (shouldDeployLogIngestion || shouldDeployScanningEnvironment) && empty(falconClientId)
   ? fail('"falconClientId" is required when real-time visibility and detection is enabled, please specify it in parameters.bicepparam')

@@ -40,6 +40,9 @@ param tags object
 @description('Indicates whether this is the initial registration')
 param isInitialRegistration bool
 
+@description('Azure cloud type for this registration. Use "commercial" for standard Azure or "gov" for Azure Government.')
+param accountType string = ''
+
 var environment = length(env) > 0 ? '-${env}' : env
 
 module deploymentScope 'update-registration/updateRegistration.bicep' = {
@@ -49,6 +52,7 @@ module deploymentScope 'update-registration/updateRegistration.bicep' = {
     falconClientId: falconClientId
     falconClientSecret: falconClientSecret
     isInitialRegistration: isInitialRegistration
+    accountType: accountType
     eventHubs: concat(
       activityLogEventHubId != ''
         ? [

@@ -109,7 +109,7 @@ var conditionalPublicIPPermissions = [
   'Microsoft.Network/publicIPAddresses/join/action'
 ]
 
-// Conditional permissions for vulnerability scanning (CrowdStrike app principal, RG scope)
+// Conditional permissions for vulnerability scanning
 var vulnScanningRgAccessActions = [
   'Microsoft.Compute/snapshots/write' // Create snapshot in our RG
   'Microsoft.Compute/snapshots/read' // Read snapshot in our RG
@@ -118,7 +118,7 @@ var vulnScanningRgAccessActions = [
   'Microsoft.Compute/snapshots/delete' // Cleanup snapshot
 ]
 
-// Scanner RG role variables (managed identity, RG scope) - only when vulnerability scanning enabled
+// Scanner Resource Group role variables
 var scannerRgRoleName = '${resourceNamePrefix}role-csscanning-scannerrg-${subscription().subscriptionId}${resourceNameSuffix}'
 var scannerRgRoleDescription = 'CrowdStrike Agentless Scanning Scanner Resource Group Role'
 var scannerVulnerabilityScanningRgRoleActions = [

@@ -79,7 +79,7 @@ var vulnScanningAccessActions = [
   'Microsoft.Compute/disks/beginGetAccess/action' // Access source disk for snapshot
   'Microsoft.Compute/disks/read' // Read source disk metadata
   'Microsoft.Compute/virtualMachines/read' // Read VM metadata
-  'Microsoft.Compute/virtualMachineScaleSets/read' // Read VMSS metadata (Uniform VMSS)
+  'Microsoft.Compute/virtualMachineScaleSets/read' // Read VMSS metadata
   'Microsoft.Compute/virtualMachineScaleSets/virtualMachines/read' // Read VMSS instance metadata
 ]
 

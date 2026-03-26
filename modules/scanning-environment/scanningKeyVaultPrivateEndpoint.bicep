@@ -30,14 +30,10 @@ param env string
 @description('Tags to be applied to all deployed resources. Used for resource organization and governance.')
 param tags object
 
-@description('Whether custom VNet subnets are used for this location.')
-param useCustomSubnets bool = false
-
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
-var customSubnetsSuffix = useCustomSubnets ? '-${uniqueString(scanningKeyVaultSubnetId)}' : ''
-var vaultPrivateEndpointName = '${resourceNamePrefix}pep-csscanning-keyvault${customSubnetsSuffix}${environment}-${location}${resourceNameSuffix}'
-var vaultPrivateLinkServiceConnectionName = '${resourceNamePrefix}plsc-csscanning-keyvault${customSubnetsSuffix}${environment}-${location}${resourceNameSuffix}'
+var vaultPrivateEndpointName = '${resourceNamePrefix}pep-csscanning-keyvault-${uniqueString(scanningKeyVaultSubnetId)}${environment}-${location}${resourceNameSuffix}'
+var vaultPrivateLinkServiceConnectionName = '${resourceNamePrefix}plsc-csscanning-keyvault${environment}-${location}${resourceNameSuffix}'
 
 resource vaultPrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-07-01' = {
   location: location

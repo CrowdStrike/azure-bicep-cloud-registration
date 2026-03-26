@@ -39,7 +39,6 @@ param scanningPrincipalId string
 @description('Custom VNet subnet role definition ID for role assignments.')
 param customVnetSubnetRoleId string = ''
 
-
 /* Variables */
 var useCustomSubnets = !empty(customClonesSubnet) && !empty(customScannersSubnet)
 var vnetAddressPrefix = '10.1.0.0/22'

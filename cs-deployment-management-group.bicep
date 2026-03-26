@@ -118,12 +118,30 @@ var managementGroups = union(
 ) // remove duplicated values
 var environment = length(env) > 0 ? '-${env}' : env
 var shouldDeployLogIngestion = enableRealTimeVisibility
+var shouldDeployScanningEnvironment = enableDspm
+var shouldResolveDeploymentScope = shouldDeployLogIngestion || shouldDeployScanningEnvironment
+
+/* Input Validation */
+var validatedFalconClientID = (shouldDeployLogIngestion || shouldDeployScanningEnvironment) && empty(falconClientId)
+  ? fail('"falconClientId" is required when real-time visibility and detection is enabled, please specify it in parameters.bicepparam')
+  : falconClientId
+var validatedFalconClientSecret = (shouldDeployLogIngestion || shouldDeployScanningEnvironment) && empty(falconClientSecret)
+  ? fail('"falconClientSecret" is required when real-time visibility and detection is enabled, please specify it to environment variable, "FALCON_CLIENT_SECRET"')
+  : falconClientSecret
+var validatedResourceNamePrefix = length(resourceNamePrefix) + length(resourceNameSuffix) > 10
+  ? fail('Combined prefix and suffix length must not exceed 10 characters')
+  : resourceNamePrefix
+var validatedResourceNameSuffix = length(resourceNamePrefix) + length(resourceNameSuffix) > 10
+  ? fail('Combined prefix and suffix length must not exceed 10 characters')
+  : resourceNameSuffix
 var validatedDspmLocationsPerSubscription = enableDspm && (empty(dspmLocationsPerSubscription) && empty(dspmLocations))
   ? fail('either "dspmLocationsPerSubscription" or "dspmLocations" must be non-empty if DSPM is enabled')
   : dspmLocationsPerSubscription
 var validatedDspmLocations = enableDspm && (empty(dspmLocationsPerSubscription) && empty(dspmLocations))
   ? fail('either "dspmLocationsPerSubscription" or "dspmLocations" must be non-empty if DSPM is enabled')
   : dspmLocations
+
+/* Cross-Subscription Validation */
 // In cross-subscription mode with per-subscription locations, target subscriptions must only use regions available on the host subscription
 var hostSubscriptionLocationsFromMap = !empty(agentlessScanningHostSubscriptionId) && !empty(validatedDspmLocationsPerSubscription) && contains(
     validatedDspmLocationsPerSubscription,
@@ -147,6 +165,8 @@ var validatedDspmLocationsPerSubscriptionMap = !empty(subscriptionsWithInvalidLo
 var allEffectiveDspmLocations = !empty(validatedDspmLocationsPerSubscriptionMap)
   ? flatten(map(items(validatedDspmLocationsPerSubscriptionMap), entity => entity.value))
   : validatedDspmLocations
+
+/* Custom VNet (BYO) Validation */
 // If custom VNet config is provided, all DSPM locations must be present in it
 var missingCustomVnetLocations = !empty(agentlessScanningCustomVnetConfiguration)
   ? filter(
@@ -170,7 +190,10 @@ var customVnetSubnetsInWrongSubscription = !empty(agentlessScanningCustomVnetCon
   ? filter(
       objectKeys(agentlessScanningCustomVnetConfiguration),
       location =>
-        split(string(agentlessScanningCustomVnetConfiguration[location].scanners_subnet_id), '/')[2] != agentlessScanningHostSubscriptionId || split(string(agentlessScanningCustomVnetConfiguration[location].clones_subnet_id), '/')[2] != agentlessScanningHostSubscriptionId
+        split(string(agentlessScanningCustomVnetConfiguration[location].scanners_subnet_id), '/')[2] != agentlessScanningHostSubscriptionId || split(
+          string(agentlessScanningCustomVnetConfiguration[location].clones_subnet_id),
+          '/'
+        )[2] != agentlessScanningHostSubscriptionId
     )
   : []
 var validatedCustomVnetConfiguration = !empty(agentlessScanningCustomVnetConfiguration) && empty(agentlessScanningHostSubscriptionId)
@@ -182,20 +205,6 @@ var validatedCustomVnetConfiguration = !empty(agentlessScanningCustomVnetConfigu
           : !empty(customVnetSubnetsInWrongSubscription)
               ? fail('Custom VNet subnets must be in the host subscription (${agentlessScanningHostSubscriptionId}). Invalid locations: ${string(customVnetSubnetsInWrongSubscription)}')
               : agentlessScanningCustomVnetConfiguration
-var shouldDeployScanningEnvironment = enableDspm
-var validatedFalconClientID = (shouldDeployLogIngestion || shouldDeployScanningEnvironment) && empty(falconClientId)
-  ? fail('"falconClientId" is required when real-time visibility and detection is enabled, please specify it in parameters.bicepparam')
-  : falconClientId
-var validatedFalconClientSecret = (shouldDeployLogIngestion || shouldDeployScanningEnvironment) && empty(falconClientSecret)
-  ? fail('"falconClientSecret" is required when real-time visibility and detection is enabled, please specify it to environment variable, "FALCON_CLIENT_SECRET"')
-  : falconClientSecret
-var validatedResourceNamePrefix = length(resourceNamePrefix) + length(resourceNameSuffix) > 10
-  ? fail('Combined prefix and suffix length must not exceed 10 characters')
-  : resourceNamePrefix
-var validatedResourceNameSuffix = length(resourceNamePrefix) + length(resourceNameSuffix) > 10
-  ? fail('Combined prefix and suffix length must not exceed 10 characters')
-  : resourceNameSuffix
-var shouldResolveDeploymentScope = shouldDeployLogIngestion || shouldDeployScanningEnvironment
 
 /* Resources used across modules
 1. Role assignments to the CrowdStrike's app service principal
@@ -302,6 +311,7 @@ module logIngestion 'modules/cs-log-ingestion-mg.bicep' = if (shouldDeployLogIng
   ]
 }
 
+/* Scanning Environment Map */
 var scanningEnvironmentLocationsPerSubscriptionMap = !empty(validatedDspmLocationsPerSubscriptionMap)
   ? map(items(validatedDspmLocationsPerSubscriptionMap), entity => {
       subscriptionId: entity.key

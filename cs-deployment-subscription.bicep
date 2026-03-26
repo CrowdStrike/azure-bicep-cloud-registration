@@ -111,6 +111,8 @@ var subscriptions = union(subscriptionIds, csInfraSubscriptionId == '' ? [] : [c
 var environment = length(env) > 0 ? '-${env}' : env
 var shouldDeployLogIngestion = enableRealTimeVisibility
 var shouldDeployScanningEnvironment = enableDspm
+
+/* Input Validation */
 var validatedFalconClientID = (shouldDeployLogIngestion || shouldDeployScanningEnvironment) && empty(falconClientId)
   ? fail('"falconClientId" is required when real-time visibility and detection or DSPM are enabled, please specify it in parameters.bicepparam')
   : falconClientId
@@ -129,6 +131,8 @@ var validatedDspmLocationsPerSubscription = enableDspm && (empty(dspmLocationsPe
 var validatedDspmLocations = enableDspm && (empty(dspmLocationsPerSubscription) && empty(dspmLocations))
   ? fail('either "dspmLocationsPerSubscription" or "dspmLocations" must be non-empty if DSPM is enabled')
   : dspmLocations
+
+/* Cross-Subscription Validation */
 // In cross-subscription mode with per-subscription locations, target subscriptions must only use regions available on the host subscription
 var hostSubscriptionLocationsFromMap = !empty(agentlessScanningHostSubscriptionId) && !empty(validatedDspmLocationsPerSubscription) && contains(
     validatedDspmLocationsPerSubscription,
@@ -152,6 +156,8 @@ var validatedDspmLocationsPerSubscriptionMap = !empty(subscriptionsWithInvalidLo
 var allEffectiveDspmLocations = !empty(validatedDspmLocationsPerSubscriptionMap)
   ? flatten(map(items(validatedDspmLocationsPerSubscriptionMap), entity => entity.value))
   : validatedDspmLocations
+
+/* Custom Virtual Network Validation */
 // If custom VNet config is provided, all DSPM locations must be present in it
 var missingCustomVnetLocations = !empty(agentlessScanningCustomVnetConfiguration)
   ? filter(
@@ -175,7 +181,10 @@ var customVnetSubnetsInWrongSubscription = !empty(agentlessScanningCustomVnetCon
   ? filter(
       objectKeys(agentlessScanningCustomVnetConfiguration),
       location =>
-        split(string(agentlessScanningCustomVnetConfiguration[location].scanners_subnet_id), '/')[2] != agentlessScanningHostSubscriptionId || split(string(agentlessScanningCustomVnetConfiguration[location].clones_subnet_id), '/')[2] != agentlessScanningHostSubscriptionId
+        split(string(agentlessScanningCustomVnetConfiguration[location].scanners_subnet_id), '/')[2] != agentlessScanningHostSubscriptionId || split(
+          string(agentlessScanningCustomVnetConfiguration[location].clones_subnet_id),
+          '/'
+        )[2] != agentlessScanningHostSubscriptionId
     )
   : []
 var validatedCustomVnetConfiguration = !empty(agentlessScanningCustomVnetConfiguration) && empty(agentlessScanningHostSubscriptionId)
@@ -187,6 +196,8 @@ var validatedCustomVnetConfiguration = !empty(agentlessScanningCustomVnetConfigu
           : !empty(customVnetSubnetsInWrongSubscription)
               ? fail('Custom VNet subnets must be in the host subscription (${agentlessScanningHostSubscriptionId}). Invalid locations: ${string(customVnetSubnetsInWrongSubscription)}')
               : agentlessScanningCustomVnetConfiguration
+
+/* Scanning Environment Map */
 var scanningEnvironmentLocationsPerSubscriptionMap = !empty(validatedDspmLocationsPerSubscriptionMap)
   ? map(items(validatedDspmLocationsPerSubscriptionMap), entity => {
       subscriptionId: entity.key

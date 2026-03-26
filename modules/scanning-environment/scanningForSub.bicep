@@ -219,7 +219,7 @@ module scanningKeyVaultPrivateEndpoint 'scanningKeyVaultPrivateEndpoint.bicep' =
     params: {
       scanningKeyVaultName: scanningResourceGroupModule!.outputs.scanningKeyVaultName
       scanningKeyVaultSubnetId: scanningRegion[index]!.outputs.clonesSubnetId
-      useCustomSubnets: !empty(location.customScannersSubnet) && !empty(location.customClonesSubnet)
+      useCustomSubnets: useCustomSubnets
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix
       env: env

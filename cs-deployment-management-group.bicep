@@ -165,13 +165,23 @@ var incompleteCustomVnetEntries = !empty(agentlessScanningCustomVnetConfiguratio
         ) && !empty(string(agentlessScanningCustomVnetConfiguration[location].scanners_subnet_id)) && !empty(string(agentlessScanningCustomVnetConfiguration[location].clones_subnet_id)))
     )
   : []
+// Custom VNet subnets must be in the same subscription as the host subscription
+var customVnetSubnetsInWrongSubscription = !empty(agentlessScanningCustomVnetConfiguration) && !empty(agentlessScanningHostSubscriptionId) && empty(incompleteCustomVnetEntries)
+  ? filter(
+      objectKeys(agentlessScanningCustomVnetConfiguration),
+      location =>
+        split(string(agentlessScanningCustomVnetConfiguration[location].scanners_subnet_id), '/')[2] != agentlessScanningHostSubscriptionId || split(string(agentlessScanningCustomVnetConfiguration[location].clones_subnet_id), '/')[2] != agentlessScanningHostSubscriptionId
+    )
+  : []
 var validatedCustomVnetConfiguration = !empty(agentlessScanningCustomVnetConfiguration) && empty(agentlessScanningHostSubscriptionId)
   ? fail('agentlessScanningCustomVnetConfiguration requires agentlessScanningHostSubscriptionId to be set')
   : !empty(missingCustomVnetLocations)
       ? fail('agentlessScanningCustomVnetConfiguration must include all DSPM locations. Missing: ${string(missingCustomVnetLocations)}')
       : !empty(incompleteCustomVnetEntries)
           ? fail('Each entry in agentlessScanningCustomVnetConfiguration must have both scanners_subnet_id and clones_subnet_id. Invalid entries: ${string(incompleteCustomVnetEntries)}')
-          : agentlessScanningCustomVnetConfiguration
+          : !empty(customVnetSubnetsInWrongSubscription)
+              ? fail('Custom VNet subnets must be in the host subscription (${agentlessScanningHostSubscriptionId}). Invalid locations: ${string(customVnetSubnetsInWrongSubscription)}')
+              : agentlessScanningCustomVnetConfiguration
 var shouldDeployScanningEnvironment = enableDspm
 var validatedFalconClientID = (shouldDeployLogIngestion || shouldDeployScanningEnvironment) && empty(falconClientId)
   ? fail('"falconClientId" is required when real-time visibility and detection is enabled, please specify it in parameters.bicepparam')

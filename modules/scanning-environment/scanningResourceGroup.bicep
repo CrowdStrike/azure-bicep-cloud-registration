@@ -33,6 +33,9 @@ param tags object
 @description('Whether NAT Gateway is enabled. When false, public IP permissions are included for VM connectivity.')
 param agentlessScanningDeployNatGateway bool = true
 
+@description('Controls whether to enable vulnerability scanning.')
+param inputEnableVulnerabilityScanning bool = false
+
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
 // NOTE: key vault has name limit constraints, so prefix and suffix are omitted 
@@ -43,7 +46,7 @@ var resourceGroupAccessCustomRole = {
   roleName: '${resourceNamePrefix}role-csscanning-rgaccess-${subscription().subscriptionId}${resourceNameSuffix}'
   roleDescription: 'CrowdStrike Agentless Scanning Resource Group Access Role'
   roleActions: [
-    // ============ Blob Storage ============
+    // ============ Common ============
     // Private Endpoint
     'Microsoft.Network/privateEndpoints/read'
     'Microsoft.Network/privateEndpoints/write'
@@ -106,6 +109,26 @@ var conditionalPublicIPPermissions = [
   'Microsoft.Network/publicIPAddresses/join/action'
 ]
 
+// Conditional permissions for vulnerability scanning (CrowdStrike app principal, RG scope)
+var vulnScanningRgAccessActions = [
+  'Microsoft.Compute/snapshots/write' // Create snapshot in our RG
+  'Microsoft.Compute/snapshots/read' // Read snapshot in our RG
+  'Microsoft.Compute/disks/write' // Create disk from snapshot
+  'Microsoft.Compute/disks/delete' // Cleanup disk
+  'Microsoft.Compute/snapshots/delete' // Cleanup snapshot
+]
+
+// Scanner RG role variables (managed identity, RG scope) - only when vulnerability scanning enabled
+var scannerRgRoleName = '${resourceNamePrefix}role-csscanning-scannerrg-${subscription().subscriptionId}${resourceNameSuffix}'
+var scannerRgRoleDescription = 'CrowdStrike Agentless Scanning Scanner Resource Group Role'
+var scannerVulnerabilityScanningRgRoleActions = [
+  'Microsoft.Compute/virtualMachines/write'
+  'Microsoft.Compute/virtualMachines/read'
+  'Microsoft.Network/networkInterfaces/join/action'
+  'Microsoft.Compute/disks/write'
+  'Microsoft.ManagedIdentity/userAssignedIdentities/assign/action'
+]
+
 resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
   name: guid(resourceGroup().id, resourceGroupAccessCustomRole.roleName)
   properties: {
@@ -114,9 +137,12 @@ resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-0
     type: 'CustomRole'
     permissions: [
       {
-        actions: !agentlessScanningDeployNatGateway
-          ? union(resourceGroupAccessCustomRole.roleActions, conditionalPublicIPPermissions)
-          : resourceGroupAccessCustomRole.roleActions
+        actions: union(
+          !agentlessScanningDeployNatGateway
+            ? union(resourceGroupAccessCustomRole.roleActions, conditionalPublicIPPermissions)
+            : resourceGroupAccessCustomRole.roleActions,
+          inputEnableVulnerabilityScanning ? vulnScanningRgAccessActions : []
+        )
         notActions: []
         dataActions: []
         notDataActions: []
@@ -215,6 +241,35 @@ resource clientCredentials 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = {
     })
   }
   tags: tags
+}
+
+resource scannerRgRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (inputEnableVulnerabilityScanning) {
+  name: guid(resourceGroup().id, scannerRgRoleName)
+  properties: {
+    roleName: scannerRgRoleName
+    description: scannerRgRoleDescription
+    type: 'CustomRole'
+    permissions: [
+      {
+        actions: scannerVulnerabilityScanningRgRoleActions
+        notActions: []
+        dataActions: []
+        notDataActions: []
+      }
+    ]
+    assignableScopes: [
+      resourceGroup().id
+    ]
+  }
+}
+
+resource scannerRgRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (inputEnableVulnerabilityScanning) {
+  name: guid(subscription().id, resourceGroup().id, scannerRgRoleName, scannerManagedIdentity.id)
+  properties: {
+    roleDefinitionId: scannerRgRole.id
+    principalId: scannerManagedIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
 }
 
 output scanningKeyVaultName string = scanningKeyVault.name

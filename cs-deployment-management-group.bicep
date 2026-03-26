@@ -95,11 +95,20 @@ param logIngestionSettings LogIngestionSettings = {
 @description('Controls whether to enable DSPM.')
 param enableDspm bool = false
 
-@description('Azure locations (regions) where DSPM will be deployed.')
+@description('Controls whether to enable vulnerability scanning.')
+param enableVulnerabilityScanning bool = false
+
+@description('Deprecated: Use agentlessScanningLocations instead. Azure locations (regions) where DSPM will be deployed.')
 param dspmLocations array = []
 
-@description('Azure locations (regions) where DSPM will be deployed as subscription ID to locations map. When this parameter is used dspmLocations parameter will be ignored.')
+@description('Deprecated: Use agentlessScanningLocationsPerSubscription instead. Azure locations (regions) where DSPM will be deployed as subscription ID to locations map. When this parameter is used dspmLocations parameter will be ignored.')
 param dspmLocationsPerSubscription object = {}
+
+@description('Azure locations (regions) where agentless scanning will be deployed. Replaces dspmLocations.')
+param agentlessScanningLocations array = []
+
+@description('Azure locations (regions) where agentless scanning will be deployed as subscription ID to locations map. Replaces dspmLocationsPerSubscription.')
+param agentlessScanningLocationsPerSubscription object = {}
 
 @description('Controls whether to deploy NAT Gateway for scanning environment.')
 param agentlessScanningDeployNatGateway bool = true
@@ -115,13 +124,18 @@ var managementGroups = union(
 ) // remove duplicated values
 var environment = length(env) > 0 ? '-${env}' : env
 var shouldDeployLogIngestion = enableRealTimeVisibility
-var validatedDspmLocationsPerSubscription = enableDspm && (empty(dspmLocationsPerSubscription) && empty(dspmLocations))
-  ? fail('either "dspmLocationsPerSubscription" or "dspmLocations" must be non-empty if DSPM is enabled')
+// Resolve locations with fallback: new params take precedence, fall back to deprecated dspm params
+var resolvedAgentlessScanningLocationsPerSubscription = !empty(agentlessScanningLocationsPerSubscription)
+  ? agentlessScanningLocationsPerSubscription
   : dspmLocationsPerSubscription
-var validatedDspmLocations = enableDspm && (empty(dspmLocationsPerSubscription) && empty(dspmLocations))
-  ? fail('either "dspmLocationsPerSubscription" or "dspmLocations" must be non-empty if DSPM is enabled')
-  : dspmLocations
-var shouldDeployScanningEnvironment = enableDspm
+var resolvedAgentlessScanningLocations = !empty(agentlessScanningLocations) ? agentlessScanningLocations : dspmLocations
+var validatedAgentlessScanningLocationsPerSubscription = shouldDeployScanningEnvironment && (empty(resolvedAgentlessScanningLocationsPerSubscription) && empty(resolvedAgentlessScanningLocations))
+  ? fail('either "agentlessScanningLocationsPerSubscription" or "agentlessScanningLocations" must be non-empty if DSPM or vulnerability scanning is enabled')
+  : resolvedAgentlessScanningLocationsPerSubscription
+var validatedAgentlessScanningLocations = shouldDeployScanningEnvironment && (empty(resolvedAgentlessScanningLocationsPerSubscription) && empty(resolvedAgentlessScanningLocations))
+  ? fail('either "agentlessScanningLocationsPerSubscription" or "agentlessScanningLocations" must be non-empty if DSPM or vulnerability scanning is enabled')
+  : resolvedAgentlessScanningLocations
+var shouldDeployScanningEnvironment = enableDspm || enableVulnerabilityScanning
 var validatedFalconClientID = (shouldDeployLogIngestion || shouldDeployScanningEnvironment) && empty(falconClientId)
   ? fail('"falconClientId" is required when real-time visibility and detection is enabled, please specify it in parameters.bicepparam')
   : falconClientId
@@ -198,8 +212,8 @@ module deploymentScope 'modules/cs-deployment-scope-mg.bicep' = if (shouldResolv
   }
 }
 
-var subscriptionIdsWithResourceGroup = !empty(validatedDspmLocationsPerSubscription)
-  ? objectKeys(validatedDspmLocationsPerSubscription)
+var subscriptionIdsWithResourceGroup = !empty(validatedAgentlessScanningLocationsPerSubscription)
+  ? objectKeys(validatedAgentlessScanningLocationsPerSubscription)
   : deploymentScope!!.outputs.allSubscriptions
 module perSubscriptionResourceGroups 'modules/cs-resource-groups-mg.bicep' = if (shouldDeployScanningEnvironment) {
   name: '${validatedResourceNamePrefix}cs-per-subscription-rg${environment}${validatedResourceNameSuffix}'
@@ -241,14 +255,14 @@ module logIngestion 'modules/cs-log-ingestion-mg.bicep' = if (shouldDeployLogIng
   ]
 }
 
-var scanningEnvironmentLocationsPerSubscriptionMap = !empty(validatedDspmLocationsPerSubscription)
-  ? map(items(validatedDspmLocationsPerSubscription), entity => {
+var scanningEnvironmentLocationsPerSubscriptionMap = !empty(validatedAgentlessScanningLocationsPerSubscription)
+  ? map(items(validatedAgentlessScanningLocationsPerSubscription), entity => {
       subscriptionId: entity.key
       locations: entity.value
     })
   : map(deploymentScope!!.outputs.allSubscriptions, subscriptionId => {
       subscriptionId: subscriptionId
-      locations: validatedDspmLocations
+      locations: validatedAgentlessScanningLocations
     })
 module scanningEnvironment 'modules/cs-scanning-mg.bicep' = if (shouldDeployScanningEnvironment) {
   name: '${validatedResourceNamePrefix}cs-scanning-mg${environment}${validatedResourceNameSuffix}'
@@ -260,8 +274,9 @@ module scanningEnvironment 'modules/cs-scanning-mg.bicep' = if (shouldDeployScan
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
     agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
     inputEnableDspm: enableDspm
-    inputAgentlessScanningLocations: validatedDspmLocations
-    inputAgentlessScanningLocationsPerSubscription: validatedDspmLocationsPerSubscription
+    inputEnableVulnerabilityScanning: enableVulnerabilityScanning
+    inputAgentlessScanningLocations: validatedAgentlessScanningLocations
+    inputAgentlessScanningLocationsPerSubscription: validatedAgentlessScanningLocationsPerSubscription
     resourceGroupName: resourceGroupName
     resourceNamePrefix: validatedResourceNamePrefix
     resourceNameSuffix: validatedResourceNameSuffix

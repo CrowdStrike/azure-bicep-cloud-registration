@@ -49,6 +49,9 @@ param agentlessScanningHostSubscriptionId string = ''
 @description('Controls whether to enable DSPM.')
 param inputEnableDspm bool = false
 
+@description('Controls whether to enable vulnerability scanning.')
+param inputEnableVulnerabilityScanning bool = false
+
 @description('Azure locations (regions) where DSPM will be deployed.')
 param inputAgentlessScanningLocations array = []
 
@@ -62,6 +65,30 @@ var subscriptionAccessRoleName = '${resourceNamePrefix}role-csscanning-access-${
 var subscriptionAccessRoleDescription = 'CrowdStrike Scanning Subscription Access Role'
 var scannerRoleName = '${resourceNamePrefix}role-csscanning-scanner-${subscription().subscriptionId}${resourceNameSuffix}'
 var scannerRoleDescription = 'CrowdStrike Scanning Subscription Scanner Role'
+var baseAccessActions = [
+  // ============ Validation ============
+  'Microsoft.Authorization/roleAssignments/read'
+  'Microsoft.Authorization/policyDefinitions/read'
+]
+var dspmAccessActions = [
+  // ============ Blob Storage ============
+  'Microsoft.Storage/storageAccounts/read' // Check location and public access
+  'Microsoft.Storage/storageAccounts/PrivateEndpointConnectionsApproval/action' // Approve private link connections
+]
+var vulnScanningAccessActions = [
+  'Microsoft.Compute/disks/beginGetAccess/action' // Access source disk for snapshot
+  'Microsoft.Compute/disks/read' // Read source disk metadata
+  'Microsoft.Compute/virtualMachines/read' // Read VM metadata
+  'Microsoft.Compute/virtualMachineScaleSets/read' // Read VMSS metadata (Uniform VMSS)
+  'Microsoft.Compute/virtualMachineScaleSets/virtualMachines/read' // Read VMSS instance metadata
+]
+
+var dspmScannerActionsSubscriptionScope = [
+  'Microsoft.Storage/storageAccounts/blobServices/containers/read'
+]
+var dspmScannerDataActionsSubscriptionScope = [
+  'Microsoft.Storage/storageAccounts/blobServices/containers/blobs/read'
+]
 
 resource subscriptionAccessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
   name: guid(subscription().id, subscriptionAccessRoleName)
@@ -71,15 +98,11 @@ resource subscriptionAccessRole 'Microsoft.Authorization/roleDefinitions@2022-04
     type: 'CustomRole'
     permissions: [
       {
-        actions: [
-          // ============ Blob Storage ============
-          'Microsoft.Storage/storageAccounts/read' // Check location and public access
-          'Microsoft.Storage/storageAccounts/PrivateEndpointConnectionsApproval/action' // Approve private link connections
-
-          // ============ Validation ============
-          'Microsoft.Authorization/roleAssignments/read'
-          'Microsoft.Authorization/policyDefinitions/read'
-        ]
+        actions: union(
+          baseAccessActions,
+          inputEnableDspm ? dspmAccessActions : [],
+          inputEnableVulnerabilityScanning ? vulnScanningAccessActions : []
+        )
         notActions: []
         dataActions: []
         notDataActions: []
@@ -108,13 +131,9 @@ resource scannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
     type: 'CustomRole'
     permissions: [
       {
-        actions: [
-          'Microsoft.Storage/storageAccounts/blobServices/containers/read'
-        ]
+        actions: inputEnableDspm ? dspmScannerActionsSubscriptionScope : []
         notActions: []
-        dataActions: [
-          'Microsoft.Storage/storageAccounts/blobServices/containers/blobs/read'
-        ]
+        dataActions: inputEnableDspm ? dspmScannerDataActionsSubscriptionScope : []
         notDataActions: []
       }
     ]
@@ -136,6 +155,7 @@ module scanningResourceGroupModule 'scanningResourceGroup.bicep' = if (shouldDep
     falconClientSecret: falconClientSecret
     scanningPrincipalId: scanningPrincipalId
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
+    inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
     env: env
@@ -197,6 +217,7 @@ module scanningParametersModule 'scanningParameters.bicep' = {
     scanningPrincipalId: scanningPrincipalId
     inputFalconClientId: falconClientId
     inputEnableDspm: inputEnableDspm
+    inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
     inputAgentlessScanningLocations: inputAgentlessScanningLocations
     inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
     inputAgentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway

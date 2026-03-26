@@ -46,6 +46,9 @@ param agentlessScanningHostSubscriptionId string = ''
 @description('Controls whether to enable DSPM.')
 param inputEnableDspm bool = false
 
+@description('Controls whether to enable vulnerability scanning.')
+param inputEnableVulnerabilityScanning bool = false
+
 @description('Azure locations (regions) where DSPM will be deployed.')
 param inputAgentlessScanningLocations array = []
 
@@ -86,6 +89,7 @@ module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCross
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
     agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
     inputEnableDspm: inputEnableDspm
+    inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
     inputAgentlessScanningLocations: inputAgentlessScanningLocations
     inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
     resourceGroupName: resourceGroupName
@@ -113,6 +117,7 @@ module scanningSub 'scanning-environment/scanningForSub.bicep' = [
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
       agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
       inputEnableDspm: inputEnableDspm
+      inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
       inputAgentlessScanningLocations: inputAgentlessScanningLocations
       inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
       resourceGroupName: resourceGroupName

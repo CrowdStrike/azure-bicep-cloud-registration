@@ -15,6 +15,9 @@ param inputFalconClientId string
 @description('Controls whether to enable DSPM.')
 param inputEnableDspm bool
 
+@description('Controls whether to enable vulnerability scanning.')
+param inputEnableVulnerabilityScanning bool
+
 @description('Azure locations (regions) where DSPM will be deployed.')
 param inputAgentlessScanningLocations array
 
@@ -58,6 +61,7 @@ var parameterDefinitions = {
   scanningPrincipalId: stringToJson(scanningPrincipalId)
   falconClientId: stringToJson(inputFalconClientId)
   enableDspm: boolToJson(inputEnableDspm)
+  enableVulnerabilityScanning: boolToJson(inputEnableVulnerabilityScanning)
   agentlessScanningLocations: string(inputAgentlessScanningLocations)
   agentlessScanningLocationsPerSubscription: string(inputAgentlessScanningLocationsPerSubscription)
   agentlessScanningDeployNatGateway: boolToJson(inputAgentlessScanningDeployNatGateway)

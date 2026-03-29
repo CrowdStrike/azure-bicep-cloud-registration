@@ -191,16 +191,21 @@ var entriesMissingClonesSubnet = !empty(agentlessScanningCustomVnetConfiguration
   : []
 var incompleteCustomVnetEntries = union(entriesMissingScannersSubnet, entriesMissingClonesSubnet)
 // Custom VNet subnets must be in the same subscription as the host subscription
-var customVnetSubnetsInWrongSubscription = !empty(agentlessScanningCustomVnetConfiguration) && empty(incompleteCustomVnetEntries)
+var scannersSubnetsInWrongSubscription = !empty(agentlessScanningCustomVnetConfiguration) && empty(incompleteCustomVnetEntries)
   ? filter(
       objectKeys(agentlessScanningCustomVnetConfiguration),
       location =>
-        split(string(agentlessScanningCustomVnetConfiguration[location].scanners_subnet_id), '/')[2] != agentlessScanningHostSubscriptionId || split(
-          string(agentlessScanningCustomVnetConfiguration[location].clones_subnet_id),
-          '/'
-        )[2] != agentlessScanningHostSubscriptionId
+        split(string(agentlessScanningCustomVnetConfiguration[location].scanners_subnet_id), '/')[2] != agentlessScanningHostSubscriptionId
     )
   : []
+var clonesSubnetsInWrongSubscription = !empty(agentlessScanningCustomVnetConfiguration) && empty(incompleteCustomVnetEntries)
+  ? filter(
+      objectKeys(agentlessScanningCustomVnetConfiguration),
+      location =>
+        split(string(agentlessScanningCustomVnetConfiguration[location].clones_subnet_id), '/')[2] != agentlessScanningHostSubscriptionId
+    )
+  : []
+var customVnetSubnetsInWrongSubscription = union(scannersSubnetsInWrongSubscription, clonesSubnetsInWrongSubscription)
 var validatedCustomVnetConfiguration = !empty(agentlessScanningCustomVnetConfiguration) && empty(agentlessScanningHostSubscriptionId)
   ? fail('agentlessScanningCustomVnetConfiguration requires agentlessScanningHostSubscriptionId to be set')
   : !empty(missingCustomVnetLocations)

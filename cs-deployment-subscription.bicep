@@ -100,7 +100,7 @@ param dspmLocationsPerSubscription object = {}
 @description('Controls whether to deploy NAT Gateway for scanning environment.')
 param agentlessScanningDeployNatGateway bool = true
 
-@description('Azure agentless scanning host subscription ID. When set, cross-subscription scanning method is enabled and scanning infrastructure is deployed only to this subscription.')
+@description('Azure agentless scanning host subscription ID. When set, cross-account scanning method is enabled and scanning infrastructure is deployed only to this subscription.')
 param agentlessScanningHostSubscriptionId string = ''
 
 @description('Per-region custom VNet configuration for agentless scanning. Keys are Azure region names; values contain scanners_subnet_id and clones_subnet_id.')
@@ -132,8 +132,8 @@ var validatedDspmLocations = enableDspm && (empty(dspmLocationsPerSubscription) 
   ? fail('either "dspmLocationsPerSubscription" or "dspmLocations" must be non-empty if DSPM is enabled')
   : dspmLocations
 
-/* Cross-Subscription Validation */
-// In cross-subscription mode with per-subscription locations, target subscriptions must only use regions available on the host subscription
+/* Agentless Cross-Account Validation */
+// In cross-account mode with per-subscription locations, target subscriptions must only use regions available on the host subscription
 var hostSubscriptionLocationsFromMap = !empty(agentlessScanningHostSubscriptionId) && !empty(validatedDspmLocationsPerSubscription) && contains(
     validatedDspmLocationsPerSubscription,
     agentlessScanningHostSubscriptionId
@@ -151,13 +151,13 @@ var subscriptionsWithInvalidLocations = !empty(agentlessScanningHostSubscription
     )
   : []
 var validatedDspmLocationsPerSubscriptionMap = !empty(subscriptionsWithInvalidLocations)
-  ? fail('In cross-subscription mode, target subscriptions must only use regions deployed in the host subscription. Invalid subscriptions: ${string(map(subscriptionsWithInvalidLocations, entity => entity.key))}')
+  ? fail('In cross-account mode, target subscriptions must only use regions deployed in the host subscription. Invalid subscriptions: ${string(map(subscriptionsWithInvalidLocations, entity => entity.key))}')
   : validatedDspmLocationsPerSubscription
-var allEffectiveDspmLocations = !empty(validatedDspmLocationsPerSubscriptionMap)
-  ? flatten(map(items(validatedDspmLocationsPerSubscriptionMap), entity => entity.value))
-  : validatedDspmLocations
 
-/* Custom Virtual Network Validation */
+/* Agentless Custom Virtual Network Validation */
+var allEffectiveDspmLocations = !empty(validatedDspmLocationsPerSubscriptionMap)
+  ? hostSubscriptionLocationsFromMap
+  : validatedDspmLocations
 // If custom VNet config is provided, all DSPM locations must be present in it
 var missingCustomVnetLocations = !empty(agentlessScanningCustomVnetConfiguration)
   ? filter(
@@ -166,18 +166,23 @@ var missingCustomVnetLocations = !empty(agentlessScanningCustomVnetConfiguration
     )
   : []
 // Each entry must have both scanners_subnet_id and clones_subnet_id
-var incompleteCustomVnetEntries = !empty(agentlessScanningCustomVnetConfiguration)
+var entriesMissingScannersSubnet = !empty(agentlessScanningCustomVnetConfiguration)
   ? filter(
       objectKeys(agentlessScanningCustomVnetConfiguration),
       location =>
-        !(contains(agentlessScanningCustomVnetConfiguration[location], 'scanners_subnet_id') && contains(
-          agentlessScanningCustomVnetConfiguration[location],
-          'clones_subnet_id'
-        ) && !empty(string(agentlessScanningCustomVnetConfiguration[location].scanners_subnet_id)) && !empty(string(agentlessScanningCustomVnetConfiguration[location].clones_subnet_id)))
+        !contains(agentlessScanningCustomVnetConfiguration[location], 'scanners_subnet_id') || empty(string(agentlessScanningCustomVnetConfiguration[location].scanners_subnet_id))
     )
   : []
+var entriesMissingClonesSubnet = !empty(agentlessScanningCustomVnetConfiguration)
+  ? filter(
+      objectKeys(agentlessScanningCustomVnetConfiguration),
+      location =>
+        !contains(agentlessScanningCustomVnetConfiguration[location], 'clones_subnet_id') || empty(string(agentlessScanningCustomVnetConfiguration[location].clones_subnet_id))
+    )
+  : []
+var incompleteCustomVnetEntries = union(entriesMissingScannersSubnet, entriesMissingClonesSubnet)
 // Custom VNet subnets must be in the same subscription as the host subscription
-var customVnetSubnetsInWrongSubscription = !empty(agentlessScanningCustomVnetConfiguration) && !empty(agentlessScanningHostSubscriptionId) && empty(incompleteCustomVnetEntries)
+var customVnetSubnetsInWrongSubscription = !empty(agentlessScanningCustomVnetConfiguration) && empty(incompleteCustomVnetEntries)
   ? filter(
       objectKeys(agentlessScanningCustomVnetConfiguration),
       location =>
@@ -197,7 +202,7 @@ var validatedCustomVnetConfiguration = !empty(agentlessScanningCustomVnetConfigu
               ? fail('Custom VNet subnets must be in the host subscription (${agentlessScanningHostSubscriptionId}). Invalid locations: ${string(customVnetSubnetsInWrongSubscription)}')
               : agentlessScanningCustomVnetConfiguration
 
-/* Scanning Environment Map */
+/* Agentless Scanning Environment Map */
 var scanningEnvironmentLocationsPerSubscriptionMap = !empty(validatedDspmLocationsPerSubscriptionMap)
   ? map(items(validatedDspmLocationsPerSubscriptionMap), entity => {
       subscriptionId: entity.key

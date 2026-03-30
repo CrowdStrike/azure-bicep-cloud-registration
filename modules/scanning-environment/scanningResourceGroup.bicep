@@ -49,21 +49,6 @@ var resourceGroupAccessCustomRole = {
     'Microsoft.Network/privateEndpoints/write'
     'Microsoft.Network/privateEndpoints/delete'
     'Microsoft.Network/virtualNetworks/subnets/join/action'
-    // DNS Zone
-    'Microsoft.Resources/subscriptions/resourceGroups/read'
-    'Microsoft.Network/privateDnsZones/read'
-    'Microsoft.Network/privateDnsZones/write'
-    'Microsoft.Network/privateDnsZones/delete'
-    // DNS Zone Link vNet
-    'Microsoft.Network/privateDnsZones/virtualNetworkLinks/read'
-    'Microsoft.Network/privateDnsZones/virtualNetworkLinks/write'
-    'Microsoft.Network/privateDnsZones/virtualNetworkLinks/delete'
-    'Microsoft.Network/virtualNetworks/join/action'
-    // DNS Zone Group
-    'Microsoft.Network/privateEndpoints/privateDnsZoneGroups/read'
-    'Microsoft.Network/privateEndpoints/privateDnsZoneGroups/write'
-    'Microsoft.Network/privateEndpoints/privateDnsZoneGroups/delete'
-    'Microsoft.Network/privateDnsZones/join/action'
 
     // ============ Scanner VM ============
     'Microsoft.Network/networkSecurityGroups/read'
@@ -94,8 +79,6 @@ var resourceGroupAccessCustomRole = {
     'Microsoft.Resources/deploymentScripts/read'
     'Microsoft.KeyVault/vaults/read'
     'Microsoft.Compute/virtualMachines/retrieveBootDiagnosticsData/action'
-    'Microsoft.Resources/templateSpecs/read'
-    'Microsoft.Resources/templateSpecs/versions/read'
   ]
 }
 

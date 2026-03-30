@@ -32,7 +32,7 @@ param tags object
 
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
-var vaultPrivateEndpointName = '${resourceNamePrefix}pep-csscanning-keyvault${environment}-${location}${resourceNameSuffix}'
+var vaultPrivateEndpointName = '${resourceNamePrefix}pep-csscanning-keyvault-${uniqueString(scanningKeyVaultSubnetId)}${environment}-${location}${resourceNameSuffix}'
 var vaultPrivateLinkServiceConnectionName = '${resourceNamePrefix}plsc-csscanning-keyvault${environment}-${location}${resourceNameSuffix}'
 
 resource vaultPrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-07-01' = {
@@ -59,5 +59,5 @@ resource vaultPrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-07-01' = 
       id: scanningKeyVaultSubnetId
     }
   }
-  tags: tags
+  tags: union(tags, { CSTagResourceType: 'VaultPrivateEndpoint' })
 }

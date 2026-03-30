@@ -52,6 +52,9 @@ param inputAgentlessScanningLocations array = []
 @description('Azure locations (regions) where DSPM will be deployed as subscription ID to locations map.')
 param inputAgentlessScanningLocationsPerSubscription object = {}
 
+@description('Per-region custom VNet configuration for agentless scanning.')
+param inputAgentlessScanningCustomVnetConfiguration object = {}
+
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
 var isCrossSubscriptionDeployment = !empty(agentlessScanningHostSubscriptionId)
@@ -88,6 +91,7 @@ module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCross
     inputEnableDspm: inputEnableDspm
     inputAgentlessScanningLocations: inputAgentlessScanningLocations
     inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
+    inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
     resourceGroupName: resourceGroupName
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
@@ -115,6 +119,7 @@ module scanningSub 'scanning-environment/scanningForSub.bicep' = [
       inputEnableDspm: inputEnableDspm
       inputAgentlessScanningLocations: inputAgentlessScanningLocations
       inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
+      inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
       resourceGroupName: resourceGroupName
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix

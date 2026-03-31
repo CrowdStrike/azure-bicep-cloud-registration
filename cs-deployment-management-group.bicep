@@ -110,6 +110,9 @@ param agentlessScanningHostSubscriptionId string = ''
 @description('Per-region custom VNet configuration for agentless scanning. Keys are Azure region names; values contain scanners_subnet_id and clones_subnet_id.')
 param agentlessScanningCustomVnetConfiguration object = {}
 
+@description('Azure cloud type for this registration. Use "commercial" for standard Azure or "gov" for Azure Government.')
+param accountType string = ''
+
 /* Variables */
 var subscriptions = union(subscriptionIds, csInfraSubscriptionId == '' ? [] : [csInfraSubscriptionId]) // remove duplicated values
 var managementGroups = union(
@@ -380,6 +383,7 @@ module updateRegistration 'modules/cs-update-registration-rg.bicep' = if (should
     falconApiFqdn: falconApiFqdn
     falconClientId: validatedFalconClientID
     falconClientSecret: validatedFalconClientSecret
+    accountType: accountType
     activityLogEventHubId: logIngestion!.outputs.activityLogEventHubId
     activityLogEventHubConsumerGroupName: logIngestion!.outputs.activityLogEventHubConsumerGroupName
     entraLogEventHubId: logIngestion!.outputs.entraLogEventHubId

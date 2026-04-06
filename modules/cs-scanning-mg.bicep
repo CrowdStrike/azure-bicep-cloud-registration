@@ -37,6 +37,9 @@ param env string
 @description('Tags to be applied to all deployed resources. Used for resource organization and governance.')
 param tags object
 
+@description('Subscription ID where CrowdStrike infrastructure resources will be deployed. Used as the deployment scope for batch modules.')
+param csInfraSubscriptionId string
+
 @description('Controls whether to deploy NAT Gateway for scanning environment.')
 param agentlessScanningDeployNatGateway bool = true
 
@@ -113,7 +116,7 @@ var numberOfBatches = totalSubscriptions == 0 ? 0 : (totalSubscriptions + batchS
 module scanningSub 'scanning-environment/scanningSubBatch.bicep' = [
   for i in range(0, numberOfBatches): {
     name: '${resourceNamePrefix}cs-scanning-batch-${i}${environment}${resourceNameSuffix}'
-    scope: subscription(nonCrossHostSubscriptionEntries[i * batchSize].subscriptionId)
+    scope: subscription(csInfraSubscriptionId)
     params: {
       subscriptionEntries: take(skip(nonCrossHostSubscriptionEntries, i * batchSize), batchSize)
       falconClientId: falconClientId
@@ -133,7 +136,6 @@ module scanningSub 'scanning-environment/scanningSubBatch.bicep' = [
       resourceNameSuffix: resourceNameSuffix
       env: env
       tags: tags
-      batchNumber: i
     }
   }
 ]

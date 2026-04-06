@@ -354,6 +354,7 @@ module scanningEnvironment 'modules/cs-scanning-mg.bicep' = if (shouldDeployScan
     falconClientSecret: validatedFalconClientSecret
     scanningPrincipalId: azurePrincipalId
     scanningEnvironmentLocationsPerSubscriptionMap: scanningEnvironmentLocationsPerSubscriptionMap
+    csInfraSubscriptionId: csInfraSubscriptionId
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
     agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
     inputEnableDspm: enableDspm

@@ -60,16 +60,13 @@ param inputAgentlessScanningLocationsPerSubscription object = {}
 @description('Per-region custom VNet configuration for agentless scanning.')
 param inputAgentlessScanningCustomVnetConfiguration object = {}
 
-@description('Batch number for unique naming')
-param batchNumber int
-
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
 
 /* Deploy scanning infrastructure for subscriptions in this batch */
 module scanningSub 'scanningForSub.bicep' = [
   for sub in subscriptionEntries: {
-    name: '${resourceNamePrefix}cs-scan-${uniqueString(sub.subscriptionId)}${environment}${resourceNameSuffix}'
+    name: '${resourceNamePrefix}cs-scanning-${sub.subscriptionId}${environment}${resourceNameSuffix}'
     scope: subscription(sub.subscriptionId)
     params: {
       falconClientId: falconClientId
@@ -94,4 +91,3 @@ module scanningSub 'scanningForSub.bicep' = [
 
 /* Outputs */
 output subscriptionsProcessed int = length(subscriptionEntries)
-output batchNumber int = batchNumber

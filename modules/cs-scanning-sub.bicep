@@ -133,7 +133,6 @@ module scanningSub 'scanning-environment/scanningSubBatch.bicep' = [
       resourceNameSuffix: resourceNameSuffix
       env: env
       tags: tags
-      batchNumber: i
     }
   }
 ]

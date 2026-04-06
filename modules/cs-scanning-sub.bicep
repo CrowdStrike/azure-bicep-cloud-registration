@@ -113,7 +113,6 @@ var numberOfBatches = totalSubscriptions == 0 ? 0 : (totalSubscriptions + batchS
 module scanningSub 'scanning-environment/scanningSubBatch.bicep' = [
   for i in range(0, numberOfBatches): {
     name: '${resourceNamePrefix}cs-scanning-batch-${i}${environment}${resourceNameSuffix}'
-    scope: subscription(nonCrossHostSubscriptionEntries[i * batchSize].subscriptionId)
     params: {
       subscriptionEntries: take(skip(nonCrossHostSubscriptionEntries, i * batchSize), batchSize)
       falconClientId: falconClientId

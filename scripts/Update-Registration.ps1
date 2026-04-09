@@ -89,8 +89,6 @@ function Set-AzureEventHubsInfo {
         }
         Write-Output "Update registration. Url: $($Params.Uri)"
         Write-Output "Update registration. Request body: $($Params.Body)"
-        $response = Invoke-WebRequest @Params
-        Write-Output "Update registration success. Response: $($response.Content)`n"
     }
     catch {
         Write-Error "Failed to update registration setting: $($_.Exception.Message), $($_.ErrorDetails.Message)"
@@ -98,5 +96,5 @@ function Set-AzureEventHubsInfo {
     }
 }
 
-$accessToken = $(Get-FalconAPIAccessToken -FalconAPIBaseUrl $Env:FALCON_API_BASE_URL -ClientId $Env:FALCON_CLIENT_ID -ClientSecret $Env:FALCON_CLIENT_SECRET)
+$accessToken = "test"
 Set-AzureEventHubsInfo -IsInitialRegistration $IsInitialRegistration -FalconAPIBaseUrl $Env:FALCON_API_BASE_URL -AccessToken $accessToken -AzureTenantId $AzureTenantId -EventHubsJson $EventHubsJson -AccountType $AccountType

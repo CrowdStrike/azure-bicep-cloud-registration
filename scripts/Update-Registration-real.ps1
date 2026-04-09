@@ -1,5 +1,5 @@
 ## CrowdStrike API Client Scopes required:
-## - Cloud security Azure registration (Write)
+## - CSPM Registration (read/write)
 using namespace System.Runtime.Serialization
 
 param (
@@ -10,10 +10,7 @@ param (
     [System.Boolean]$IsInitialRegistration,
 
     [Parameter(Mandatory = $true)]
-    [string]$EventHubsJson,
-
-    [Parameter(Mandatory = $false)]
-    [string]$AccountType = ""
+    [string]$EventHubsJson
 )
 
 # Get CrowdStrike API Access Token
@@ -42,9 +39,9 @@ function Get-FalconAPIAccessToken {
         }
         return ((Invoke-WebRequest @Params).Content | ConvertFrom-Json).access_token
     }
-    catch {
-        Write-Error "Failed to issue Falcon API access token: $($_.Exception.Message)"
-        throw
+    catch [System.Exception] { 
+        Write-Error "An exception was caught: $($_.Exception.Message)"
+        break
     }
 }
 
@@ -63,19 +60,9 @@ function Set-AzureEventHubsInfo {
         [string]$AzureTenantId,
 
         [Parameter(Mandatory = $true)]
-        [string]$EventHubsJson,
-
-        [Parameter(Mandatory = $false)]
-        [string]$AccountType = ""
+        [string]$EventHubsJson
     )
     try {
-        $resource = @{
-            tenant_id = $AzureTenantId
-            event_hub_settings = @($EventHubsJson | ConvertFrom-Json)
-        }
-        if ($AccountType -ne "") {
-            $resource["account_type"] = $AccountType
-        }
         $Params = @{
             Uri     = ($IsInitialRegistration) ? "https://${FalconAPIBaseUrl}/cloud-security-registration-azure/entities/registrations/partial/v1" : "https://${FalconAPIBaseUrl}/cloud-security-registration-azure/entities/registrations/v1"
             Method  = "PATCH"
@@ -84,17 +71,22 @@ function Set-AzureEventHubsInfo {
                 "Content-Type" = "application/json"
             }
             Body = @{
-                resource = $resource
+                resource = @{
+                    tenant_id = $AzureTenantId
+                    event_hub_settings = @($EventHubsJson | ConvertFrom-Json)
+                }
             } | ConvertTo-Json -Depth 4
         }
         Write-Output "Update registration. Url: $($Params.Uri)"
         Write-Output "Update registration. Request body: $($Params.Body)"
+        $response = Invoke-WebRequest @Params
+        Write-Output "Update registration sucess. Response: $($response.Content)`n"
     }
-    catch {
-        Write-Error "Failed to update registration setting: $($_.Exception.Message), $($_.ErrorDetails.Message)"
-        throw
+    catch [System.Exception] { 
+        Write-Error "An exception was caught: $($_.Exception.Message), $($_.ErrorDetails.Message)"
+        break
     }
 }
 
-$accessToken = "test"
-Set-AzureEventHubsInfo -IsInitialRegistration $IsInitialRegistration -FalconAPIBaseUrl $Env:FALCON_API_BASE_URL -AccessToken $accessToken -AzureTenantId $AzureTenantId -EventHubsJson $EventHubsJson -AccountType $AccountType
+$accessToken = $(Get-FalconAPIAccessToken -FalconAPIBaseUrl $Env:FALCON_API_BASE_URL -ClientId $Env:FALCON_CLIENT_ID -ClientSecret $Env:FALCON_CLIENT_SECRET)
+Set-AzureEventHubsInfo -IsInitialRegistration $IsInitialRegistration -FalconAPIBaseUrl $Env:FALCON_API_BASE_URL -AccessToken $accessToken -AzureTenantId $AzureTenantId -EventHubsJson $EventHubsJson

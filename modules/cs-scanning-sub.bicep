@@ -2,7 +2,7 @@ targetScope = 'subscription'
 
 /*
   This Bicep template deploys infrastructure to enable CrowdStrike Scanning
-  Copyright (c) 2025 CrowdStrike, Inc.
+  Copyright (c) 2026 CrowdStrike, Inc.
 */
 
 /* Parameters */

@@ -2,7 +2,7 @@ targetScope = 'managementGroup'
 
 /*
   This Bicep template deploys infrastructure to enable CrowdStrike Scanning
-  Copyright (c) 2025 CrowdStrike, Inc.
+  Copyright (c) 2026 CrowdStrike, Inc.
 */
 
 /* Parameters */
@@ -82,6 +82,17 @@ var verifiedCrossHostSubscriptionEntry = isCrossSubscriptionDeployment && length
   ? fail('"agentlessScanningHostSubscriptionId" must match a subscription in the scanning environment subscriptions map')
   : crossHostSubscriptionEntry
 
+// Define custom roles once at management group scope to avoid per-subscription role definition limits
+module scanningRoles 'scanning-environment/scanningRolesForMg.bicep' = {
+  name: '${resourceNamePrefix}cs-scanning-roles-mg${environment}${resourceNameSuffix}'
+  params: {
+    resourceNamePrefix: resourceNamePrefix
+    resourceNameSuffix: resourceNameSuffix
+    env: env
+    agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
+  }
+}
+
 // Cross-account mode: deploy full infra to host subscription first
 module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCrossSubscriptionDeployment && length(verifiedCrossHostSubscriptionEntry) > 0) {
   name: '${resourceNamePrefix}cs-scanning-host${environment}${resourceNameSuffix}'
@@ -100,6 +111,9 @@ module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCross
     inputAgentlessScanningLocations: inputAgentlessScanningLocations
     inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
     inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
+    subscriptionAccessRoleId: scanningRoles.outputs.subscriptionAccessRoleId
+    scannerRoleId: scanningRoles.outputs.scannerRoleId
+    resourceGroupAccessRoleId: scanningRoles.outputs.resourceGroupAccessRoleId
     resourceGroupName: resourceGroupName
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
@@ -131,6 +145,9 @@ module scanningSub 'scanning-environment/scanningSubBatch.bicep' = [
       inputAgentlessScanningLocations: inputAgentlessScanningLocations
       inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
       inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
+      subscriptionAccessRoleId: scanningRoles.outputs.subscriptionAccessRoleId
+      scannerRoleId: scanningRoles.outputs.scannerRoleId
+      resourceGroupAccessRoleId: scanningRoles.outputs.resourceGroupAccessRoleId
       resourceGroupName: resourceGroupName
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix

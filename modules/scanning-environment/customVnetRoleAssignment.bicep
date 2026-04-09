@@ -2,7 +2,7 @@ targetScope = 'resourceGroup'
 
 /*
   This Bicep module creates a role assignment for CrowdStrike scanning subnet access
-  Copyright (c) 2025 CrowdStrike, Inc.
+  Copyright (c) 2026 CrowdStrike, Inc.
 */
 
 @description('Principal ID of the CrowdStrike service principal.')

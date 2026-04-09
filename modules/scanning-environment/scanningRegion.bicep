@@ -2,7 +2,7 @@ targetScope = 'resourceGroup'
 
 /*
   This Bicep template deploys regional resources of the scanning environment
-  Copyright (c) 2025 CrowdStrike, Inc.
+  Copyright (c) 2026 CrowdStrike, Inc.
 */
 
 /* Parameters */

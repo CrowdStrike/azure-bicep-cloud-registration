@@ -3,7 +3,7 @@ targetScope = 'subscription'
 /*
   This Bicep template handles batched scanning subscription deployment
   to overcome the 800 iteration limit for large numbers of subscriptions.
-  Copyright (c) 2025 CrowdStrike, Inc.
+  Copyright (c) 2026 CrowdStrike, Inc.
 */
 
 /* Parameters */
@@ -60,6 +60,15 @@ param inputAgentlessScanningLocationsPerSubscription object = {}
 @description('Per-region custom VNet configuration for agentless scanning.')
 param inputAgentlessScanningCustomVnetConfiguration object = {}
 
+@description('Role definition ID for subscription access role. When provided, skips per-subscription role creation (management group mode).')
+param subscriptionAccessRoleId string = ''
+
+@description('Role definition ID for scanner role. When provided, skips per-subscription role creation (management group mode).')
+param scannerRoleId string = ''
+
+@description('Role definition ID for resource group access role. When provided, skips per-subscription role creation (management group mode).')
+param resourceGroupAccessRoleId string = ''
+
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
 
@@ -80,6 +89,9 @@ module scanningSub 'scanningForSub.bicep' = [
       inputAgentlessScanningLocations: inputAgentlessScanningLocations
       inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
       inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
+      subscriptionAccessRoleId: subscriptionAccessRoleId
+      scannerRoleId: scannerRoleId
+      resourceGroupAccessRoleId: resourceGroupAccessRoleId
       resourceGroupName: resourceGroupName
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix

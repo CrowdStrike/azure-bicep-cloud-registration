@@ -1,8 +1,10 @@
+import { resourceGroupAccessRolePermissions } from '../../models/scanning-roles.bicep'
+
 targetScope = 'resourceGroup'
 
 /*
   This Bicep template deploys resource group level scanning resources
-  Copyright (c) 2025 CrowdStrike, Inc.
+  Copyright (c) 2026 CrowdStrike, Inc.
 */
 
 /* Parameters */
@@ -33,73 +35,32 @@ param tags object
 @description('Whether NAT Gateway is enabled. When false, public IP permissions are included for VM connectivity.')
 param agentlessScanningDeployNatGateway bool = true
 
+@description('Role definition ID for resource group access role. When provided, skips per-subscription role creation (management group mode).')
+param resourceGroupAccessRoleId string = ''
+
 /* Variables */
+var useExternalRgRole = !empty(resourceGroupAccessRoleId)
 var environment = length(env) > 0 ? '-${env}' : env
 // NOTE: key vault has name limit constraints, so prefix and suffix are omitted 
 var keyVaultName = 'kv-cs-${uniqueString(resourceGroup().id, 'CrowdStrikeScanningKeyVault', 'v2')}'
 var managedIdentityName = '${resourceNamePrefix}id-csscanning${environment}${resourceNameSuffix}'
 var clientCredentialsName = 'client-credentials'
-var resourceGroupAccessCustomRole = {
-  roleName: '${resourceNamePrefix}role-csscanning-rgaccess-${subscription().subscriptionId}${resourceNameSuffix}'
-  roleDescription: 'CrowdStrike Agentless Scanning Resource Group Access Role'
-  roleActions: [
-    // ============ Blob Storage ============
-    // Private Endpoint
-    'Microsoft.Network/privateEndpoints/read'
-    'Microsoft.Network/privateEndpoints/write'
-    'Microsoft.Network/privateEndpoints/delete'
-    'Microsoft.Network/virtualNetworks/subnets/join/action'
+var resourceGroupAccessRoleName = '${resourceNamePrefix}role-csscanning-rgaccess-${subscription().subscriptionId}${resourceNameSuffix}'
 
-    // ============ Scanner VM ============
-    'Microsoft.Network/networkSecurityGroups/read'
-    'Microsoft.Network/networkSecurityGroups/write'
-    'Microsoft.Network/networkSecurityGroups/delete'
-    'Microsoft.Network/networkInterfaces/read'
-    'Microsoft.Network/networkInterfaces/write'
-    'Microsoft.Network/networkInterfaces/delete'
-    'Microsoft.Network/networkInterfaces/join/action'
-    'Microsoft.Compute/virtualMachines/read'
-    'Microsoft.Compute/virtualMachines/write'
-    'Microsoft.Compute/virtualMachines/delete'
-    'Microsoft.Network/virtualNetworks/read'
-    'Microsoft.ManagedIdentity/userAssignedIdentities/read'
-    'Microsoft.ManagedIdentity/userAssignedIdentities/assign/action'
-    'Microsoft.Resources/deployments/read'
-    'Microsoft.Resources/deployments/write'
-    'Microsoft.Resources/deployments/delete'
-    'Microsoft.Resources/deployments/operationStatuses/read'
-    'Microsoft.Resources/deploymentStacks/*'
-    // Always include delete permission for public IPs
-    'Microsoft.Network/publicIPAddresses/delete'
-
-    // ============ Validation ============
-    'Microsoft.Network/virtualNetworks/subnets/read'
-    'Microsoft.Resources/deployments/whatIf/action'
-    'Microsoft.Resources/deployments/validate/action'
-    'Microsoft.Resources/deploymentScripts/read'
-    'Microsoft.KeyVault/vaults/read'
-    'Microsoft.Compute/virtualMachines/retrieveBootDiagnosticsData/action'
-  ]
-}
-
-// Conditional permissions for public IPs when NAT Gateway is disabled
-var conditionalPublicIPPermissions = [
-  'Microsoft.Network/publicIPAddresses/read'
-  'Microsoft.Network/publicIPAddresses/write'
-  'Microsoft.Network/publicIPAddresses/join/action'
-]
-
-resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
-  name: guid(resourceGroup().id, resourceGroupAccessCustomRole.roleName)
+resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (!useExternalRgRole) {
+  name: guid(resourceGroup().id, resourceGroupAccessRoleName)
   properties: {
-    roleName: resourceGroupAccessCustomRole.roleName
-    description: resourceGroupAccessCustomRole.roleDescription
+    roleName: resourceGroupAccessRoleName
+    description: resourceGroupAccessRolePermissions.description
     type: 'CustomRole'
     permissions: [
       {
         actions: !agentlessScanningDeployNatGateway
-          ? union(resourceGroupAccessCustomRole.roleActions, conditionalPublicIPPermissions)
-          : resourceGroupAccessCustomRole.roleActions
+          ? union(
+              resourceGroupAccessRolePermissions.actions,
+              resourceGroupAccessRolePermissions.conditionalPublicIPActions
+            )
+          : resourceGroupAccessRolePermissions.actions
         notActions: []
         dataActions: []
         notDataActions: []
@@ -112,9 +73,13 @@ resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-0
 }
 
 resource rgRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(subscription().id, scanningPrincipalId, resourceGroupAccessRole.id)
+  name: guid(
+    subscription().id,
+    scanningPrincipalId,
+    useExternalRgRole ? resourceGroupAccessRoleId : resourceGroupAccessRole.id
+  )
   properties: {
-    roleDefinitionId: resourceGroupAccessRole.id
+    roleDefinitionId: useExternalRgRole ? resourceGroupAccessRoleId : resourceGroupAccessRole.id
     principalId: scanningPrincipalId
     principalType: 'ServicePrincipal'
   }

@@ -1,8 +1,14 @@
+import {
+  subscriptionAccessRolePermissions
+  scannerRolePermissions
+  customVnetSubnetRolePermissions
+} from '../../models/scanning-roles.bicep'
+
 targetScope = 'subscription'
 
 /*
   This Bicep template deploys infrastructure to enable CrowdStrike Scanning in subscription
-  Copyright (c) 2025 CrowdStrike, Inc.
+  Copyright (c) 2026 CrowdStrike, Inc.
 */
 
 /* Parameters */
@@ -58,7 +64,17 @@ param inputAgentlessScanningLocationsPerSubscription object = {}
 @description('Per-region custom VNet configuration for agentless scanning.')
 param inputAgentlessScanningCustomVnetConfiguration object = {}
 
+@description('Role definition ID for subscription access role. When provided, skips per-subscription role creation (management group mode).')
+param subscriptionAccessRoleId string = ''
+
+@description('Role definition ID for scanner role. When provided, skips per-subscription role creation (management group mode).')
+param scannerRoleId string = ''
+
+@description('Role definition ID for resource group access role. When provided, skips per-subscription role creation (management group mode).')
+param resourceGroupAccessRoleId string = ''
+
 /* Variables */
+var useExternalRoles = !empty(subscriptionAccessRoleId)
 var useCustomSubnets = length(filter(
   scanningEnvironmentLocations,
   location => !empty(location.customScannersSubnet) && !empty(location.customClonesSubnet)
@@ -66,29 +82,18 @@ var useCustomSubnets = length(filter(
 var environment = length(env) > 0 ? '-${env}' : env
 var shouldDeployResources = empty(agentlessScanningHostSubscriptionId) || subscription().subscriptionId == agentlessScanningHostSubscriptionId
 var subscriptionAccessRoleName = '${resourceNamePrefix}role-csscanning-access-${subscription().subscriptionId}${resourceNameSuffix}'
-var subscriptionAccessRoleDescription = 'CrowdStrike Scanning Subscription Access Role'
 var scannerRoleName = '${resourceNamePrefix}role-csscanning-scanner-${subscription().subscriptionId}${resourceNameSuffix}'
-var scannerRoleDescription = 'CrowdStrike Scanning Subscription Scanner Role'
 var customVnetRoleName = '${resourceNamePrefix}role-csscanning-custom-vnet-${subscription().subscriptionId}${resourceNameSuffix}'
-var customVnetRoleDescription = 'CrowdStrike Custom VNet Subnet Access Role'
 
-resource subscriptionAccessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
+resource subscriptionAccessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (!useExternalRoles) {
   name: guid(subscription().id, subscriptionAccessRoleName)
   properties: {
     roleName: subscriptionAccessRoleName
-    description: subscriptionAccessRoleDescription
+    description: subscriptionAccessRolePermissions.description
     type: 'CustomRole'
     permissions: [
       {
-        actions: [
-          // ============ Blob Storage ============
-          'Microsoft.Storage/storageAccounts/read' // Check location and public access
-          'Microsoft.Storage/storageAccounts/PrivateEndpointConnectionsApproval/action' // Approve private link connections
-
-          // ============ Validation ============
-          'Microsoft.Authorization/roleAssignments/read'
-          'Microsoft.Authorization/policyDefinitions/read'
-        ]
+        actions: subscriptionAccessRolePermissions.actions
         notActions: []
         dataActions: []
         notDataActions: []
@@ -101,29 +106,29 @@ resource subscriptionAccessRole 'Microsoft.Authorization/roleDefinitions@2022-04
 }
 
 resource accessRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(subscription().id, scanningPrincipalId, subscriptionAccessRole.id)
+  name: guid(
+    subscription().id,
+    scanningPrincipalId,
+    useExternalRoles ? subscriptionAccessRoleId : subscriptionAccessRole.id
+  )
   properties: {
-    roleDefinitionId: subscriptionAccessRole.id
+    roleDefinitionId: useExternalRoles ? subscriptionAccessRoleId : subscriptionAccessRole.id
     principalId: scanningPrincipalId
     principalType: 'ServicePrincipal'
   }
 }
 
-resource scannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
+resource scannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (!useExternalRoles) {
   name: guid(subscription().id, scannerRoleName)
   properties: {
     roleName: scannerRoleName
-    description: scannerRoleDescription
+    description: scannerRolePermissions.description
     type: 'CustomRole'
     permissions: [
       {
-        actions: [
-          'Microsoft.Storage/storageAccounts/blobServices/containers/read'
-        ]
+        actions: scannerRolePermissions.actions
         notActions: []
-        dataActions: [
-          'Microsoft.Storage/storageAccounts/blobServices/containers/blobs/read'
-        ]
+        dataActions: scannerRolePermissions.dataActions
         notDataActions: []
       }
     ]
@@ -137,15 +142,11 @@ resource customVnetSubnetRole 'Microsoft.Authorization/roleDefinitions@2022-04-0
   name: guid(subscription().id, 'customVnetSubnetAccess')
   properties: {
     roleName: customVnetRoleName
-    description: customVnetRoleDescription
+    description: customVnetSubnetRolePermissions.description
     type: 'CustomRole'
     permissions: [
       {
-        actions: [
-          'Microsoft.Network/virtualNetworks/subnets/join/action'
-          'Microsoft.Network/virtualNetworks/read'
-          'Microsoft.Network/virtualNetworks/subnets/read'
-        ]
+        actions: customVnetSubnetRolePermissions.actions
         notActions: []
         dataActions: []
         notDataActions: []
@@ -169,6 +170,7 @@ module scanningResourceGroupModule 'scanningResourceGroup.bicep' = if (shouldDep
     falconClientSecret: falconClientSecret
     scanningPrincipalId: scanningPrincipalId
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
+    resourceGroupAccessRoleId: resourceGroupAccessRoleId
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
     env: env
@@ -176,16 +178,18 @@ module scanningResourceGroupModule 'scanningResourceGroup.bicep' = if (shouldDep
   }
 }
 
+var effectiveScannerRoleId = useExternalRoles ? scannerRoleId : scannerRole.id
+
 resource scannerRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: shouldDeployResources
-    ? guid(subscription().id, 'scanningManagedIdentityPrincipalId', scannerRole.id)
-    : guid(subscription().id, scanningManagedIdentityPrincipalId, scannerRole.id)
+    ? guid(subscription().id, 'scanningManagedIdentityPrincipalId', effectiveScannerRoleId)
+    : guid(subscription().id, scanningManagedIdentityPrincipalId, effectiveScannerRoleId)
   properties: {
     principalId: shouldDeployResources
       ? scanningResourceGroupModule!.outputs.scanningManagedIdentityPrincipalId
       : scanningManagedIdentityPrincipalId
     principalType: 'ServicePrincipal'
-    roleDefinitionId: scannerRole.id
+    roleDefinitionId: effectiveScannerRoleId
   }
 }
 

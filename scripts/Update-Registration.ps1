@@ -10,7 +10,10 @@ param (
     [System.Boolean]$IsInitialRegistration,
 
     [Parameter(Mandatory = $true)]
-    [string]$EventHubsJson
+    [string]$EventHubsJson,
+
+    [Parameter(Mandatory = $false)]
+    [string]$AccountType = ""
 )
 
 # Get CrowdStrike API Access Token
@@ -60,9 +63,19 @@ function Set-AzureEventHubsInfo {
         [string]$AzureTenantId,
 
         [Parameter(Mandatory = $true)]
-        [string]$EventHubsJson
+        [string]$EventHubsJson,
+
+        [Parameter(Mandatory = $false)]
+        [string]$AccountType = ""
     )
     try {
+        $resource = @{
+            tenant_id = $AzureTenantId
+            event_hub_settings = @($EventHubsJson | ConvertFrom-Json)
+        }
+        if ($AccountType -ne "") {
+            $resource["account_type"] = $AccountType
+        }
         $Params = @{
             Uri     = ($IsInitialRegistration) ? "https://${FalconAPIBaseUrl}/cloud-security-registration-azure/entities/registrations/partial/v1" : "https://${FalconAPIBaseUrl}/cloud-security-registration-azure/entities/registrations/v1"
             Method  = "PATCH"
@@ -71,10 +84,7 @@ function Set-AzureEventHubsInfo {
                 "Content-Type" = "application/json"
             }
             Body = @{
-                resource = @{
-                    tenant_id = $AzureTenantId
-                    event_hub_settings = @($EventHubsJson | ConvertFrom-Json)
-                }
+                resource = $resource
             } | ConvertTo-Json -Depth 4
         }
         Write-Output "Update registration. Url: $($Params.Uri)"
@@ -89,4 +99,4 @@ function Set-AzureEventHubsInfo {
 }
 
 $accessToken = $(Get-FalconAPIAccessToken -FalconAPIBaseUrl $Env:FALCON_API_BASE_URL -ClientId $Env:FALCON_CLIENT_ID -ClientSecret $Env:FALCON_CLIENT_SECRET)
-Set-AzureEventHubsInfo -IsInitialRegistration $IsInitialRegistration -FalconAPIBaseUrl $Env:FALCON_API_BASE_URL -AccessToken $accessToken -AzureTenantId $AzureTenantId -EventHubsJson $EventHubsJson
+Set-AzureEventHubsInfo -IsInitialRegistration $IsInitialRegistration -FalconAPIBaseUrl $Env:FALCON_API_BASE_URL -AccessToken $accessToken -AzureTenantId $AzureTenantId -EventHubsJson $EventHubsJson -AccountType $AccountType

@@ -37,6 +37,9 @@ param env string
 @description('Tags to be applied to all deployed resources. Used for resource organization and governance.')
 param tags object
 
+@description('Subscription ID where CrowdStrike infrastructure resources will be deployed. Used as the deployment scope for batch modules.')
+param csInfraSubscriptionId string
+
 @description('Controls whether to deploy NAT Gateway for scanning environment.')
 param agentlessScanningDeployNatGateway bool = true
 
@@ -54,6 +57,14 @@ param inputAgentlessScanningLocations array = []
 
 @description('Azure locations (regions) where DSPM will be deployed as subscription ID to locations map.')
 param inputAgentlessScanningLocationsPerSubscription object = {}
+
+@description('Per-region custom VNet configuration for agentless scanning.')
+param inputAgentlessScanningCustomVnetConfiguration object = {}
+
+@description('Maximum number of subscriptions per batch for scanning deployment. Default is 750 to stay safely under the 800 limit.')
+@minValue(1)
+@maxValue(800)
+param batchSize int = 750
 
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
@@ -92,6 +103,7 @@ module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCross
     inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
     inputAgentlessScanningLocations: inputAgentlessScanningLocations
     inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
+    inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
     resourceGroupName: resourceGroupName
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
@@ -102,15 +114,18 @@ module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCross
 
 // Per-account mode: deploy full infra to every subscription
 // Cross-account mode: deploy role assignments only to non-host subscriptions
-module scanningSub 'scanning-environment/scanningForSub.bicep' = [
-  for sub in nonCrossHostSubscriptionEntries: {
-    name: '${resourceNamePrefix}cs-scanning-sub${environment}${resourceNameSuffix}'
-    scope: subscription(sub.subscriptionId)
+// Deploy in batches to handle 800+ subscriptions
+var totalSubscriptions = length(nonCrossHostSubscriptionEntries)
+var numberOfBatches = totalSubscriptions == 0 ? 0 : (totalSubscriptions + batchSize - 1) / batchSize
+module scanningSub 'scanning-environment/scanningSubBatch.bicep' = [
+  for i in range(0, numberOfBatches): {
+    name: '${resourceNamePrefix}cs-scanning-batch-${i}${environment}${resourceNameSuffix}'
+    scope: subscription(csInfraSubscriptionId)
     params: {
+      subscriptionEntries: take(skip(nonCrossHostSubscriptionEntries, i * batchSize), batchSize)
       falconClientId: falconClientId
       falconClientSecret: falconClientSecret
       scanningPrincipalId: scanningPrincipalId
-      scanningEnvironmentLocations: sub.locations
       scanningManagedIdentityPrincipalId: isCrossSubscriptionDeployment
         ? scanningHostSub!.outputs.scanningManagedIdentityPrincipalId
         : ''
@@ -120,6 +135,7 @@ module scanningSub 'scanning-environment/scanningForSub.bicep' = [
       inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
       inputAgentlessScanningLocations: inputAgentlessScanningLocations
       inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
+      inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
       resourceGroupName: resourceGroupName
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix

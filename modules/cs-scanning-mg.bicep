@@ -94,7 +94,9 @@ var mgEntriesWithSubscriptions = filter(
   entry => length(entry.subscriptionEntries) > 0
 )
 
-// Order: host MG first (so scanningRoles[0] = host MG's roles)
+// Order: host MG first so that orderedMgEntries[0] is the MG containing the host subscription
+// when agentlessScanningHostSubscriptionId is provided (cross-account mode).
+// This allows scanningRoles[0] and scanningPerMg[0] to reference host MG resources by index.
 var hostMgEntries = isCrossSubscriptionDeployment
   ? filter(
       mgEntriesWithSubscriptions,
@@ -132,9 +134,17 @@ var isHostSubStandalone = isCrossSubscriptionDeployment && !empty(filter(
   sub => sub.subscriptionId == agentlessScanningHostSubscriptionId
 ))
 
+// Whether host sub uses custom VNet subnets (for custom VNet role creation)
+var hostSubUseCustomSubnets = isCrossSubscriptionDeployment && length(verifiedCrossHostSubscriptionEntry) > 0
+  ? length(filter(
+      verifiedCrossHostSubscriptionEntry[0].locations,
+      location => !empty(location.customScannersSubnet) && !empty(location.customClonesSubnet)
+    )) > 0
+  : false
+
 /* Define custom roles at each management group scope */
 module scanningRoles 'scanning-environment/scanningRolesForMg.bicep' = [
-  for mgEntry in orderedMgEntries: {
+  for (mgEntry, i) in orderedMgEntries: {
     name: '${resourceNamePrefix}cs-scanning-roles-${uniqueString(mgEntry.managementGroupId)}${environment}${resourceNameSuffix}'
     scope: managementGroup(mgEntry.managementGroupId)
     params: {
@@ -142,6 +152,8 @@ module scanningRoles 'scanning-environment/scanningRolesForMg.bicep' = [
       resourceNameSuffix: resourceNameSuffix
       env: env
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
+      includeResourceGroupAccessRole: !isCrossSubscriptionDeployment || i == 0
+      useCustomSubnets: i == 0 && hostSubUseCustomSubnets
     }
   }
 ]
@@ -155,6 +167,8 @@ module scanningHostRoles 'scanning-environment/scanningRolesForSub.bicep' = if (
     resourceNameSuffix: resourceNameSuffix
     env: env
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
+    includeResourceGroupAccessRole: true
+    useCustomSubnets: hostSubUseCustomSubnets
   }
 }
 
@@ -183,6 +197,9 @@ module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCross
     resourceGroupAccessRoleId: isHostSubStandalone
       ? scanningHostRoles!.outputs.resourceGroupAccessRoleId
       : scanningRoles[0].outputs.resourceGroupAccessRoleId
+    customVnetSubnetRoleId: isHostSubStandalone
+      ? scanningHostRoles!.outputs.customVnetSubnetRoleId
+      : scanningRoles[0].outputs.customVnetSubnetRoleId
     resourceGroupName: resourceGroupName
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
@@ -245,6 +262,7 @@ module scanningStandaloneBatch 'scanning-environment/scanningSubBatch.bicep' = [
       accessRoleId: ''
       scannerRoleId: ''
       resourceGroupAccessRoleId: ''
+      includeResourceGroupAccessRole: !isCrossSubscriptionDeployment
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
       agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
       inputEnableDspm: inputEnableDspm

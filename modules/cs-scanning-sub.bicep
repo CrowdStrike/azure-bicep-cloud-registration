@@ -79,6 +79,14 @@ var verifiedCrossHostSubscriptionEntry = isCrossSubscriptionDeployment && length
   ? fail('"agentlessScanningHostSubscriptionId" must match a subscription in the scanning environment subscriptions map')
   : crossHostSubscriptionEntry
 
+// Whether host sub uses custom VNet subnets (for custom VNet role creation)
+var hostSubUseCustomSubnets = isCrossSubscriptionDeployment && length(verifiedCrossHostSubscriptionEntry) > 0
+  ? length(filter(
+      verifiedCrossHostSubscriptionEntry[0].locations,
+      location => !empty(location.customScannersSubnet) && !empty(location.customClonesSubnet)
+    )) > 0
+  : false
+
 // Cross-account mode: create per-subscription roles for host sub
 module scanningHostRoles 'scanning-environment/scanningRolesForSub.bicep' = if (isCrossSubscriptionDeployment) {
   name: '${resourceNamePrefix}cs-scanning-host-roles${environment}${resourceNameSuffix}'
@@ -90,6 +98,8 @@ module scanningHostRoles 'scanning-environment/scanningRolesForSub.bicep' = if (
     resourceNameSuffix: resourceNameSuffix
     env: env
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
+    includeResourceGroupAccessRole: true
+    useCustomSubnets: hostSubUseCustomSubnets
   }
 }
 
@@ -114,6 +124,7 @@ module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCross
     accessRoleId: scanningHostRoles!.outputs.accessRoleId
     scannerRoleId: scanningHostRoles!.outputs.scannerRoleId
     resourceGroupAccessRoleId: scanningHostRoles!.outputs.resourceGroupAccessRoleId
+    customVnetSubnetRoleId: scanningHostRoles!.outputs.customVnetSubnetRoleId
     resourceGroupName: resourceGroupName
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
@@ -138,6 +149,7 @@ module scanningSub 'scanning-environment/scanningSubBatch.bicep' = [
       scanningManagedIdentityPrincipalId: isCrossSubscriptionDeployment
         ? scanningHostSub!.outputs.scanningManagedIdentityPrincipalId
         : ''
+      includeResourceGroupAccessRole: !isCrossSubscriptionDeployment
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
       agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
       inputEnableDspm: inputEnableDspm

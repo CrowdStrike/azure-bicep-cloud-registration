@@ -2,6 +2,7 @@ import {
   accessRolePermissions
   scannerRolePermissions
   resourceGroupAccessRolePermissions
+  customVnetSubnetRolePermissions
 } from '../../models/scanning-roles.bicep'
 
 targetScope = 'managementGroup'
@@ -28,10 +29,17 @@ param env string
 @description('Whether NAT Gateway is enabled. When false, public IP permissions are included for VM connectivity.')
 param agentlessScanningDeployNatGateway bool = true
 
+@description('Whether to create the resource group access role definition. Only needed for the MG containing the host subscription.')
+param includeResourceGroupAccessRole bool = true
+
+@description('Whether custom VNet subnets are used. When true, creates the custom VNet subnet access role.')
+param useCustomSubnets bool = false
+
 /* Variables */
 var accessRoleName = '${resourceNamePrefix}role-csscanning-access-${managementGroup().name}${resourceNameSuffix}'
 var scannerRoleName = '${resourceNamePrefix}role-csscanning-scanner-${managementGroup().name}${resourceNameSuffix}'
 var resourceGroupAccessRoleName = '${resourceNamePrefix}role-csscanning-rgaccess-${managementGroup().name}${resourceNameSuffix}'
+var customVnetRoleName = '${resourceNamePrefix}role-csscanning-custom-vnet-${managementGroup().name}${resourceNameSuffix}'
 
 /* Role Definitions */
 resource accessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
@@ -74,7 +82,7 @@ resource scannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
   }
 }
 
-resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
+resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (includeResourceGroupAccessRole) {
   name: guid(managementGroup().id, resourceGroupAccessRoleName, env)
   properties: {
     roleName: resourceGroupAccessRoleName
@@ -97,7 +105,28 @@ resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-0
   }
 }
 
+resource customVnetSubnetRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (useCustomSubnets) {
+  name: guid(managementGroup().id, 'customVnetSubnetAccess')
+  properties: {
+    roleName: customVnetRoleName
+    description: customVnetSubnetRolePermissions.description
+    type: 'CustomRole'
+    permissions: [
+      {
+        actions: customVnetSubnetRolePermissions.actions
+        notActions: []
+        dataActions: []
+        notDataActions: []
+      }
+    ]
+    assignableScopes: [
+      managementGroup().id
+    ]
+  }
+}
+
 /* Outputs */
 output accessRoleId string = accessRole.id
 output scannerRoleId string = scannerRole.id
-output resourceGroupAccessRoleId string = resourceGroupAccessRole.id
+output resourceGroupAccessRoleId string = includeResourceGroupAccessRole ? resourceGroupAccessRole.id : ''
+output customVnetSubnetRoleId string = useCustomSubnets ? customVnetSubnetRole.id : ''

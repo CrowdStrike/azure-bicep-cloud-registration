@@ -1,7 +1,3 @@
-import {
-  customVnetSubnetRolePermissions
-} from '../../models/scanning-roles.bicep'
-
 targetScope = 'subscription'
 
 /*
@@ -73,14 +69,12 @@ param scannerRoleId string
 @description('Role definition ID for resource group access role (created externally at MG or subscription scope).')
 param resourceGroupAccessRoleId string
 
+@description('Role definition ID for custom VNet subnet access role (created externally at subscription scope). Empty when custom subnets are not used.')
+param customVnetSubnetRoleId string = ''
+
 /* Variables */
-var useCustomSubnets = length(filter(
-  scanningEnvironmentLocations,
-  location => !empty(location.customScannersSubnet) && !empty(location.customClonesSubnet)
-)) > 0
 var environment = length(env) > 0 ? '-${env}' : env
 var shouldDeployResources = empty(agentlessScanningHostSubscriptionId) || subscription().subscriptionId == agentlessScanningHostSubscriptionId
-var customVnetRoleName = '${resourceNamePrefix}role-csscanning-custom-vnet-${subscription().subscriptionId}${resourceNameSuffix}'
 
 /* Role Assignments */
 resource accessRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
@@ -89,27 +83,6 @@ resource accessRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-0
     roleDefinitionId: accessRoleId
     principalId: scanningPrincipalId
     principalType: 'ServicePrincipal'
-  }
-}
-
-// Custom VNet role applies only to the host subscription (single sub) — no need for MG-scoped definition
-resource customVnetSubnetRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (useCustomSubnets) {
-  name: guid(subscription().id, 'customVnetSubnetAccess')
-  properties: {
-    roleName: customVnetRoleName
-    description: customVnetSubnetRolePermissions.description
-    type: 'CustomRole'
-    permissions: [
-      {
-        actions: customVnetSubnetRolePermissions.actions
-        notActions: []
-        dataActions: []
-        notDataActions: []
-      }
-    ]
-    assignableScopes: [
-      subscription().id
-    ]
   }
 }
 
@@ -156,7 +129,7 @@ module scanningRegion 'scanningRegion.bicep' = [
       customScannersSubnet: location.customScannersSubnet
       customClonesSubnet: location.customClonesSubnet
       scanningPrincipalId: scanningPrincipalId
-      customVnetSubnetRoleId: useCustomSubnets ? customVnetSubnetRole.id : ''
+      customVnetSubnetRoleId: customVnetSubnetRoleId
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix
       env: env

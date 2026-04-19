@@ -19,6 +19,9 @@ param scanningPrincipalId string
 @description('Azure locations (regions) where scanning environments will be deployed as subscription ID to locations map.')
 param scanningEnvironmentLocationsPerSubscriptionMap array = []
 
+@description('Per-management-group active subscription IDs from deployment scope. Each entry contains managementGroupId and activeSubscriptionIds array.')
+param subscriptionsByManagementGroup array = []
+
 @description('Name of the resource group where CrowdStrike infrastructure resources will be deployed.')
 param resourceGroupName string
 
@@ -72,26 +75,76 @@ var crossHostSubscriptionEntry = isCrossSubscriptionDeployment
       sub => sub.subscriptionId == agentlessScanningHostSubscriptionId
     )
   : []
-var nonCrossHostSubscriptionEntries = isCrossSubscriptionDeployment
-  ? filter(
-      scanningEnvironmentLocationsPerSubscriptionMap,
-      sub => sub.subscriptionId != agentlessScanningHostSubscriptionId
-    )
-  : scanningEnvironmentLocationsPerSubscriptionMap
 var verifiedCrossHostSubscriptionEntry = isCrossSubscriptionDeployment && length(crossHostSubscriptionEntry) == 0
   ? fail('"agentlessScanningHostSubscriptionId" must match a subscription in the scanning environment subscriptions map')
   : crossHostSubscriptionEntry
 
-// Define custom roles once at management group scope to avoid per-subscription role definition limits
-module scanningRoles 'scanning-environment/scanningRolesForMg.bicep' = {
-  name: '${resourceNamePrefix}cs-scanning-roles-mg${environment}${resourceNameSuffix}'
-  params: {
-    resourceNamePrefix: resourceNamePrefix
-    resourceNameSuffix: resourceNameSuffix
-    env: env
-    agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
+// Intersect MG subscription IDs with the scanning map to get per-MG scanning entries
+var scanningEntriesByManagementGroup = map(subscriptionsByManagementGroup, mgEntry => {
+  managementGroupId: mgEntry.managementGroupId
+  subscriptionEntries: filter(
+    scanningEnvironmentLocationsPerSubscriptionMap,
+    entry => contains(mgEntry.activeSubscriptionIds, entry.subscriptionId)
+  )
+})
+
+// Filter to MGs that have scanning subscriptions
+var mgEntriesWithSubscriptions = filter(
+  scanningEntriesByManagementGroup,
+  entry => length(entry.subscriptionEntries) > 0
+)
+
+// Order: host MG first (so scanningRoles[0] = host MG's roles)
+var hostMgEntries = isCrossSubscriptionDeployment
+  ? filter(
+      mgEntriesWithSubscriptions,
+      entry =>
+        !empty(filter(entry.subscriptionEntries, sub => sub.subscriptionId == agentlessScanningHostSubscriptionId))
+    )
+  : []
+var nonHostMgEntries = isCrossSubscriptionDeployment
+  ? filter(
+      mgEntriesWithSubscriptions,
+      entry =>
+        empty(filter(entry.subscriptionEntries, sub => sub.subscriptionId == agentlessScanningHostSubscriptionId))
+    )
+  : mgEntriesWithSubscriptions
+var orderedMgEntries = concat(hostMgEntries, nonHostMgEntries)
+
+// Standalone subs (in scanning map but NOT under any MG)
+var allMgSubscriptionIds = flatten(map(
+  scanningEntriesByManagementGroup,
+  entry => map(entry.subscriptionEntries, sub => sub.subscriptionId)
+))
+var standaloneSubscriptionEntries = filter(
+  scanningEnvironmentLocationsPerSubscriptionMap,
+  entry => !contains(allMgSubscriptionIds, entry.subscriptionId)
+)
+
+// Cross-account: exclude host from standalone batch (host is deployed separately)
+var nonHostStandaloneEntries = isCrossSubscriptionDeployment
+  ? filter(standaloneSubscriptionEntries, sub => sub.subscriptionId != agentlessScanningHostSubscriptionId)
+  : standaloneSubscriptionEntries
+
+// Is host sub standalone (not under any MG)?
+var isHostSubStandalone = isCrossSubscriptionDeployment && !empty(filter(
+  standaloneSubscriptionEntries,
+  sub => sub.subscriptionId == agentlessScanningHostSubscriptionId
+))
+
+/* Define custom roles at each management group scope */
+module scanningRoles 'scanning-environment/scanningRolesForMg.bicep' = [
+  for mgEntry in orderedMgEntries: {
+    name: '${resourceNamePrefix}cs-scanning-roles-${uniqueString(mgEntry.managementGroupId)}${environment}${resourceNameSuffix}'
+    scope: managementGroup(mgEntry.managementGroupId)
+    params: {
+      resourceNamePrefix: resourceNamePrefix
+      resourceNameSuffix: resourceNameSuffix
+      env: env
+      agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
+    }
   }
-}
+]
 
 // Cross-account mode: deploy full infra to host subscription first
 module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCrossSubscriptionDeployment && length(verifiedCrossHostSubscriptionEntry) > 0) {
@@ -111,9 +164,13 @@ module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCross
     inputAgentlessScanningLocations: inputAgentlessScanningLocations
     inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
     inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
-    subscriptionAccessRoleId: scanningRoles.outputs.subscriptionAccessRoleId
-    scannerRoleId: scanningRoles.outputs.scannerRoleId
-    resourceGroupAccessRoleId: scanningRoles.outputs.resourceGroupAccessRoleId
+    subscriptionAccessRoleId: !isHostSubStandalone && length(orderedMgEntries) > 0
+      ? scanningRoles[0].outputs.subscriptionAccessRoleId
+      : ''
+    scannerRoleId: !isHostSubStandalone && length(orderedMgEntries) > 0 ? scanningRoles[0].outputs.scannerRoleId : ''
+    resourceGroupAccessRoleId: !isHostSubStandalone && length(orderedMgEntries) > 0
+      ? scanningRoles[0].outputs.resourceGroupAccessRoleId
+      : ''
     resourceGroupName: resourceGroupName
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
@@ -122,32 +179,66 @@ module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCross
   }
 }
 
-// Per-account mode: deploy full infra to every subscription
-// Cross-account mode: deploy role assignments only to non-host subscriptions
-// Deploy in batches to handle 800+ subscriptions
-var totalSubscriptions = length(nonCrossHostSubscriptionEntries)
-var numberOfBatches = totalSubscriptions == 0 ? 0 : (totalSubscriptions + batchSize - 1) / batchSize
-module scanningSub 'scanning-environment/scanningSubBatch.bicep' = [
-  for i in range(0, numberOfBatches): {
-    name: '${resourceNamePrefix}cs-scanning-batch-${i}${environment}${resourceNameSuffix}'
-    scope: subscription(csInfraSubscriptionId)
+/* Deploy scanning infrastructure per management group */
+module scanningPerMg 'scanning-environment/scanningForMg.bicep' = [
+  for (mgEntry, i) in orderedMgEntries: {
+    name: '${resourceNamePrefix}cs-scanning-mg-${uniqueString(mgEntry.managementGroupId)}${environment}${resourceNameSuffix}'
+    scope: managementGroup(mgEntry.managementGroupId)
     params: {
-      subscriptionEntries: take(skip(nonCrossHostSubscriptionEntries, i * batchSize), batchSize)
+      subscriptionEntries: isCrossSubscriptionDeployment
+        ? filter(mgEntry.subscriptionEntries, sub => sub.subscriptionId != agentlessScanningHostSubscriptionId)
+        : mgEntry.subscriptionEntries
       falconClientId: falconClientId
       falconClientSecret: falconClientSecret
       scanningPrincipalId: scanningPrincipalId
       scanningManagedIdentityPrincipalId: isCrossSubscriptionDeployment
         ? scanningHostSub!.outputs.scanningManagedIdentityPrincipalId
         : ''
+      subscriptionAccessRoleId: scanningRoles[i].outputs.subscriptionAccessRoleId
+      scannerRoleId: scanningRoles[i].outputs.scannerRoleId
+      resourceGroupAccessRoleId: scanningRoles[i].outputs.resourceGroupAccessRoleId
+      csInfraSubscriptionId: csInfraSubscriptionId
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
       agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
       inputEnableDspm: inputEnableDspm
       inputAgentlessScanningLocations: inputAgentlessScanningLocations
       inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
       inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
-      subscriptionAccessRoleId: scanningRoles.outputs.subscriptionAccessRoleId
-      scannerRoleId: scanningRoles.outputs.scannerRoleId
-      resourceGroupAccessRoleId: scanningRoles.outputs.resourceGroupAccessRoleId
+      resourceGroupName: resourceGroupName
+      resourceNamePrefix: resourceNamePrefix
+      resourceNameSuffix: resourceNameSuffix
+      env: env
+      tags: tags
+      batchSize: batchSize
+    }
+  }
+]
+
+/* Deploy scanning for standalone subscriptions (not under any management group) */
+var totalStandaloneSubs = length(nonHostStandaloneEntries)
+var standaloneNumberOfBatches = totalStandaloneSubs == 0 ? 0 : (totalStandaloneSubs + batchSize - 1) / batchSize
+
+module scanningStandaloneBatch 'scanning-environment/scanningSubBatch.bicep' = [
+  for i in range(0, standaloneNumberOfBatches): {
+    name: '${resourceNamePrefix}cs-scanning-standalone-${i}${environment}${resourceNameSuffix}'
+    scope: subscription(csInfraSubscriptionId)
+    params: {
+      subscriptionEntries: take(skip(nonHostStandaloneEntries, i * batchSize), batchSize)
+      falconClientId: falconClientId
+      falconClientSecret: falconClientSecret
+      scanningPrincipalId: scanningPrincipalId
+      scanningManagedIdentityPrincipalId: isCrossSubscriptionDeployment
+        ? scanningHostSub!.outputs.scanningManagedIdentityPrincipalId
+        : ''
+      subscriptionAccessRoleId: ''
+      scannerRoleId: ''
+      resourceGroupAccessRoleId: ''
+      agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
+      agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
+      inputEnableDspm: inputEnableDspm
+      inputAgentlessScanningLocations: inputAgentlessScanningLocations
+      inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
+      inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
       resourceGroupName: resourceGroupName
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix

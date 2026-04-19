@@ -8,7 +8,7 @@ targetScope = 'managementGroup'
 
 /*
   This Bicep template defines custom role definitions at management group scope
-  for CrowdStrike Scanning, reducing the number of custom roles consumed per tenant.
+  for CrowdStrike Scanning.
   Copyright (c) 2026 CrowdStrike, Inc.
 */
 

@@ -362,6 +362,10 @@ var scanningEnvironmentLocationsPerSubscriptionMap = !empty(validatedDspmLocatio
           : ''
       })
     })
+
+/* Per-management-group subscription mapping from deployment scope */
+var subscriptionsByMg = shouldResolveDeploymentScope ? deploymentScope!.outputs.subscriptionsByManagementGroup : []
+
 module scanningEnvironment 'modules/cs-scanning-mg.bicep' = if (shouldDeployScanningEnvironment) {
   name: '${validatedResourceNamePrefix}cs-scanning-mg${environment}${validatedResourceNameSuffix}'
   params: {
@@ -369,6 +373,7 @@ module scanningEnvironment 'modules/cs-scanning-mg.bicep' = if (shouldDeployScan
     falconClientSecret: validatedFalconClientSecret
     scanningPrincipalId: azurePrincipalId
     scanningEnvironmentLocationsPerSubscriptionMap: scanningEnvironmentLocationsPerSubscriptionMap
+    subscriptionsByManagementGroup: subscriptionsByMg
     csInfraSubscriptionId: csInfraSubscriptionId
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
     agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId

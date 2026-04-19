@@ -138,6 +138,7 @@ resource scannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (
   }
 }
 
+// Custom VNet role applies only to the host subscription (single sub) — no need for MG-scoped definition
 resource customVnetSubnetRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (useCustomSubnets) {
   name: guid(subscription().id, 'customVnetSubnetAccess')
   properties: {

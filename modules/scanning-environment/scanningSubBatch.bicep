@@ -60,21 +60,36 @@ param inputAgentlessScanningLocationsPerSubscription object = {}
 @description('Per-region custom VNet configuration for agentless scanning.')
 param inputAgentlessScanningCustomVnetConfiguration object = {}
 
-@description('Role definition ID for subscription access role. When provided, skips per-subscription role creation (management group mode).')
+@description('Role definition ID for access role. When provided, uses MG-scoped role instead of creating per-subscription.')
 param accessRoleId string = ''
 
-@description('Role definition ID for scanner role. When provided, skips per-subscription role creation (management group mode).')
+@description('Role definition ID for scanner role. When provided, uses MG-scoped role instead of creating per-subscription.')
 param scannerRoleId string = ''
 
-@description('Role definition ID for resource group access role. When provided, skips per-subscription role creation (management group mode).')
+@description('Role definition ID for resource group access role. When provided, uses MG-scoped role instead of creating per-subscription.')
 param resourceGroupAccessRoleId string = ''
 
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
+var useExternalRoles = !empty(accessRoleId)
+
+/* Create per-subscription roles when no MG-scoped roles are provided */
+module subRoles 'scanningRolesForSub.bicep' = [
+  for sub in subscriptionEntries: if (!useExternalRoles) {
+    name: '${resourceNamePrefix}cs-scanning-roles-${uniqueString(sub.subscriptionId)}${environment}${resourceNameSuffix}'
+    scope: subscription(sub.subscriptionId)
+    params: {
+      resourceNamePrefix: resourceNamePrefix
+      resourceNameSuffix: resourceNameSuffix
+      env: env
+      agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
+    }
+  }
+]
 
 /* Deploy scanning infrastructure for subscriptions in this batch */
 module scanningSub 'scanningForSub.bicep' = [
-  for sub in subscriptionEntries: {
+  for (sub, i) in subscriptionEntries: {
     name: '${resourceNamePrefix}cs-scanning-${sub.subscriptionId}${environment}${resourceNameSuffix}'
     scope: subscription(sub.subscriptionId)
     params: {
@@ -89,9 +104,11 @@ module scanningSub 'scanningForSub.bicep' = [
       inputAgentlessScanningLocations: inputAgentlessScanningLocations
       inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
       inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
-      accessRoleId: accessRoleId
-      scannerRoleId: scannerRoleId
-      resourceGroupAccessRoleId: resourceGroupAccessRoleId
+      accessRoleId: useExternalRoles ? accessRoleId : subRoles[i]!.outputs.accessRoleId
+      scannerRoleId: useExternalRoles ? scannerRoleId : subRoles[i]!.outputs.scannerRoleId
+      resourceGroupAccessRoleId: useExternalRoles
+        ? resourceGroupAccessRoleId
+        : subRoles[i]!.outputs.resourceGroupAccessRoleId
       resourceGroupName: resourceGroupName
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix

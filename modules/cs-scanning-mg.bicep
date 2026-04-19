@@ -146,6 +146,18 @@ module scanningRoles 'scanning-environment/scanningRolesForMg.bicep' = [
   }
 ]
 
+/* Create per-subscription roles for host sub when it's not under any MG */
+module scanningHostRoles 'scanning-environment/scanningRolesForSub.bicep' = if (isHostSubStandalone) {
+  name: '${resourceNamePrefix}cs-scanning-host-roles${environment}${resourceNameSuffix}'
+  scope: subscription(agentlessScanningHostSubscriptionId)
+  params: {
+    resourceNamePrefix: resourceNamePrefix
+    resourceNameSuffix: resourceNameSuffix
+    env: env
+    agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
+  }
+}
+
 // Cross-account mode: deploy full infra to host subscription first
 module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCrossSubscriptionDeployment && length(verifiedCrossHostSubscriptionEntry) > 0) {
   name: '${resourceNamePrefix}cs-scanning-host${environment}${resourceNameSuffix}'
@@ -164,11 +176,13 @@ module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCross
     inputAgentlessScanningLocations: inputAgentlessScanningLocations
     inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
     inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
-    accessRoleId: !isHostSubStandalone && length(orderedMgEntries) > 0 ? scanningRoles[0].outputs.accessRoleId : ''
-    scannerRoleId: !isHostSubStandalone && length(orderedMgEntries) > 0 ? scanningRoles[0].outputs.scannerRoleId : ''
-    resourceGroupAccessRoleId: !isHostSubStandalone && length(orderedMgEntries) > 0
-      ? scanningRoles[0].outputs.resourceGroupAccessRoleId
-      : ''
+    accessRoleId: isHostSubStandalone ? scanningHostRoles!.outputs.accessRoleId : scanningRoles[0].outputs.accessRoleId
+    scannerRoleId: isHostSubStandalone
+      ? scanningHostRoles!.outputs.scannerRoleId
+      : scanningRoles[0].outputs.scannerRoleId
+    resourceGroupAccessRoleId: isHostSubStandalone
+      ? scanningHostRoles!.outputs.resourceGroupAccessRoleId
+      : scanningRoles[0].outputs.resourceGroupAccessRoleId
     resourceGroupName: resourceGroupName
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix

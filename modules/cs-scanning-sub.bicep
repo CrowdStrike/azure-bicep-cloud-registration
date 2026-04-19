@@ -79,6 +79,20 @@ var verifiedCrossHostSubscriptionEntry = isCrossSubscriptionDeployment && length
   ? fail('"agentlessScanningHostSubscriptionId" must match a subscription in the scanning environment subscriptions map')
   : crossHostSubscriptionEntry
 
+// Cross-account mode: create per-subscription roles for host sub
+module scanningHostRoles 'scanning-environment/scanningRolesForSub.bicep' = if (isCrossSubscriptionDeployment) {
+  name: '${resourceNamePrefix}cs-scanning-host-roles${environment}${resourceNameSuffix}'
+  scope: subscription(isCrossSubscriptionDeployment
+    ? agentlessScanningHostSubscriptionId
+    : scanningEnvironmentLocationsPerSubscriptionMap[0].subscriptionId)
+  params: {
+    resourceNamePrefix: resourceNamePrefix
+    resourceNameSuffix: resourceNameSuffix
+    env: env
+    agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
+  }
+}
+
 // Cross-account mode: deploy full infra to host subscription first
 module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCrossSubscriptionDeployment && length(verifiedCrossHostSubscriptionEntry) > 0) {
   name: '${resourceNamePrefix}cs-scanning-host${environment}${resourceNameSuffix}'
@@ -97,6 +111,9 @@ module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCross
     inputAgentlessScanningLocations: inputAgentlessScanningLocations
     inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
     inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
+    accessRoleId: scanningHostRoles!.outputs.accessRoleId
+    scannerRoleId: scanningHostRoles!.outputs.scannerRoleId
+    resourceGroupAccessRoleId: scanningHostRoles!.outputs.resourceGroupAccessRoleId
     resourceGroupName: resourceGroupName
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix

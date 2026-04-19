@@ -164,9 +164,7 @@ module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCross
     inputAgentlessScanningLocations: inputAgentlessScanningLocations
     inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
     inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
-    subscriptionAccessRoleId: !isHostSubStandalone && length(orderedMgEntries) > 0
-      ? scanningRoles[0].outputs.subscriptionAccessRoleId
-      : ''
+    accessRoleId: !isHostSubStandalone && length(orderedMgEntries) > 0 ? scanningRoles[0].outputs.accessRoleId : ''
     scannerRoleId: !isHostSubStandalone && length(orderedMgEntries) > 0 ? scanningRoles[0].outputs.scannerRoleId : ''
     resourceGroupAccessRoleId: !isHostSubStandalone && length(orderedMgEntries) > 0
       ? scanningRoles[0].outputs.resourceGroupAccessRoleId
@@ -194,7 +192,7 @@ module scanningPerMg 'scanning-environment/scanningForMg.bicep' = [
       scanningManagedIdentityPrincipalId: isCrossSubscriptionDeployment
         ? scanningHostSub!.outputs.scanningManagedIdentityPrincipalId
         : ''
-      subscriptionAccessRoleId: scanningRoles[i].outputs.subscriptionAccessRoleId
+      accessRoleId: scanningRoles[i].outputs.accessRoleId
       scannerRoleId: scanningRoles[i].outputs.scannerRoleId
       resourceGroupAccessRoleId: scanningRoles[i].outputs.resourceGroupAccessRoleId
       csInfraSubscriptionId: csInfraSubscriptionId
@@ -230,7 +228,7 @@ module scanningStandaloneBatch 'scanning-environment/scanningSubBatch.bicep' = [
       scanningManagedIdentityPrincipalId: isCrossSubscriptionDeployment
         ? scanningHostSub!.outputs.scanningManagedIdentityPrincipalId
         : ''
-      subscriptionAccessRoleId: ''
+      accessRoleId: ''
       scannerRoleId: ''
       resourceGroupAccessRoleId: ''
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway

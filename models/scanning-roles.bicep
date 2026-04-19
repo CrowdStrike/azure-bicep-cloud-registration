@@ -6,9 +6,9 @@
 */
 
 @export()
-@description('Permissions for the CrowdStrike Scanning Subscription Access Role.')
-var subscriptionAccessRolePermissions = {
-  description: 'CrowdStrike Scanning Subscription Access Role'
+@description('Permissions for the CrowdStrike Scanning Access Role.')
+var accessRolePermissions = {
+  description: 'CrowdStrike Scanning Access Role'
   actions: [
     // ============ Blob Storage ============
     'Microsoft.Storage/storageAccounts/read' // Check location and public access

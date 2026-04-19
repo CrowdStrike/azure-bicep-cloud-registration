@@ -63,7 +63,7 @@ param inputAgentlessScanningLocationsPerSubscription object = {}
 param inputAgentlessScanningCustomVnetConfiguration object = {}
 
 @description('Role definition ID for subscription access role from management group scope.')
-param subscriptionAccessRoleId string = ''
+param accessRoleId string = ''
 
 @description('Role definition ID for scanner role from management group scope.')
 param scannerRoleId string = ''
@@ -98,7 +98,7 @@ module scanningSub 'scanningSubBatch.bicep' = [
       inputAgentlessScanningLocations: inputAgentlessScanningLocations
       inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
       inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
-      subscriptionAccessRoleId: subscriptionAccessRoleId
+      accessRoleId: accessRoleId
       scannerRoleId: scannerRoleId
       resourceGroupAccessRoleId: resourceGroupAccessRoleId
       resourceGroupName: resourceGroupName

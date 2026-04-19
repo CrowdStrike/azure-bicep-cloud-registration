@@ -1,5 +1,5 @@
 import {
-  subscriptionAccessRolePermissions
+  accessRolePermissions
   scannerRolePermissions
   customVnetSubnetRolePermissions
 } from '../../models/scanning-roles.bicep'
@@ -65,7 +65,7 @@ param inputAgentlessScanningLocationsPerSubscription object = {}
 param inputAgentlessScanningCustomVnetConfiguration object = {}
 
 @description('Role definition ID for subscription access role. When provided, skips per-subscription role creation (management group mode).')
-param subscriptionAccessRoleId string = ''
+param accessRoleId string = ''
 
 @description('Role definition ID for scanner role. When provided, skips per-subscription role creation (management group mode).')
 param scannerRoleId string = ''
@@ -74,7 +74,7 @@ param scannerRoleId string = ''
 param resourceGroupAccessRoleId string = ''
 
 /* Variables */
-var useExternalRoles = !empty(subscriptionAccessRoleId)
+var useExternalRoles = !empty(accessRoleId)
 var useCustomSubnets = length(filter(
   scanningEnvironmentLocations,
   location => !empty(location.customScannersSubnet) && !empty(location.customClonesSubnet)
@@ -89,11 +89,11 @@ resource subscriptionAccessRole 'Microsoft.Authorization/roleDefinitions@2022-04
   name: guid(subscription().id, subscriptionAccessRoleName)
   properties: {
     roleName: subscriptionAccessRoleName
-    description: subscriptionAccessRolePermissions.description
+    description: accessRolePermissions.description
     type: 'CustomRole'
     permissions: [
       {
-        actions: subscriptionAccessRolePermissions.actions
+        actions: accessRolePermissions.actions
         notActions: []
         dataActions: []
         notDataActions: []
@@ -106,13 +106,9 @@ resource subscriptionAccessRole 'Microsoft.Authorization/roleDefinitions@2022-04
 }
 
 resource accessRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(
-    subscription().id,
-    scanningPrincipalId,
-    useExternalRoles ? subscriptionAccessRoleId : subscriptionAccessRole.id
-  )
+  name: guid(subscription().id, scanningPrincipalId, useExternalRoles ? accessRoleId : subscriptionAccessRole.id)
   properties: {
-    roleDefinitionId: useExternalRoles ? subscriptionAccessRoleId : subscriptionAccessRole.id
+    roleDefinitionId: useExternalRoles ? accessRoleId : subscriptionAccessRole.id
     principalId: scanningPrincipalId
     principalType: 'ServicePrincipal'
   }

@@ -55,12 +55,10 @@ resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-0
     type: 'CustomRole'
     permissions: [
       {
-        actions: !agentlessScanningDeployNatGateway
-          ? union(
-              resourceGroupAccessRolePermissions.actions,
-              resourceGroupAccessRolePermissions.conditionalPublicIPActions
-            )
-          : resourceGroupAccessRolePermissions.actions
+        actions: union(
+          resourceGroupAccessRolePermissions.actions,
+          !agentlessScanningDeployNatGateway ? resourceGroupAccessRolePermissions.conditionalPublicIPActions : []
+        )
         notActions: []
         dataActions: []
         notDataActions: []

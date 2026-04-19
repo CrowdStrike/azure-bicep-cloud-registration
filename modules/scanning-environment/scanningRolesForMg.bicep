@@ -1,5 +1,5 @@
 import {
-  subscriptionAccessRolePermissions
+  accessRolePermissions
   scannerRolePermissions
   resourceGroupAccessRolePermissions
 } from '../../models/scanning-roles.bicep'
@@ -29,20 +29,20 @@ param env string
 param agentlessScanningDeployNatGateway bool = true
 
 /* Variables */
-var subscriptionAccessRoleName = '${resourceNamePrefix}role-csscanning-access-${managementGroup().name}${resourceNameSuffix}'
+var accessRoleName = '${resourceNamePrefix}role-csscanning-access-${managementGroup().name}${resourceNameSuffix}'
 var scannerRoleName = '${resourceNamePrefix}role-csscanning-scanner-${managementGroup().name}${resourceNameSuffix}'
 var resourceGroupAccessRoleName = '${resourceNamePrefix}role-csscanning-rgaccess-${managementGroup().name}${resourceNameSuffix}'
 
 /* Role Definitions */
-resource subscriptionAccessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
-  name: guid(managementGroup().id, subscriptionAccessRoleName, env)
+resource accessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
+  name: guid(managementGroup().id, accessRoleName, env)
   properties: {
-    roleName: subscriptionAccessRoleName
-    description: subscriptionAccessRolePermissions.description
+    roleName: accessRoleName
+    description: accessRolePermissions.description
     type: 'CustomRole'
     permissions: [
       {
-        actions: subscriptionAccessRolePermissions.actions
+        actions: accessRolePermissions.actions
         notActions: []
         dataActions: []
         notDataActions: []
@@ -82,12 +82,10 @@ resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-0
     type: 'CustomRole'
     permissions: [
       {
-        actions: !agentlessScanningDeployNatGateway
-          ? union(
-              resourceGroupAccessRolePermissions.actions,
-              resourceGroupAccessRolePermissions.conditionalPublicIPActions
-            )
-          : resourceGroupAccessRolePermissions.actions
+        actions: union(
+          resourceGroupAccessRolePermissions.actions,
+          !agentlessScanningDeployNatGateway ? resourceGroupAccessRolePermissions.conditionalPublicIPActions : []
+        )
         notActions: []
         dataActions: []
         notDataActions: []
@@ -100,6 +98,6 @@ resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-0
 }
 
 /* Outputs */
-output subscriptionAccessRoleId string = subscriptionAccessRole.id
+output accessRoleId string = accessRole.id
 output scannerRoleId string = scannerRole.id
 output resourceGroupAccessRoleId string = resourceGroupAccessRole.id

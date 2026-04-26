@@ -21,9 +21,9 @@ var accessRolePermissions = {
 }
 
 @export()
-@description('Permissions for the CrowdStrike Scanning Subscription Scanner Role.')
+@description('Permissions for the CrowdStrike Scanning Scanner Role.')
 var scannerRolePermissions = {
-  description: 'CrowdStrike Scanning Subscription Scanner Role'
+  description: 'CrowdStrike Scanning Scanner Role'
   actions: [
     'Microsoft.Storage/storageAccounts/blobServices/containers/read'
   ]

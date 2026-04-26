@@ -96,7 +96,6 @@ module scanningHostRoles 'scanning-environment/scanningRolesForSub.bicep' = if (
   params: {
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
-    env: env
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
     includeResourceGroupAccessRole: true
     useCustomSubnets: hostSubUseCustomSubnets

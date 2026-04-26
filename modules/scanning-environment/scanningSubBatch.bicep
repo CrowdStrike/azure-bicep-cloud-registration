@@ -84,7 +84,6 @@ module subRoles 'scanningRolesForSub.bicep' = [
     params: {
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix
-      env: env
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
       includeResourceGroupAccessRole: includeResourceGroupAccessRole
     }

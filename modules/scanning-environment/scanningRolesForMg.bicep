@@ -22,10 +22,6 @@ param resourceNamePrefix string = ''
 @description('Optional suffix added to all resource names for organization and identification purposes.')
 param resourceNameSuffix string = ''
 
-@maxLength(4)
-@description('Environment label (for example, prod, stag, dev) used for resource naming and tagging. Helps distinguish between different deployment environments.')
-param env string
-
 @description('Whether NAT Gateway is enabled. When false, public IP permissions are included for VM connectivity.')
 param agentlessScanningDeployNatGateway bool = true
 
@@ -43,7 +39,7 @@ var customVnetRoleName = '${resourceNamePrefix}role-csscanning-custom-vnet-${man
 
 /* Role Definitions */
 resource accessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
-  name: guid(managementGroup().id, accessRoleName, env)
+  name: guid(managementGroup().id, accessRoleName)
   properties: {
     roleName: accessRoleName
     description: accessRolePermissions.description
@@ -63,7 +59,7 @@ resource accessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
 }
 
 resource scannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
-  name: guid(managementGroup().id, scannerRoleName, env)
+  name: guid(managementGroup().id, scannerRoleName)
   properties: {
     roleName: scannerRoleName
     description: scannerRolePermissions.description
@@ -83,7 +79,7 @@ resource scannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
 }
 
 resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (includeResourceGroupAccessRole) {
-  name: guid(managementGroup().id, resourceGroupAccessRoleName, env)
+  name: guid(managementGroup().id, resourceGroupAccessRoleName)
   properties: {
     roleName: resourceGroupAccessRoleName
     description: resourceGroupAccessRolePermissions.description

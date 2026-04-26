@@ -6,9 +6,9 @@
 */
 
 @export()
-@description('Permissions for the CrowdStrike Scanning Access Role.')
+@description('Permissions for the CrowdStrike Agentless Scanning Access Role.')
 var accessRolePermissions = {
-  description: 'CrowdStrike Scanning Access Role'
+  description: 'CrowdStrike Agentless Scanning Access Role'
   actions: [
     // ============ Blob Storage ============
     'Microsoft.Storage/storageAccounts/read' // Check location and public access
@@ -21,9 +21,9 @@ var accessRolePermissions = {
 }
 
 @export()
-@description('Permissions for the CrowdStrike Scanning Scanner Role.')
+@description('Permissions for the CrowdStrike Agentless Scanning Scanner Role.')
 var scannerRolePermissions = {
-  description: 'CrowdStrike Scanning Scanner Role'
+  description: 'CrowdStrike Agentless Scanning Scanner Role'
   actions: [
     'Microsoft.Storage/storageAccounts/blobServices/containers/read'
   ]
@@ -82,9 +82,9 @@ var resourceGroupAccessRolePermissions = {
 }
 
 @export()
-@description('Permissions for the CrowdStrike Custom VNet Subnet Access Role.')
+@description('Permissions for the CrowdStrike Agentless Scanning Custom VNet Subnet Access Role.')
 var customVnetSubnetRolePermissions = {
-  description: 'CrowdStrike Custom VNet Subnet Access Role'
+  description: 'CrowdStrike Agentless Scanning Custom VNet Subnet Access Role'
   actions: [
     'Microsoft.Network/virtualNetworks/subnets/join/action'
     'Microsoft.Network/virtualNetworks/read'

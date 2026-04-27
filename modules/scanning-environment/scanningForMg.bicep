@@ -84,7 +84,7 @@ var numberOfBatches = totalSubscriptions == 0 ? 0 : (totalSubscriptions + batchS
 /* Deploy scanning infrastructure in batches */
 module scanningSub 'scanningSubBatch.bicep' = [
   for i in range(0, numberOfBatches): {
-    name: '${resourceNamePrefix}cs-scanning-batch-${i}${environment}${resourceNameSuffix}'
+    name: '${resourceNamePrefix}cs-sc-${uniqueString(managementGroup().name)}-${i}${environment}${resourceNameSuffix}'
     scope: subscription(csInfraSubscriptionId)
     params: {
       subscriptionEntries: take(skip(subscriptionEntries, i * batchSize), batchSize)

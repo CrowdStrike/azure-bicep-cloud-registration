@@ -144,7 +144,7 @@ var hostSubUseCustomSubnets = isCrossSubscriptionDeployment && length(verifiedCr
 
 /* Define custom roles at host MG scope (cross-account, host sub under MG) */
 module scanningHostMgRoles 'scanning-environment/scanningRolesForMg.bicep' = if (isHostSubUnderMg) {
-  name: '${resourceNamePrefix}cs-scanning-host-mg-roles-${uniqueString(hostMgEntries[0].managementGroupId)}${environment}${resourceNameSuffix}'
+  name: '${resourceNamePrefix}cs-scanning-host-mg-roles-${uniqueString(isHostSubUnderMg ? hostMgEntries[0].managementGroupId : managementGroup().name)}${environment}${resourceNameSuffix}'
   scope: managementGroup(isHostSubUnderMg ? hostMgEntries[0].managementGroupId : managementGroup().name)
   params: {
     resourceNamePrefix: resourceNamePrefix
@@ -172,7 +172,9 @@ module scanningRoles 'scanning-environment/scanningRolesForMg.bicep' = [
 /* Create per-subscription roles for host sub when it's not under any MG */
 module scanningHostRoles 'scanning-environment/scanningRolesForSub.bicep' = if (isHostSubStandalone) {
   name: '${resourceNamePrefix}cs-scanning-host-roles${environment}${resourceNameSuffix}'
-  scope: subscription(agentlessScanningHostSubscriptionId)
+  scope: subscription(isHostSubStandalone
+    ? agentlessScanningHostSubscriptionId
+    : scanningEnvironmentLocationsPerSubscriptionMap[0].subscriptionId)
   params: {
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
@@ -193,7 +195,9 @@ module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCross
     falconClientId: falconClientId
     falconClientSecret: falconClientSecret
     scanningPrincipalId: scanningPrincipalId
-    scanningEnvironmentLocations: verifiedCrossHostSubscriptionEntry[0].locations
+    scanningEnvironmentLocations: isCrossSubscriptionDeployment && length(verifiedCrossHostSubscriptionEntry) > 0
+      ? verifiedCrossHostSubscriptionEntry[0].locations
+      : []
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
     agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
     inputEnableDspm: inputEnableDspm
@@ -220,7 +224,7 @@ module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCross
 
 /* Deploy scanning infrastructure for non-host subs in the host MG (cross-account) */
 module scanningHostPerMg 'scanning-environment/scanningForMg.bicep' = if (isHostSubUnderMg) {
-  name: '${resourceNamePrefix}cs-scanning-host-mg-${uniqueString(hostMgEntries[0].managementGroupId)}${environment}${resourceNameSuffix}'
+  name: '${resourceNamePrefix}cs-scanning-host-mg-${uniqueString(isHostSubUnderMg ? hostMgEntries[0].managementGroupId : managementGroup().name)}${environment}${resourceNameSuffix}'
   scope: managementGroup(isHostSubUnderMg ? hostMgEntries[0].managementGroupId : managementGroup().name)
   params: {
     subscriptionEntries: isHostSubUnderMg

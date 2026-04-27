@@ -113,7 +113,9 @@ module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCross
     falconClientId: falconClientId
     falconClientSecret: falconClientSecret
     scanningPrincipalId: scanningPrincipalId
-    scanningEnvironmentLocations: verifiedCrossHostSubscriptionEntry[0].locations
+    scanningEnvironmentLocations: isCrossSubscriptionDeployment && length(verifiedCrossHostSubscriptionEntry) > 0
+      ? verifiedCrossHostSubscriptionEntry[0].locations
+      : []
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
     agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
     inputEnableDspm: inputEnableDspm

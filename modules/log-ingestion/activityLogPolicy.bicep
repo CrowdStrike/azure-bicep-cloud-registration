@@ -78,6 +78,9 @@ resource activityLogPolicyAssignment 'Microsoft.Authorization/policyAssignments@
       diagnosticSettingName: {
         value: activityLogDiagnosticSettingsName
       }
+      location: {
+        value: location
+      }
     }
   }
 }

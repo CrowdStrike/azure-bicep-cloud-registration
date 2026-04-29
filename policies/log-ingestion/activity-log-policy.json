@@ -42,6 +42,13 @@
         "metadata": {
           "displayName": "Subscription ID hosting the EventHub instance"
         }
+      },
+      "location": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Deployment Location",
+          "description": "Azure region where the remediation deployment will be created."
+        }
       }
     },
     "policyRule": {
@@ -72,7 +79,7 @@
             ]
           },
           "deployment": {
-            "location": "westeurope",
+            "location": "[parameters('location')]",
             "properties": {
               "mode": "incremental",
               "template": {

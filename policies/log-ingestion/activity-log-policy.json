@@ -42,14 +42,6 @@
         "metadata": {
           "displayName": "Subscription ID hosting the EventHub instance"
         }
-      },
-      "location": {
-        "type": "String",
-        "metadata": {
-          "displayName": "Deployment Location",
-          "description": "Azure region where the remediation deployment will be created."
-        },
-        "defaultValue": "westeurope"
       }
     },
     "policyRule": {
@@ -80,7 +72,7 @@
             ]
           },
           "deployment": {
-            "location": "[parameters('location')]",
+            "location": "__DEPLOYMENT_LOCATION__",
             "properties": {
               "mode": "incremental",
               "template": {
@@ -97,9 +89,6 @@
                     "type": "string"
                   },
                   "eventHubSubscriptionId": {
-                    "type": "string"
-                  },
-                  "location": {
                     "type": "string"
                   }
                 },
@@ -164,9 +153,6 @@
                 },
                 "eventHubSubscriptionId": {
                   "value": "[parameters('eventHubSubscriptionId')]"
-                },
-                "location": {
-                  "value": "[parameters('location')]"
                 }
               }
             }

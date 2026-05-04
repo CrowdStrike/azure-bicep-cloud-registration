@@ -48,7 +48,8 @@
         "metadata": {
           "displayName": "Deployment Location",
           "description": "Azure region where the remediation deployment will be created."
-        }
+        },
+        "defaultValue": "westeurope"
       }
     },
     "policyRule": {
@@ -96,6 +97,9 @@
                     "type": "string"
                   },
                   "eventHubSubscriptionId": {
+                    "type": "string"
+                  },
+                  "location": {
                     "type": "string"
                   }
                 },
@@ -160,6 +164,9 @@
                 },
                 "eventHubSubscriptionId": {
                   "value": "[parameters('eventHubSubscriptionId')]"
+                },
+                "location": {
+                  "value": "[parameters('location')]"
                 }
               }
             }

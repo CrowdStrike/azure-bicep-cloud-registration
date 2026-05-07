@@ -330,10 +330,16 @@ var scanningEnvironmentLocationsPerSubscriptionMap = !empty(validatedDspmLocatio
       subscriptionId: entity.key
       locations: map(entity.value, location => {
         name: location
-        customScannersSubnet: contains(validatedCustomVnetConfiguration, location)
+        customScannersSubnet: entity.key == agentlessScanningHostSubscriptionId && contains(
+            validatedCustomVnetConfiguration,
+            location
+          )
           ? validatedCustomVnetConfiguration[location].scanners_subnet_id
           : ''
-        customClonesSubnet: contains(validatedCustomVnetConfiguration, location)
+        customClonesSubnet: entity.key == agentlessScanningHostSubscriptionId && contains(
+            validatedCustomVnetConfiguration,
+            location
+          )
           ? validatedCustomVnetConfiguration[location].clones_subnet_id
           : ''
       })
@@ -342,14 +348,24 @@ var scanningEnvironmentLocationsPerSubscriptionMap = !empty(validatedDspmLocatio
       subscriptionId: subscriptionId
       locations: map(validatedDspmLocations, location => {
         name: location
-        customScannersSubnet: contains(validatedCustomVnetConfiguration, location)
+        customScannersSubnet: subscriptionId == agentlessScanningHostSubscriptionId && contains(
+            validatedCustomVnetConfiguration,
+            location
+          )
           ? validatedCustomVnetConfiguration[location].scanners_subnet_id
           : ''
-        customClonesSubnet: contains(validatedCustomVnetConfiguration, location)
+        customClonesSubnet: subscriptionId == agentlessScanningHostSubscriptionId && contains(
+            validatedCustomVnetConfiguration,
+            location
+          )
           ? validatedCustomVnetConfiguration[location].clones_subnet_id
           : ''
       })
     })
+
+/* Per-management-group subscription mapping from deployment scope */
+var subscriptionsByMg = shouldResolveDeploymentScope ? deploymentScope!.outputs.subscriptionsByManagementGroup : []
+
 module scanningEnvironment 'modules/cs-scanning-mg.bicep' = if (shouldDeployScanningEnvironment) {
   name: '${validatedResourceNamePrefix}cs-scanning-mg${environment}${validatedResourceNameSuffix}'
   params: {
@@ -357,6 +373,7 @@ module scanningEnvironment 'modules/cs-scanning-mg.bicep' = if (shouldDeployScan
     falconClientSecret: validatedFalconClientSecret
     scanningPrincipalId: azurePrincipalId
     scanningEnvironmentLocationsPerSubscriptionMap: scanningEnvironmentLocationsPerSubscriptionMap
+    subscriptionsByManagementGroup: subscriptionsByMg
     csInfraSubscriptionId: csInfraSubscriptionId
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
     agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId

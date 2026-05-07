@@ -2,7 +2,7 @@ targetScope = 'subscription'
 
 /*
   This Bicep template deploys infrastructure to enable CrowdStrike Scanning
-  Copyright (c) 2025 CrowdStrike, Inc.
+  Copyright (c) 2026 CrowdStrike, Inc.
 */
 
 /* Parameters */
@@ -79,6 +79,29 @@ var verifiedCrossHostSubscriptionEntry = isCrossSubscriptionDeployment && length
   ? fail('"agentlessScanningHostSubscriptionId" must match a subscription in the scanning environment subscriptions map')
   : crossHostSubscriptionEntry
 
+// Whether host sub uses custom VNet subnets (for custom VNet role creation)
+var hostSubUseCustomSubnets = isCrossSubscriptionDeployment && length(verifiedCrossHostSubscriptionEntry) > 0
+  ? length(filter(
+      verifiedCrossHostSubscriptionEntry[0].locations,
+      location => !empty(location.customScannersSubnet) && !empty(location.customClonesSubnet)
+    )) > 0
+  : false
+
+// Cross-account mode: create per-subscription roles for host sub
+module scanningHostRoles 'scanning-environment/scanningRolesForSub.bicep' = if (isCrossSubscriptionDeployment) {
+  name: '${resourceNamePrefix}cs-scanning-host-roles${environment}${resourceNameSuffix}'
+  scope: subscription(isCrossSubscriptionDeployment
+    ? agentlessScanningHostSubscriptionId
+    : scanningEnvironmentLocationsPerSubscriptionMap[0].subscriptionId)
+  params: {
+    resourceNamePrefix: resourceNamePrefix
+    resourceNameSuffix: resourceNameSuffix
+    agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
+    includeResourceGroupAccessRole: true
+    useCustomSubnets: hostSubUseCustomSubnets
+  }
+}
+
 // Cross-account mode: deploy full infra to host subscription first
 module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCrossSubscriptionDeployment && length(verifiedCrossHostSubscriptionEntry) > 0) {
   name: '${resourceNamePrefix}cs-scanning-host${environment}${resourceNameSuffix}'
@@ -90,13 +113,19 @@ module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCross
     falconClientId: falconClientId
     falconClientSecret: falconClientSecret
     scanningPrincipalId: scanningPrincipalId
-    scanningEnvironmentLocations: verifiedCrossHostSubscriptionEntry[0].locations
+    scanningEnvironmentLocations: isCrossSubscriptionDeployment && length(verifiedCrossHostSubscriptionEntry) > 0
+      ? verifiedCrossHostSubscriptionEntry[0].locations
+      : []
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
     agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
     inputEnableDspm: inputEnableDspm
     inputAgentlessScanningLocations: inputAgentlessScanningLocations
     inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
     inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
+    accessRoleId: scanningHostRoles!.outputs.accessRoleId
+    scannerRoleId: scanningHostRoles!.outputs.scannerRoleId
+    resourceGroupAccessRoleId: scanningHostRoles!.outputs.resourceGroupAccessRoleId
+    customVnetSubnetRoleId: scanningHostRoles!.outputs.customVnetSubnetRoleId
     resourceGroupName: resourceGroupName
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
@@ -121,6 +150,7 @@ module scanningSub 'scanning-environment/scanningSubBatch.bicep' = [
       scanningManagedIdentityPrincipalId: isCrossSubscriptionDeployment
         ? scanningHostSub!.outputs.scanningManagedIdentityPrincipalId
         : ''
+      includeResourceGroupAccessRole: !isCrossSubscriptionDeployment
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
       agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
       inputEnableDspm: inputEnableDspm

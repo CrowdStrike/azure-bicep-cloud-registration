@@ -216,10 +216,16 @@ var scanningEnvironmentLocationsPerSubscriptionMap = !empty(validatedDspmLocatio
       subscriptionId: entity.key
       locations: map(entity.value, location => {
         name: location
-        customScannersSubnet: contains(validatedCustomVnetConfiguration, location)
+        customScannersSubnet: entity.key == agentlessScanningHostSubscriptionId && contains(
+            validatedCustomVnetConfiguration,
+            location
+          )
           ? validatedCustomVnetConfiguration[location].scanners_subnet_id
           : ''
-        customClonesSubnet: contains(validatedCustomVnetConfiguration, location)
+        customClonesSubnet: entity.key == agentlessScanningHostSubscriptionId && contains(
+            validatedCustomVnetConfiguration,
+            location
+          )
           ? validatedCustomVnetConfiguration[location].clones_subnet_id
           : ''
       })
@@ -228,10 +234,16 @@ var scanningEnvironmentLocationsPerSubscriptionMap = !empty(validatedDspmLocatio
       subscriptionId: subscriptionId
       locations: map(validatedDspmLocations, location => {
         name: location
-        customScannersSubnet: contains(validatedCustomVnetConfiguration, location)
+        customScannersSubnet: subscriptionId == agentlessScanningHostSubscriptionId && contains(
+            validatedCustomVnetConfiguration,
+            location
+          )
           ? validatedCustomVnetConfiguration[location].scanners_subnet_id
           : ''
-        customClonesSubnet: contains(validatedCustomVnetConfiguration, location)
+        customClonesSubnet: subscriptionId == agentlessScanningHostSubscriptionId && contains(
+            validatedCustomVnetConfiguration,
+            location
+          )
           ? validatedCustomVnetConfiguration[location].clones_subnet_id
           : ''
       })

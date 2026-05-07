@@ -2,7 +2,7 @@ targetScope = 'subscription'
 
 /*
   This Bicep template deploys a policy definition to store scanning parameters
-  Copyright (c) 2025 CrowdStrike, Inc.
+  Copyright (c) 2026 CrowdStrike, Inc.
 */
 
 /* Parameters */

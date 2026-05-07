@@ -1,14 +1,13 @@
-targetScope = 'subscription'
+targetScope = 'managementGroup'
 
 /*
-  This Bicep template handles batched scanning subscription deployment
-  to overcome the 800 iteration limit for large numbers of subscriptions.
+  This Bicep template deploys scanning infrastructure for all subscriptions within a
+  single management group. It handles batching internally to overcome the 800 iteration limit.
   Copyright (c) 2026 CrowdStrike, Inc.
 */
 
 /* Parameters */
-@maxLength(800)
-@description('Batched list of subscription entries with their scanning locations. Each entry contains subscriptionId and locations array. (max: 800)')
+@description('Subscription entries with their scanning locations for this management group.')
 param subscriptionEntries array
 
 @description('Client ID for the Falcon API.')
@@ -42,6 +41,9 @@ param env string
 @description('Tags to be applied to all deployed resources. Used for resource organization, governance, and cost tracking.')
 param tags object
 
+@description('Subscription ID where CrowdStrike infrastructure resources will be deployed. Used as the deployment scope for batch modules.')
+param csInfraSubscriptionId string
+
 @description('Controls whether to deploy NAT Gateway for scanning environment.')
 param agentlessScanningDeployNatGateway bool = true
 
@@ -60,46 +62,35 @@ param inputAgentlessScanningLocationsPerSubscription object = {}
 @description('Per-region custom VNet configuration for agentless scanning.')
 param inputAgentlessScanningCustomVnetConfiguration object = {}
 
-@description('Role definition ID for access role. When provided, uses MG-scoped role instead of creating per-subscription.')
+@description('Role definition ID for subscription access role from management group scope.')
 param accessRoleId string = ''
 
-@description('Role definition ID for scanner role. When provided, uses MG-scoped role instead of creating per-subscription.')
+@description('Role definition ID for scanner role from management group scope.')
 param scannerRoleId string = ''
 
-@description('Role definition ID for resource group access role. When provided, uses MG-scoped role instead of creating per-subscription.')
+@description('Role definition ID for resource group access role from management group scope.')
 param resourceGroupAccessRoleId string = ''
 
-@description('Whether to create the resource group access role definition in per-subscription roles. Only needed for host subscriptions.')
-param includeResourceGroupAccessRole bool = true
+@description('Maximum number of subscriptions per batch for scanning deployment. Default is 750 to stay safely under the 800 limit.')
+@minValue(1)
+@maxValue(800)
+param batchSize int = 750
 
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
-var useExternalRoles = !empty(accessRoleId)
+var totalSubscriptions = length(subscriptionEntries)
+var numberOfBatches = totalSubscriptions == 0 ? 0 : (totalSubscriptions + batchSize - 1) / batchSize
 
-/* Create per-subscription roles when no MG-scoped roles are provided */
-module subRoles 'scanningRolesForSub.bicep' = [
-  for sub in subscriptionEntries: if (!useExternalRoles) {
-    name: '${resourceNamePrefix}cs-scanning-roles-${uniqueString(sub.subscriptionId)}${environment}${resourceNameSuffix}'
-    scope: subscription(sub.subscriptionId)
+/* Deploy scanning infrastructure in batches */
+module scanningSub 'scanningSubBatch.bicep' = [
+  for i in range(0, numberOfBatches): {
+    name: '${resourceNamePrefix}cs-sc-${uniqueString(managementGroup().name)}-${i}${environment}${resourceNameSuffix}'
+    scope: subscription(csInfraSubscriptionId)
     params: {
-      resourceNamePrefix: resourceNamePrefix
-      resourceNameSuffix: resourceNameSuffix
-      agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
-      includeResourceGroupAccessRole: includeResourceGroupAccessRole
-    }
-  }
-]
-
-/* Deploy scanning infrastructure for subscriptions in this batch */
-module scanningSub 'scanningForSub.bicep' = [
-  for (sub, i) in subscriptionEntries: {
-    name: '${resourceNamePrefix}cs-scanning-${sub.subscriptionId}${environment}${resourceNameSuffix}'
-    scope: subscription(sub.subscriptionId)
-    params: {
+      subscriptionEntries: take(skip(subscriptionEntries, i * batchSize), batchSize)
       falconClientId: falconClientId
       falconClientSecret: falconClientSecret
       scanningPrincipalId: scanningPrincipalId
-      scanningEnvironmentLocations: sub.locations
       scanningManagedIdentityPrincipalId: scanningManagedIdentityPrincipalId
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
       agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
@@ -107,11 +98,9 @@ module scanningSub 'scanningForSub.bicep' = [
       inputAgentlessScanningLocations: inputAgentlessScanningLocations
       inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
       inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
-      accessRoleId: useExternalRoles ? accessRoleId : subRoles[i]!.outputs.accessRoleId
-      scannerRoleId: useExternalRoles ? scannerRoleId : subRoles[i]!.outputs.scannerRoleId
-      resourceGroupAccessRoleId: useExternalRoles
-        ? resourceGroupAccessRoleId
-        : subRoles[i]!.outputs.resourceGroupAccessRoleId
+      accessRoleId: accessRoleId
+      scannerRoleId: scannerRoleId
+      resourceGroupAccessRoleId: resourceGroupAccessRoleId
       resourceGroupName: resourceGroupName
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix
@@ -120,6 +109,3 @@ module scanningSub 'scanningForSub.bicep' = [
     }
   }
 ]
-
-/* Outputs */
-output subscriptionsProcessed int = length(subscriptionEntries)

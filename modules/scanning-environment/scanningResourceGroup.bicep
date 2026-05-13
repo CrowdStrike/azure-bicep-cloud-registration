@@ -110,6 +110,7 @@ var scannerVulnerabilityScanningRgRoleActions = [
   'Microsoft.Network/networkInterfaces/join/action'
   'Microsoft.Compute/disks/write'
   'Microsoft.ManagedIdentity/userAssignedIdentities/assign/action'
+  'Microsoft.Compute/virtualMachines/attachDetachDataDisks/action'
 ]
 
 resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {

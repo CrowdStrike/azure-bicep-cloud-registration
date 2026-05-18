@@ -2,12 +2,12 @@ import { LogIngestionSettings } from 'models/log-ingestion.bicep'
 
 targetScope = 'managementGroup'
 
-metadata name = 'CrowdStrike Falcon Cloud Security Integration'
-metadata description = 'Deploys CrowdStrike Falcon Cloud Security integration for asset inventory and real-time visibility and detection assessment'
+metadata name = 'Falcon Azure Integration'
+metadata description = 'Deploys Falcon integration for asset inventory and real-time visibility and detection assessment'
 metadata owner = 'CrowdStrike'
 
 /*
-  This Bicep template deploys CrowdStrike Falcon Cloud Security integration for
+  This Bicep template deploys Falcon integration for
   asset inventory and real-time visibility and detection assessment.
 
   Copyright (c) 2025 CrowdStrike, Inc.

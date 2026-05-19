@@ -1,8 +1,8 @@
 ![CrowdStrike Falcon](https://raw.githubusercontent.com/CrowdStrike/falconpy/main/docs/asset/cs-logo.png)
 
-# Falcon Cloud Security Registration with Azure Bicep
+# Falcon Azure Registration with Bicep
 
-The Azure Bicep templates in this repository allow for an easy and seamless registration of Azure environments into CrowdStrike Falcon Cloud Security for asset inventory and real-time visibility and detection.
+The Azure Bicep templates in this repository allow for easy and seamless registration of Azure environments with Falcon for asset inventory and real-time visibility and detection.
 
 ## Contents
 1. [Overview](#overview)
@@ -18,8 +18,8 @@ The Azure Bicep templates in this repository allow for an easy and seamless regi
 
 ## Overview
 
-You can use the Bicep files in this repo to register either or both of these types of Azure entities to Falcon Cloud Security:
-- Azure management groups and all subscriptions in those management groups 
+You can use the Bicep files in this repo to register either or both of these types of Azure entities with CrowdStrike:
+- Azure management groups and all subscriptions in those management groups
 - Individual Azure subscriptions 
 
 The Bicep templates perform the following actions:
@@ -33,14 +33,14 @@ The Bicep templates perform the following actions:
   - Microsoft.Web/sites/config/list/Action
   - Microsoft.Web/sites/publish/action
 - If the `enableRealTimeVisibility` parameter is set to true, the templates also:
-   - Deploy an Azure Event Hubs namespace, two event hubs, and additional infrastructure to the subscription that has been designated as the default subscription, which is done via the `csInfraSubscriptionId` parameter. CrowdStrike uses this infrastructure to stream Entra ID sign-in and audit logs, as well as Azure activity logs, to Falcon Cloud Security.
+   - Deploy an Azure Event Hubs namespace, two event hubs, and additional infrastructure to the subscription that has been designated as the default subscription, which is done via the `csInfraSubscriptionId` parameter. CrowdStrike uses this infrastructure to stream Entra ID sign-in and audit logs, as well as Azure activity logs, to Falcon.
    - Create a Microsoft Entra ID diagnostic setting that forwards sign-in and audit logs to the newly-created event hub.
    - Individual subscription deployments only:
-      - Create an Azure activity log diagnostic setting in the subscription being registered with Falcon Cloud Security that forwards activity logs to the newly-created event hub.
+      - Create an Azure activity log diagnostic setting in the subscription being registered with CrowdStrike that forwards activity logs to the newly-created event hub.
    - If registering a management group:
       - Create an Azure activity log diagnostic setting in all active subscriptions that forwards activity logs to the newly-created event hub.
       - When `logIngestionSettings.activityLogSettings.deployRemediationPolicy` is set to `true`, create an Azure policy definition and management group assignment that will create Azure activity log diagnostic settings for new subscriptions to forward activity logs to the newly-created event hub.
-- If the `enableDspm` parameter is set to true:
+- If the `enableDspm` parameter is set to true (requires Falcon Cloud Security):
    - If `dspmLocationsPerSubscription` is specified, per subscription from the map, otherwise per subscription within specified registration scope:
       - Create a resource group with Key vault and Managed Identity in global resources location.
       - Create and assign a custom Scanning access role at subscription scope.
@@ -57,11 +57,11 @@ The Bicep templates perform the following actions:
 
 ## Prerequisites
 
-1. Create a registration for your Azure tenant on Falcon Cloud Security and grant admin consent to Falcon Cloud Security App
+1. Create a registration for your Azure tenant in the Falcon console and grant admin consent to the Falcon application
    - [US-1](https://falcon.crowdstrike.com/cloud-security/registration-v2/azure)
    - [US-2](https://falcon.us-2.crowdstrike.com/cloud-security/registration-v2/azure)
    - [EU-1](https://falcon.eu-1.crowdstrike.com/cloud-security/registration-v2/azure)
-2. Ensure you have a CrowdStrike API URL, client ID, and client secret for Falcon Cloud Security with `Cloud security Azure registration (Write)` scope. If you don't already have API credentials, you can set them up in the Falcon console. You must be a Falcon Administrator to access the API clients page:
+2. Ensure you have a CrowdStrike API URL, client ID, and client secret with `Cloud security Azure registration (Write)` scope. If you don't already have API credentials, you can set them up in the Falcon console. You must be a Falcon Administrator to access the API clients page:
    - [US-1](https://falcon.crowdstrike.com/api-clients-and-keys/)
    - [US-2](https://falcon.us-2.crowdstrike.com/api-clients-and-keys/)
    - [EU-1](https://falcon.eu-1.crowdstrike.com/api-clients-and-keys/clients)
@@ -86,7 +86,7 @@ The Bicep templates perform the following actions:
 
 ## Required permissions
 
-- **Owner** role for the Azure management groups and subscriptions to be integrated into Falcon Cloud Security
+- **Owner** role for the Azure management groups and subscriptions to be integrated with CrowdStrike
 
 ## Template parameters
 
@@ -99,8 +99,8 @@ You can use any of these methods to pass parameters:
 | Parameter name                                                                | Required | Description                                                                                                                                                                                                                                                                                                                                          |
 |-------------------------------------------------------------------------------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `csInfraSubscriptionId`                                                       | no       | Subscription ID where CrowdStrike infrastructure resources will be deployed. This subscription hosts shared resources like Event Hubs. Required when `enableRealTimeVisibility` or `enableDspm` are set to `true`.                                                                                                                                   |
-| `managementGroupIds`                                                          | no       | List of management groups to be integrated into Falcon Cloud Security. Only used to register management groups.                                                                                                                                                                                                                                      |
-| `subscriptionIds`                                                             | no       | List of individual subscriptions to be integrated into Falcon Cloud Security.                                                                                                                                                                                                                                                                        |
+| `managementGroupIds`                                                          | no       | List of management groups to be registered with CrowdStrike. Only used to register management groups.                                                                                                                                                                                                                                                |
+| `subscriptionIds`                                                             | no       | List of individual subscriptions to be registered with CrowdStrike.                                                                                                                                                                                                                                                                                  |
 | `location`                                                                    | no       | Azure location (region) where global resources will be deployed. Default is the deployment location.                                                                                                                                                                                                                                                 |
 | `resourceNamePrefix`                                                          | no       | Optional prefix added to all resource names for organization and identification purposes.                                                                                                                                                                                                                                                            |
 | `resourceNameSuffix`                                                          | no       | Optional suffix added to all resource names for organization and identification purposes.                                                                                                                                                                                                                                                            |
@@ -108,7 +108,7 @@ You can use any of these methods to pass parameters:
 | `falconApiFqdn`                                                               | no       | Falcon API FQDN for your CrowdStrike environment (`api.crowdstrike.com`, `api.us-2.crowdstrike.com`, or `api.eu-1.crowdstrike.com`). Required when `enableRealTimeVisibility` is set to `true`.                                                                                                                                                      |
 | `falconClientId`                                                              | no       | Falcon API Client ID with CSPM Registration Read and Write scopes. Required when `enableRealTimeVisibility` or `enableDspm` are set to `true`.                                                                                                                                                                                                       |
 | `falconClientSecret`                                                          | no       | Falcon API Client Secret for the provided Client ID. Required when `enableRealTimeVisibility` or `enableDspm` are set to `true`.                                                                                                                                                                                                                     |
-| `azurePrincipalId`                                                            | yes      | Principal ID of Falcon Cloud Security App in Entra ID.                                                                                                                                                                                                                                                                                               |
+| `azurePrincipalId`                                                            | yes      | Principal ID of the Falcon application in Entra ID.                                                                                                                                                                                                                                                                                                  |
 | `env`                                                                         | no       | Environment label (For example, prod, stag, or dev) used for resource naming and tagging. Default is `prod`.                                                                                                                                                                                                                                         |
 | `tags`                                                                        | no       | Tags to be applied to all deployed resources. Used for resource organization and governance.                                                                                                                                                                                                                                                         |
 | `isInitialRegistration`                                                       | no       | Indicates whether this is the initial registration. Default is `true`.                                                                                                                                                                                                                                                                               |
@@ -130,7 +130,7 @@ You can use any of these methods to pass parameters:
 | `logIngestionSettings.entraIdLogSettings.existingEventhub.namespaceName`      | no       | Name of the existing Azure Event Hubs namespace.                                                                                                                                                                                                                                                                                                     |
 | `logIngestionSettings.entraIdLogSettings.existingEventhub.name`               | no       | Name of the existing event hub instance to use.                                                                                                                                                                                                                                                                                                      |
 | `logIngestionSettings.entraIdLogSettings.existingEventhub.consumerGroupName`  | no       | Consumer group name in the existing event hub instance to use.                                                                                                                                                                                                                                                                                       |
-| `enableDspm`                                                                  | no       | Main toggle for Data Security Posture Management (DSPM).                                                                                                                                                                                                                                                                                             |
+| `enableDspm`                                                                  | no       | Main toggle for Data Security Posture Management (DSPM). Requires Falcon Cloud Security.                                                                                                                                                                                                                                                             |
 | `dspmLocations`                                                               | no       | List of locations (regions) to deploy Data Security Posture Management (DSPM) scanning environment.                                                                                                                                                                                                                                                  |
 | `dspmLocationsPerSubscription`                                                | no       | A map of subscriptions to list of locations where Data Security Posture Management (DSPM) scanning environment will be deployed                                                                                                                                                                                                                      |
 | `agentlessScanningDeployNatGateway`                                           | no       | Indicates Agentless Scanning environment will be deployed with NAT Gateway. Default is `true`.                                                                                                                                                                                                                                                       |
@@ -147,8 +147,8 @@ param falconClientSecret = readEnvironmentVariable('FALCON_CLIENT_SECRET', '')
 
 // Required: Falcon API FQDN for your CrowdStrike environment
 param falconApiFqdn = '<Falcon API FQDN>'
-// Required: Principal Id of Falcon Cloud Security App in Entra ID.
-param azurePrincipalId = '<Service principal ID of the Falcon Cloud Security App in Entra ID>'
+// Required: Principal Id of Falcon application in Entra ID.
+param azurePrincipalId = '<Service principal ID of the Falcon application in Entra ID>'
 // Azure resources to monitor - You can use subscriptions, management groups, or both.
 // If both are empty list, the entire tenant will be monitored
 param managementGroupIds = []
@@ -206,7 +206,7 @@ param location = 'westeurope'
 
 1. Download this repo to your local computer.
 2. Open a new Terminal window and change directory to point at the downloaded repo.
-3. Run `az login` to log into Azure via the Azure CLI. Be sure to log into a subscription that is in the tenant you want to register with Falcon Cloud Security.
+3. Run `az login` to log into Azure via the Azure CLI. Be sure to log into a subscription that is in the tenant you want to register with CrowdStrike.
 4. Run the appropriate deployment command provided below.
 
 ### Deployment command for registering management groups and/or individual subscriptions
@@ -222,7 +222,7 @@ az stack mg create --name '<deployment stack name you want to use>' --location w
 ```
 
 > [!NOTE]
-> The `cs-deployment-management-group.bicep` template can be used to register a list of management groups (and all subscriptions in those management groups) and/or a list of individual subscriptions to CrowdStrike Falcon Cloud Security.
+> The `cs-deployment-management-group.bicep` template can be used to register a list of management groups (and all subscriptions in those management groups) and/or a list of individual subscriptions with CrowdStrike.
 
 To track progress of the deployment or if you encounter issues and want to see detailed error messages:
    - Open the Azure Portal.
@@ -267,7 +267,7 @@ To track progress of the deployment or if you encounter issues and want to see d
 
 ### Deployment command for registering the whole tenant
 
-To deploy Falcon Cloud Security integration for the entire tenant, you can use the management group deployment template with empty lists for both `managementGroupIds` and `subscriptionIds` parameters:
+To deploy CrowdStrike Falcon integration for the entire tenant, you can use the management group deployment template with empty lists for both `managementGroupIds` and `subscriptionIds` parameters:
 
 ```sh
 az stack mg create --name '<deployment stack name you want to use>' --location westus \
@@ -286,7 +286,7 @@ param managementGroupIds = []
 param subscriptionIds = []
 ```
 
-This configuration deploys the Falcon Cloud Security integration at the tenant root level, effectively covering all management groups and subscriptions in your Azure tenant.
+This configuration deploys the Falcon integration at the tenant root level, effectively covering all management groups and subscriptions in your Azure tenant.
 
 To track progress of the deployment:
    - Open the Azure Portal.
@@ -364,7 +364,7 @@ If you want to develop new content or improve on this collection, please open an
 
 ## Support
 
-This is a community-driven, open source project aimed to register Falcon Cloud Security with Azure using Bicep. While not an official CrowdStrike product, this repository is maintained by CrowdStrike and supported in collaboration with the open source developer community.
+This is a community-driven, open source project aimed to register Falcon with Azure using Bicep. While not an official CrowdStrike product, this repository is maintained by CrowdStrike and supported in collaboration with the open source developer community.
 
 For additional information, please refer to the [SUPPORT.md](SUPPORT.md) file.
 

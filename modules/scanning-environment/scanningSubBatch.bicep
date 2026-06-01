@@ -72,6 +72,9 @@ param scannerRoleId string = ''
 @description('Role definition ID for resource group access role. When provided, uses MG-scoped role instead of creating per-subscription.')
 param resourceGroupAccessRoleId string = ''
 
+@description('Role definition ID for scanner resource group role. When provided, uses MG-scoped role instead of creating per-subscription.')
+param scannerRgRoleId string = ''
+
 @description('Whether to create the resource group access role definition in per-subscription roles. Only needed for host subscriptions.')
 param includeResourceGroupAccessRole bool = true
 
@@ -89,6 +92,7 @@ module subRoles 'scanningRolesForSub.bicep' = [
       resourceNameSuffix: resourceNameSuffix
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
       includeResourceGroupAccessRole: includeResourceGroupAccessRole
+      inputEnableDspm: inputEnableDspm
       inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
     }
   }
@@ -117,6 +121,7 @@ module scanningSub 'scanningForSub.bicep' = [
       resourceGroupAccessRoleId: useExternalRoles
         ? resourceGroupAccessRoleId
         : subRoles[i]!.outputs.resourceGroupAccessRoleId
+      scannerRgRoleId: useExternalRoles ? scannerRgRoleId : subRoles[i]!.outputs.scannerRgRoleId
       resourceGroupName: resourceGroupName
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix

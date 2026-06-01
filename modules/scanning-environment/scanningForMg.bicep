@@ -74,6 +74,9 @@ param scannerRoleId string = ''
 @description('Role definition ID for resource group access role from management group scope.')
 param resourceGroupAccessRoleId string = ''
 
+@description('Role definition ID for scanner resource group role from management group scope.')
+param scannerRgRoleId string = ''
+
 @description('Maximum number of subscriptions per batch for scanning deployment. Default is 750 to stay safely under the 800 limit.')
 @minValue(1)
 @maxValue(800)
@@ -105,6 +108,7 @@ module scanningSub 'scanningSubBatch.bicep' = [
       accessRoleId: accessRoleId
       scannerRoleId: scannerRoleId
       resourceGroupAccessRoleId: resourceGroupAccessRoleId
+      scannerRgRoleId: scannerRgRoleId
       resourceGroupName: resourceGroupName
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix

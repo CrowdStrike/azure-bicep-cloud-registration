@@ -41,8 +41,12 @@ param inputEnableVulnerabilityScanning bool = false
 @description('Role definition ID for resource group access role. When provided, skips per-subscription role creation (management group mode).')
 param resourceGroupAccessRoleId string = ''
 
+@description('Role definition ID for scanner resource group role. When provided, skips per-subscription role creation (management group mode).')
+param scannerRgRoleId string = ''
+
 /* Variables */
 var useExternalRgRole = !empty(resourceGroupAccessRoleId)
+var useExternalScannerRgRole = !empty(scannerRgRoleId)
 var environment = length(env) > 0 ? '-${env}' : env
 // NOTE: key vault has name limit constraints, so prefix and suffix are omitted
 var keyVaultName = 'kv-cs-${uniqueString(resourceGroup().id, 'CrowdStrikeScanningKeyVault', 'v2')}'
@@ -170,7 +174,7 @@ resource clientCredentials 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = {
   tags: tags
 }
 
-resource scannerRgRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (inputEnableVulnerabilityScanning) {
+resource scannerRgRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (inputEnableVulnerabilityScanning && !useExternalScannerRgRole) {
   name: guid(resourceGroup().id, scannerRgRoleName)
   properties: {
     roleName: scannerRgRoleName
@@ -193,7 +197,7 @@ resource scannerRgRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if
 resource scannerRgRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (inputEnableVulnerabilityScanning) {
   name: guid(subscription().id, resourceGroup().id, scannerRgRoleName, scannerManagedIdentity.id)
   properties: {
-    roleDefinitionId: scannerRgRole.id
+    roleDefinitionId: useExternalScannerRgRole ? scannerRgRoleId : scannerRgRole.id
     principalId: scannerManagedIdentity.properties.principalId
     principalType: 'ServicePrincipal'
   }

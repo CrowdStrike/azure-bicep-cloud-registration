@@ -102,6 +102,7 @@ module scanningHostRoles 'scanning-environment/scanningRolesForSub.bicep' = if (
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
     includeResourceGroupAccessRole: true
     useCustomSubnets: hostSubUseCustomSubnets
+    inputEnableDspm: inputEnableDspm
     inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
   }
 }
@@ -131,6 +132,7 @@ module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCross
     scannerRoleId: scanningHostRoles!.outputs.scannerRoleId
     resourceGroupAccessRoleId: scanningHostRoles!.outputs.resourceGroupAccessRoleId
     customVnetSubnetRoleId: scanningHostRoles!.outputs.customVnetSubnetRoleId
+    scannerRgRoleId: scanningHostRoles!.outputs.scannerRgRoleId
     resourceGroupName: resourceGroupName
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix

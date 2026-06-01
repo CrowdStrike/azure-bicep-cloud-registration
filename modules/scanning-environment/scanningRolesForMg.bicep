@@ -32,6 +32,9 @@ param includeResourceGroupAccessRole bool = true
 @description('Whether custom VNet subnets are used. When true, creates the custom VNet subnet access role.')
 param useCustomSubnets bool = false
 
+@description('Controls whether to enable DSPM.')
+param inputEnableDspm bool = false
+
 @description('Controls whether to enable vulnerability scanning.')
 param inputEnableVulnerabilityScanning bool = false
 
@@ -52,7 +55,8 @@ resource accessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
     permissions: [
       {
         actions: union(
-          accessRolePermissions.actions,
+          accessRolePermissions.baseActions,
+          inputEnableDspm ? accessRolePermissions.dspmActions : [],
           inputEnableVulnerabilityScanning ? accessRolePermissions.vulnScanningActions : []
         )
         notActions: []
@@ -74,9 +78,9 @@ resource scannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
     type: 'CustomRole'
     permissions: [
       {
-        actions: scannerRolePermissions.actions
+        actions: inputEnableDspm ? scannerRolePermissions.dspmActions : []
         notActions: []
-        dataActions: scannerRolePermissions.dataActions
+        dataActions: inputEnableDspm ? scannerRolePermissions.dspmDataActions : []
         notDataActions: []
       }
     ]

@@ -155,6 +155,7 @@ module scanningHostMgRoles 'scanning-environment/scanningRolesForMg.bicep' = if 
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
     includeResourceGroupAccessRole: true
     useCustomSubnets: hostSubUseCustomSubnets
+    inputEnableDspm: inputEnableDspm
     inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
   }
 }
@@ -169,6 +170,7 @@ module scanningRoles 'scanning-environment/scanningRolesForMg.bicep' = [
       resourceNameSuffix: resourceNameSuffix
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
       includeResourceGroupAccessRole: !isCrossSubscriptionDeployment
+      inputEnableDspm: inputEnableDspm
       inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
     }
   }
@@ -186,6 +188,7 @@ module scanningHostRoles 'scanning-environment/scanningRolesForSub.bicep' = if (
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
     includeResourceGroupAccessRole: true
     useCustomSubnets: hostSubUseCustomSubnets
+    inputEnableDspm: inputEnableDspm
     inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
   }
 }
@@ -221,6 +224,9 @@ module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCross
     customVnetSubnetRoleId: isHostSubUnderMg
       ? scanningHostMgRoles!.outputs.customVnetSubnetRoleId
       : scanningHostRoles!.outputs.customVnetSubnetRoleId
+    scannerRgRoleId: isHostSubUnderMg
+      ? scanningHostMgRoles!.outputs.scannerRgRoleId
+      : scanningHostRoles!.outputs.scannerRgRoleId
     resourceGroupName: resourceGroupName
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
@@ -244,6 +250,7 @@ module scanningHostPerMg 'scanning-environment/scanningForMg.bicep' = if (isHost
     accessRoleId: scanningHostMgRoles!.outputs.accessRoleId
     scannerRoleId: scanningHostMgRoles!.outputs.scannerRoleId
     resourceGroupAccessRoleId: scanningHostMgRoles!.outputs.resourceGroupAccessRoleId
+    scannerRgRoleId: scanningHostMgRoles!.outputs.scannerRgRoleId
     csInfraSubscriptionId: csInfraSubscriptionId
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
     agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
@@ -277,6 +284,7 @@ module scanningPerMg 'scanning-environment/scanningForMg.bicep' = [
       accessRoleId: scanningRoles[i].outputs.accessRoleId
       scannerRoleId: scanningRoles[i].outputs.scannerRoleId
       resourceGroupAccessRoleId: scanningRoles[i].outputs.resourceGroupAccessRoleId
+      scannerRgRoleId: scanningRoles[i].outputs.scannerRgRoleId
       csInfraSubscriptionId: csInfraSubscriptionId
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
       agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId

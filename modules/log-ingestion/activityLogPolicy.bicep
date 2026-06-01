@@ -37,7 +37,11 @@ param resourceNamePrefix string
 param resourceNameSuffix string
 
 /* Variables */
-var policyDefinition = json(loadTextContent('../../policies/log-ingestion/activity-log-policy.json'))
+var policyDefinition = json(replace(
+  loadTextContent('../../policies/log-ingestion/activity-log-policy.json'),
+  '__DEPLOYMENT_LOCATION__',
+  location
+))
 
 /* Resources */
 resource activityLogPolicyDefinition 'Microsoft.Authorization/policyDefinitions@2023-04-01' = {

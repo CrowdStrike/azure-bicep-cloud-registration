@@ -1,8 +1,10 @@
 targetScope = 'subscription'
 
 /*
-  This Bicep template deploys infrastructure to enable CrowdStrike Scanning in subscription
-  Copyright (c) 2025 CrowdStrike, Inc.
+  This Bicep template deploys scanning infrastructure in a subscription: role assignments,
+  resource group resources, and scanning regions. Role definitions are created externally
+  (at management group or subscription scope) and passed in via parameters.
+  Copyright (c) 2026 CrowdStrike, Inc.
 */
 
 /* Parameters */
@@ -61,121 +63,33 @@ param inputAgentlessScanningLocationsPerSubscription object = {}
 @description('Per-region custom VNet configuration for agentless scanning.')
 param inputAgentlessScanningCustomVnetConfiguration object = {}
 
+@description('Role definition ID for access role (created externally at MG or subscription scope).')
+param accessRoleId string
+
+@description('Role definition ID for scanner role (created externally at MG or subscription scope).')
+param scannerRoleId string
+
+@description('Role definition ID for resource group access role (created externally at MG or subscription scope).')
+param resourceGroupAccessRoleId string
+
+@description('Role definition ID for custom VNet subnet access role (created externally at subscription scope). Empty when custom subnets are not used.')
+param customVnetSubnetRoleId string = ''
+
 /* Variables */
-var useCustomSubnets = length(filter(
-  scanningEnvironmentLocations,
-  location => !empty(location.customScannersSubnet) && !empty(location.customClonesSubnet)
-)) > 0
 var environment = length(env) > 0 ? '-${env}' : env
 var shouldDeployResources = empty(agentlessScanningHostSubscriptionId) || subscription().subscriptionId == agentlessScanningHostSubscriptionId
-var subscriptionAccessRoleName = '${resourceNamePrefix}role-csscanning-access-${subscription().subscriptionId}${resourceNameSuffix}'
-var subscriptionAccessRoleDescription = 'CrowdStrike Scanning Subscription Access Role'
-var scannerRoleName = '${resourceNamePrefix}role-csscanning-scanner-${subscription().subscriptionId}${resourceNameSuffix}'
-var scannerRoleDescription = 'CrowdStrike Scanning Subscription Scanner Role'
-var baseAccessActions = [
-  // ============ Validation ============
-  'Microsoft.Authorization/roleAssignments/read'
-  'Microsoft.Authorization/policyDefinitions/read'
-]
-var dspmAccessActions = [
-  // ============ Blob Storage ============
-  'Microsoft.Storage/storageAccounts/read' // Check location and public access
-  'Microsoft.Storage/storageAccounts/PrivateEndpointConnectionsApproval/action' // Approve private link connections
-]
-var vulnScanningAccessActions = [
-  'Microsoft.Compute/disks/beginGetAccess/action' // Access source disk for snapshot
-  'Microsoft.Compute/disks/read' // Read source disk metadata
-  'Microsoft.Compute/virtualMachines/read' // Read VM metadata
-  'Microsoft.Compute/virtualMachineScaleSets/read' // Read VMSS metadata
-  'Microsoft.Compute/virtualMachineScaleSets/virtualMachines/read' // Read VMSS instance metadata
-]
 
-var dspmScannerActionsSubscriptionScope = [
-  'Microsoft.Storage/storageAccounts/blobServices/containers/read'
-]
-var dspmScannerDataActionsSubscriptionScope = [
-  'Microsoft.Storage/storageAccounts/blobServices/containers/blobs/read'
-]
-var customVnetRoleName = '${resourceNamePrefix}role-csscanning-custom-vnet-${subscription().subscriptionId}${resourceNameSuffix}'
-var customVnetRoleDescription = 'CrowdStrike Custom VNet Subnet Access Role'
-
-resource subscriptionAccessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
-  name: guid(subscription().id, subscriptionAccessRoleName)
-  properties: {
-    roleName: subscriptionAccessRoleName
-    description: subscriptionAccessRoleDescription
-    type: 'CustomRole'
-    permissions: [
-      {
-        actions: union(
-          baseAccessActions,
-          inputEnableDspm ? dspmAccessActions : [],
-          inputEnableVulnerabilityScanning ? vulnScanningAccessActions : []
-        )
-        notActions: []
-        dataActions: []
-        notDataActions: []
-      }
-    ]
-    assignableScopes: [
-      subscription().id
-    ]
-  }
-}
-
+/* Role Assignments */
 resource accessRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(subscription().id, scanningPrincipalId, subscriptionAccessRole.id)
+  name: guid(subscription().id, scanningPrincipalId, accessRoleId)
   properties: {
-    roleDefinitionId: subscriptionAccessRole.id
+    roleDefinitionId: accessRoleId
     principalId: scanningPrincipalId
     principalType: 'ServicePrincipal'
   }
 }
 
-resource scannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
-  name: guid(subscription().id, scannerRoleName)
-  properties: {
-    roleName: scannerRoleName
-    description: scannerRoleDescription
-    type: 'CustomRole'
-    permissions: [
-      {
-        actions: inputEnableDspm ? dspmScannerActionsSubscriptionScope : []
-        notActions: []
-        dataActions: inputEnableDspm ? dspmScannerDataActionsSubscriptionScope : []
-        notDataActions: []
-      }
-    ]
-    assignableScopes: [
-      subscription().id
-    ]
-  }
-}
-
-resource customVnetSubnetRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (useCustomSubnets) {
-  name: guid(subscription().id, 'customVnetSubnetAccess')
-  properties: {
-    roleName: customVnetRoleName
-    description: customVnetRoleDescription
-    type: 'CustomRole'
-    permissions: [
-      {
-        actions: [
-          'Microsoft.Network/virtualNetworks/subnets/join/action'
-          'Microsoft.Network/virtualNetworks/read'
-          'Microsoft.Network/virtualNetworks/subnets/read'
-        ]
-        notActions: []
-        dataActions: []
-        notDataActions: []
-      }
-    ]
-    assignableScopes: [
-      subscription().id
-    ]
-  }
-}
-
+/* Resource Group Deployment */
 resource scanningResourceGroup 'Microsoft.Resources/resourceGroups@2025-04-01' existing = {
   name: resourceGroupName
 }
@@ -189,6 +103,7 @@ module scanningResourceGroupModule 'scanningResourceGroup.bicep' = if (shouldDep
     scanningPrincipalId: scanningPrincipalId
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
     inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
+    resourceGroupAccessRoleId: resourceGroupAccessRoleId
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
     env: env
@@ -198,14 +113,14 @@ module scanningResourceGroupModule 'scanningResourceGroup.bicep' = if (shouldDep
 
 resource scannerRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: shouldDeployResources
-    ? guid(subscription().id, 'scanningManagedIdentityPrincipalId', scannerRole.id)
-    : guid(subscription().id, scanningManagedIdentityPrincipalId, scannerRole.id)
+    ? guid(subscription().id, 'scanningManagedIdentityPrincipalId', scannerRoleId)
+    : guid(subscription().id, scanningManagedIdentityPrincipalId, scannerRoleId)
   properties: {
     principalId: shouldDeployResources
       ? scanningResourceGroupModule!.outputs.scanningManagedIdentityPrincipalId
       : scanningManagedIdentityPrincipalId
     principalType: 'ServicePrincipal'
-    roleDefinitionId: scannerRole.id
+    roleDefinitionId: scannerRoleId
   }
 }
 
@@ -218,7 +133,7 @@ module scanningRegion 'scanningRegion.bicep' = [
       customScannersSubnet: location.customScannersSubnet
       customClonesSubnet: location.customClonesSubnet
       scanningPrincipalId: scanningPrincipalId
-      customVnetSubnetRoleId: useCustomSubnets ? customVnetSubnetRole.id : ''
+      customVnetSubnetRoleId: customVnetSubnetRoleId
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix
       env: env

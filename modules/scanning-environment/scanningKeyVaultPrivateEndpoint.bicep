@@ -2,7 +2,7 @@ targetScope = 'resourceGroup'
 
 /*
   This Bicep template deploys private endpoint connecting key vault to subnet in the scanning environment
-  Copyright (c) 2025 CrowdStrike, Inc.
+  Copyright (c) 2026 CrowdStrike, Inc.
 */
 
 /* Parameters */

@@ -72,7 +72,7 @@
             ]
           },
           "deployment": {
-            "location": "westeurope",
+            "location": "__DEPLOYMENT_LOCATION__",
             "properties": {
               "mode": "incremental",
               "template": {

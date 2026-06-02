@@ -153,7 +153,7 @@ module scanningHostMgRoles 'scanning-environment/scanningRolesForMg.bicep' = if 
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
-    includeResourceGroupAccessRole: true
+    includeResourceGroupRoles: true
     useCustomSubnets: hostSubUseCustomSubnets
     inputEnableDspm: inputEnableDspm
     inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
@@ -169,7 +169,7 @@ module scanningRoles 'scanning-environment/scanningRolesForMg.bicep' = [
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
-      includeResourceGroupAccessRole: !isCrossSubscriptionDeployment
+      includeResourceGroupRoles: !isCrossSubscriptionDeployment
       inputEnableDspm: inputEnableDspm
       inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
     }
@@ -186,7 +186,7 @@ module scanningHostRoles 'scanning-environment/scanningRolesForSub.bicep' = if (
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
-    includeResourceGroupAccessRole: true
+    includeResourceGroupRoles: true
     useCustomSubnets: hostSubUseCustomSubnets
     inputEnableDspm: inputEnableDspm
     inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
@@ -323,7 +323,7 @@ module scanningStandaloneBatch 'scanning-environment/scanningSubBatch.bicep' = [
       scannerRoleId: ''
       resourceGroupAccessRoleId: ''
       scannerRgRoleId: ''
-      includeResourceGroupAccessRole: !isCrossSubscriptionDeployment
+      includeResourceGroupRoles: !isCrossSubscriptionDeployment
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
       agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
       inputEnableDspm: inputEnableDspm

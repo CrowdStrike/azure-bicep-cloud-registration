@@ -100,7 +100,7 @@ module scanningHostRoles 'scanning-environment/scanningRolesForSub.bicep' = if (
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
-    includeResourceGroupAccessRole: true
+    includeResourceGroupRoles: true
     useCustomSubnets: hostSubUseCustomSubnets
     inputEnableDspm: inputEnableDspm
     inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
@@ -157,7 +157,7 @@ module scanningSub 'scanning-environment/scanningSubBatch.bicep' = [
       scanningManagedIdentityPrincipalId: isCrossSubscriptionDeployment
         ? scanningHostSub!.outputs.scanningManagedIdentityPrincipalId
         : ''
-      includeResourceGroupAccessRole: !isCrossSubscriptionDeployment
+      includeResourceGroupRoles: !isCrossSubscriptionDeployment
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
       agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
       inputEnableDspm: inputEnableDspm

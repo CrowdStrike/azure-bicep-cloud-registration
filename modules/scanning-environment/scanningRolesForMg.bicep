@@ -26,8 +26,8 @@ param resourceNameSuffix string = ''
 @description('Whether NAT Gateway is enabled. When false, public IP permissions are included for VM connectivity.')
 param agentlessScanningDeployNatGateway bool = true
 
-@description('Whether to create the resource group access role definition. Only needed for the MG containing the host subscription.')
-param includeResourceGroupAccessRole bool = true
+@description('Whether to create the resource group role definitions. Only needed for the MG containing the host subscription.')
+param includeResourceGroupRoles bool = true
 
 @description('Whether custom VNet subnets are used. When true, creates the custom VNet subnet access role.')
 param useCustomSubnets bool = false
@@ -90,7 +90,7 @@ resource scannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
   }
 }
 
-resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (includeResourceGroupAccessRole) {
+resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (includeResourceGroupRoles) {
   name: guid(managementGroup().id, resourceGroupAccessRoleName)
   properties: {
     roleName: resourceGroupAccessRoleName
@@ -134,7 +134,7 @@ resource customVnetSubnetRole 'Microsoft.Authorization/roleDefinitions@2022-04-0
   }
 }
 
-resource scannerRgRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (inputEnableVulnerabilityScanning && includeResourceGroupAccessRole) {
+resource scannerRgRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (inputEnableVulnerabilityScanning && includeResourceGroupRoles) {
   name: guid(managementGroup().id, scannerRgRoleName)
   properties: {
     roleName: scannerRgRoleName
@@ -157,6 +157,6 @@ resource scannerRgRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if
 /* Outputs */
 output accessRoleId string = accessRole.id
 output scannerRoleId string = scannerRole.id
-output resourceGroupAccessRoleId string = includeResourceGroupAccessRole ? resourceGroupAccessRole.id : ''
+output resourceGroupAccessRoleId string = includeResourceGroupRoles ? resourceGroupAccessRole.id : ''
 output customVnetSubnetRoleId string = useCustomSubnets ? customVnetSubnetRole.id : ''
-output scannerRgRoleId string = (inputEnableVulnerabilityScanning && includeResourceGroupAccessRole) ? scannerRgRole.id : ''
+output scannerRgRoleId string = (inputEnableVulnerabilityScanning && includeResourceGroupRoles) ? scannerRgRole.id : ''

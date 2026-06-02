@@ -101,7 +101,7 @@ param enableVulnerabilityScanning bool = false
 @description('Deprecated: Use agentlessScanningLocations instead. Azure locations (regions) where DSPM will be deployed.')
 param dspmLocations array = []
 
-@description('Deprecated: Use agentlessScanningLocationsPerSubscription instead. Azure locations (regions) where DSPM will be deployed as subscription ID to locations map. When this parameter is used dspmLocations parameter will be ignored.')
+@description('Deprecated: Use agentlessScanningLocationsPerSubscription instead. Azure locations (regions) where DSPM will be deployed as subscription ID to locations map.')
 param dspmLocationsPerSubscription object = {}
 
 @description('Azure locations (regions) where agentless scanning will be deployed. Replaces dspmLocations.')

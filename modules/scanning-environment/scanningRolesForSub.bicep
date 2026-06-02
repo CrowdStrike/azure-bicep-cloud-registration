@@ -135,7 +135,7 @@ resource customVnetSubnetRole 'Microsoft.Authorization/roleDefinitions@2022-04-0
   }
 }
 
-resource scannerRgRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (inputEnableVulnerabilityScanning) {
+resource scannerRgRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (inputEnableVulnerabilityScanning && includeResourceGroupAccessRole) {
   name: guid(subscription().id, scannerRgRoleName)
   properties: {
     roleName: scannerRgRoleName
@@ -160,4 +160,4 @@ output accessRoleId string = accessRole.id
 output scannerRoleId string = scannerRole.id
 output resourceGroupAccessRoleId string = includeResourceGroupAccessRole ? resourceGroupAccessRole.id : ''
 output customVnetSubnetRoleId string = useCustomSubnets ? customVnetSubnetRole.id : ''
-output scannerRgRoleId string = inputEnableVulnerabilityScanning ? scannerRgRole.id : ''
+output scannerRgRoleId string = (inputEnableVulnerabilityScanning && includeResourceGroupAccessRole) ? scannerRgRole.id : ''

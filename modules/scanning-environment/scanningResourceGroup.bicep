@@ -1,5 +1,3 @@
-import { resourceGroupAccessRolePermissions, scannerRgRolePermissions } from '../../models/scanning-roles.bicep'
-
 targetScope = 'resourceGroup'
 
 /*
@@ -45,50 +43,28 @@ param resourceGroupAccessRoleId string = ''
 param scannerRgRoleId string = ''
 
 /* Variables */
-var useExternalRgRole = !empty(resourceGroupAccessRoleId)
-var useExternalScannerRgRole = !empty(scannerRgRoleId)
 var environment = length(env) > 0 ? '-${env}' : env
 // NOTE: key vault has name limit constraints, so prefix and suffix are omitted
 var keyVaultName = 'kv-cs-${uniqueString(resourceGroup().id, 'CrowdStrikeScanningKeyVault', 'v2')}'
 var managedIdentityName = '${resourceNamePrefix}id-csscanning${environment}${resourceNameSuffix}'
 var clientCredentialsName = 'client-credentials'
-var resourceGroupAccessRoleName = '${resourceNamePrefix}role-csscanning-rgaccess-${subscription().subscriptionId}${resourceNameSuffix}'
 
-// Scanner Resource Group role variables (for managed identity, vuln scanning only)
-var scannerRgRoleName = '${resourceNamePrefix}role-csscanning-scannerrg-${subscription().subscriptionId}${resourceNameSuffix}'
-
-resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (!useExternalRgRole) {
-  name: guid(resourceGroup().id, resourceGroupAccessRoleName)
-  properties: {
-    roleName: resourceGroupAccessRoleName
-    description: resourceGroupAccessRolePermissions.description
-    type: 'CustomRole'
-    permissions: [
-      {
-        actions: union(
-          resourceGroupAccessRolePermissions.actions,
-          !agentlessScanningDeployNatGateway ? resourceGroupAccessRolePermissions.conditionalPublicIPActions : [],
-          inputEnableVulnerabilityScanning ? resourceGroupAccessRolePermissions.vulnScanningActions : []
-        )
-        notActions: []
-        dataActions: []
-        notDataActions: []
-      }
-    ]
-    assignableScopes: [
-      resourceGroup().id
-    ]
-  }
-}
+/* Input Validation */
+var validatedResourceGroupAccessRoleId = empty(resourceGroupAccessRoleId)
+  ? fail('"resourceGroupAccessRoleId" must be provided to scanningResourceGroup module')
+  : resourceGroupAccessRoleId
+var validatedScannerRgRoleId = inputEnableVulnerabilityScanning && empty(scannerRgRoleId)
+  ? fail('"scannerRgRoleId" must be provided when vulnerability scanning is enabled')
+  : scannerRgRoleId
 
 resource rgRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(
     subscription().id,
     scanningPrincipalId,
-    useExternalRgRole ? resourceGroupAccessRoleId : resourceGroupAccessRole.id
+    validatedResourceGroupAccessRoleId
   )
   properties: {
-    roleDefinitionId: useExternalRgRole ? resourceGroupAccessRoleId : resourceGroupAccessRole.id
+    roleDefinitionId: validatedResourceGroupAccessRoleId
     principalId: scanningPrincipalId
     principalType: 'ServicePrincipal'
   }
@@ -174,30 +150,10 @@ resource clientCredentials 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = {
   tags: tags
 }
 
-resource scannerRgRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (inputEnableVulnerabilityScanning && !useExternalScannerRgRole) {
-  name: guid(resourceGroup().id, scannerRgRoleName)
-  properties: {
-    roleName: scannerRgRoleName
-    description: scannerRgRolePermissions.description
-    type: 'CustomRole'
-    permissions: [
-      {
-        actions: scannerRgRolePermissions.actions
-        notActions: []
-        dataActions: []
-        notDataActions: []
-      }
-    ]
-    assignableScopes: [
-      resourceGroup().id
-    ]
-  }
-}
-
 resource scannerRgRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (inputEnableVulnerabilityScanning) {
-  name: guid(subscription().id, resourceGroup().id, scannerRgRoleName, scannerManagedIdentity.id)
+  name: guid(subscription().id, resourceGroup().id, validatedScannerRgRoleId, scannerManagedIdentity.id)
   properties: {
-    roleDefinitionId: useExternalScannerRgRole ? scannerRgRoleId : scannerRgRole.id
+    roleDefinitionId: validatedScannerRgRoleId
     principalId: scannerManagedIdentity.properties.principalId
     principalType: 'ServicePrincipal'
   }

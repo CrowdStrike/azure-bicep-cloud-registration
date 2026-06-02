@@ -322,6 +322,7 @@ module scanningStandaloneBatch 'scanning-environment/scanningSubBatch.bicep' = [
       accessRoleId: ''
       scannerRoleId: ''
       resourceGroupAccessRoleId: ''
+      scannerRgRoleId: ''
       includeResourceGroupAccessRole: !isCrossSubscriptionDeployment
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
       agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId

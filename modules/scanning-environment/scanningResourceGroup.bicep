@@ -58,11 +58,7 @@ var validatedScannerRgRoleId = inputEnableVulnerabilityScanning && empty(scanner
   : scannerRgRoleId
 
 resource rgRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(
-    subscription().id,
-    scanningPrincipalId,
-    validatedResourceGroupAccessRoleId
-  )
+  name: guid(subscription().id, scanningPrincipalId, validatedResourceGroupAccessRoleId)
   properties: {
     roleDefinitionId: validatedResourceGroupAccessRoleId
     principalId: scanningPrincipalId

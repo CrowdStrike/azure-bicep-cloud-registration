@@ -112,11 +112,6 @@ var customVnetSubnetRolePermissions = {
 var scannerRgRolePermissions = {
   description: 'CrowdStrike Agentless Scanning Scanner Resource Group Role'
   actions: [
-    'Microsoft.Compute/virtualMachines/write'
-    'Microsoft.Compute/virtualMachines/read'
-    'Microsoft.Network/networkInterfaces/join/action'
-    'Microsoft.Compute/disks/write'
-    'Microsoft.ManagedIdentity/userAssignedIdentities/assign/action'
     'Microsoft.Compute/virtualMachines/attachDetachDataDisks/action'
   ]
 }

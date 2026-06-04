@@ -57,7 +57,7 @@ resource accessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
         actions: union(
           accessRolePermissions.baseActions,
           inputEnableDspm ? accessRolePermissions.dspmActions : [],
-          inputEnableVulnerabilityScanning ? accessRolePermissions.vulnScanningActions : []
+          inputEnableVulnerabilityScanning ? accessRolePermissions.vulnerabilityScanningActions : []
         )
         notActions: []
         dataActions: []
@@ -101,7 +101,7 @@ resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-0
         actions: union(
           resourceGroupAccessRolePermissions.actions,
           !agentlessScanningDeployNatGateway ? resourceGroupAccessRolePermissions.conditionalPublicIPActions : [],
-          inputEnableVulnerabilityScanning ? resourceGroupAccessRolePermissions.vulnScanningActions : []
+          inputEnableVulnerabilityScanning ? resourceGroupAccessRolePermissions.vulnerabilityScanningActions : []
         )
         notActions: []
         dataActions: []
@@ -159,4 +159,4 @@ output accessRoleId string = accessRole.id
 output scannerRoleId string = scannerRole.id
 output resourceGroupAccessRoleId string = includeResourceGroupRoles ? resourceGroupAccessRole.id : ''
 output customVnetSubnetRoleId string = useCustomSubnets ? customVnetSubnetRole.id : ''
-output scannerRgRoleId string = (inputEnableVulnerabilityScanning && includeResourceGroupRoles) ? scannerRgRole.id : ''
+output resourceGroupScannerRoleId string = (inputEnableVulnerabilityScanning && includeResourceGroupRoles) ? scannerRgRole.id : ''

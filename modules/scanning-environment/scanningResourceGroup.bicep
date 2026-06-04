@@ -40,7 +40,7 @@ param inputEnableVulnerabilityScanning bool = false
 param resourceGroupAccessRoleId string = ''
 
 @description('Role definition ID for scanner resource group role. When provided, skips per-subscription role creation (management group mode).')
-param scannerRgRoleId string = ''
+param resourceGroupScannerRoleId string = ''
 
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
@@ -53,9 +53,9 @@ var clientCredentialsName = 'client-credentials'
 var validatedResourceGroupAccessRoleId = empty(resourceGroupAccessRoleId)
   ? fail('"resourceGroupAccessRoleId" must be provided to scanningResourceGroup module')
   : resourceGroupAccessRoleId
-var validatedScannerRgRoleId = inputEnableVulnerabilityScanning && empty(scannerRgRoleId)
-  ? fail('"scannerRgRoleId" must be provided when vulnerability scanning is enabled')
-  : scannerRgRoleId
+var validatedScannerRgRoleId = inputEnableVulnerabilityScanning && empty(resourceGroupScannerRoleId)
+  ? fail('"resourceGroupScannerRoleId" must be provided when vulnerability scanning is enabled')
+  : resourceGroupScannerRoleId
 
 resource rgRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(subscription().id, scanningPrincipalId, validatedResourceGroupAccessRoleId)

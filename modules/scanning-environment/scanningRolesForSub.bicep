@@ -43,7 +43,7 @@ var accessRoleName = '${resourceNamePrefix}role-csscanning-access-${subscription
 var scannerRoleName = '${resourceNamePrefix}role-csscanning-scanner-${subscription().subscriptionId}${resourceNameSuffix}'
 var resourceGroupAccessRoleName = '${resourceNamePrefix}role-csscanning-rgaccess-${subscription().subscriptionId}${resourceNameSuffix}'
 var customVnetRoleName = '${resourceNamePrefix}role-csscanning-custom-vnet-${subscription().subscriptionId}${resourceNameSuffix}'
-var scannerRgRoleName = '${resourceNamePrefix}role-csscanning-scannerrg-${subscription().subscriptionId}${resourceNameSuffix}'
+var scannerRgRoleName = '${resourceNamePrefix}role-csscanning-rgscanner-${subscription().subscriptionId}${resourceNameSuffix}'
 
 /* Role Definitions */
 resource accessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
@@ -57,7 +57,7 @@ resource accessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
         actions: union(
           accessRolePermissions.baseActions,
           inputEnableDspm ? accessRolePermissions.dspmActions : [],
-          inputEnableVulnerabilityScanning ? accessRolePermissions.vulnScanningActions : []
+          inputEnableVulnerabilityScanning ? accessRolePermissions.vulnerabilityScanningActions : []
         )
         notActions: []
         dataActions: []
@@ -101,7 +101,7 @@ resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-0
         actions: union(
           resourceGroupAccessRolePermissions.actions,
           !agentlessScanningDeployNatGateway ? resourceGroupAccessRolePermissions.conditionalPublicIPActions : [],
-          inputEnableVulnerabilityScanning ? resourceGroupAccessRolePermissions.vulnScanningActions : []
+          inputEnableVulnerabilityScanning ? resourceGroupAccessRolePermissions.vulnerabilityScanningActions : []
         )
         notActions: []
         dataActions: []
@@ -160,4 +160,4 @@ output accessRoleId string = accessRole.id
 output scannerRoleId string = scannerRole.id
 output resourceGroupAccessRoleId string = includeResourceGroupRoles ? resourceGroupAccessRole.id : ''
 output customVnetSubnetRoleId string = useCustomSubnets ? customVnetSubnetRole.id : ''
-output scannerRgRoleId string = (inputEnableVulnerabilityScanning && includeResourceGroupRoles) ? scannerRgRole.id : ''
+output resourceGroupScannerRoleId string = (inputEnableVulnerabilityScanning && includeResourceGroupRoles) ? scannerRgRole.id : ''

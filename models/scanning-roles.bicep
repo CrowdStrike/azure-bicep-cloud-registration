@@ -19,7 +19,7 @@ var accessRolePermissions = {
     'Microsoft.Storage/storageAccounts/read' // Check location and public access
     'Microsoft.Storage/storageAccounts/PrivateEndpointConnectionsApproval/action' // Approve private link connections
   ]
-  vulnScanningActions: [
+  vulnerabilityScanningActions: [
     'Microsoft.Compute/disks/beginGetAccess/action' // Access source disk for snapshot
     'Microsoft.Compute/disks/read' // Read source disk metadata
     'Microsoft.Compute/virtualMachines/read' // Read VM metadata
@@ -87,12 +87,12 @@ var resourceGroupAccessRolePermissions = {
     'Microsoft.Network/publicIPAddresses/write'
     'Microsoft.Network/publicIPAddresses/join/action'
   ]
-  vulnScanningActions: [
-    'Microsoft.Compute/snapshots/write' // Create snapshot in our RG
-    'Microsoft.Compute/snapshots/read' // Read snapshot in our RG
-    'Microsoft.Compute/disks/write' // Create disk from snapshot
-    'Microsoft.Compute/disks/delete' // Cleanup disk
-    'Microsoft.Compute/snapshots/delete' // Cleanup snapshot
+  vulnerabilityScanningActions: [
+    'Microsoft.Compute/snapshots/read'
+    'Microsoft.Compute/snapshots/write'
+    'Microsoft.Compute/snapshots/delete'
+    'Microsoft.Compute/disks/write'
+    'Microsoft.Compute/disks/delete'
   ]
 }
 

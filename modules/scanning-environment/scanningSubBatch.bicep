@@ -73,7 +73,7 @@ param scannerRoleId string = ''
 param resourceGroupAccessRoleId string = ''
 
 @description('Role definition ID for scanner resource group role. When provided, uses MG-scoped role instead of creating per-subscription.')
-param scannerRgRoleId string = ''
+param resourceGroupScannerRoleId string = ''
 
 @description('Whether to create the resource group role definitions in per-subscription roles. Only needed for host subscriptions.')
 param includeResourceGroupRoles bool = true
@@ -121,7 +121,7 @@ module scanningSub 'scanningForSub.bicep' = [
       resourceGroupAccessRoleId: useExternalRoles
         ? resourceGroupAccessRoleId
         : subRoles[i]!.outputs.resourceGroupAccessRoleId
-      scannerRgRoleId: useExternalRoles ? scannerRgRoleId : subRoles[i]!.outputs.scannerRgRoleId
+      resourceGroupScannerRoleId: useExternalRoles ? resourceGroupScannerRoleId : subRoles[i]!.outputs.resourceGroupScannerRoleId
       resourceGroupName: resourceGroupName
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix

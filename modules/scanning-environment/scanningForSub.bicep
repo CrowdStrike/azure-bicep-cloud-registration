@@ -76,7 +76,7 @@ param resourceGroupAccessRoleId string
 param customVnetSubnetRoleId string = ''
 
 @description('Role definition ID for scanner resource group role (created externally at MG or subscription scope). Empty when not provided.')
-param scannerRgRoleId string = ''
+param resourceGroupScannerRoleId string = ''
 
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
@@ -107,7 +107,7 @@ module scanningResourceGroupModule 'scanningResourceGroup.bicep' = if (shouldDep
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
     inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
     resourceGroupAccessRoleId: resourceGroupAccessRoleId
-    scannerRgRoleId: scannerRgRoleId
+    resourceGroupScannerRoleId: resourceGroupScannerRoleId
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
     env: env

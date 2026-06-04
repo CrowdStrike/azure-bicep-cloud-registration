@@ -132,7 +132,7 @@ module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCross
     scannerRoleId: scanningHostRoles!.outputs.scannerRoleId
     resourceGroupAccessRoleId: scanningHostRoles!.outputs.resourceGroupAccessRoleId
     customVnetSubnetRoleId: scanningHostRoles!.outputs.customVnetSubnetRoleId
-    scannerRgRoleId: scanningHostRoles!.outputs.scannerRgRoleId
+    resourceGroupScannerRoleId: scanningHostRoles!.outputs.resourceGroupScannerRoleId
     resourceGroupName: resourceGroupName
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix

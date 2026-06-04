@@ -152,10 +152,10 @@ var validatedResourceNameSuffix = length(resourceNamePrefix) + length(resourceNa
   ? fail('Combined prefix and suffix length must not exceed 10 characters')
   : resourceNameSuffix
 var validatedAgentlessScanningLocationsPerSubscription = shouldDeployScanningEnvironment && (empty(resolvedAgentlessScanningLocationsPerSubscription) && empty(resolvedAgentlessScanningLocations))
-  ? fail('either "agentlessScanningLocationsPerSubscription"/"dspmLocationsPerSubscription" or "agentlessScanningLocations"/"dspmLocations" must be non-empty if DSPM or vulnerability scanning is enabled')
+  ? fail('either "agentlessScanningLocationsPerSubscription" or "agentlessScanningLocations" must be non-empty if DSPM or vulnerability scanning is enabled')
   : resolvedAgentlessScanningLocationsPerSubscription
 var validatedAgentlessScanningLocations = shouldDeployScanningEnvironment && (empty(resolvedAgentlessScanningLocationsPerSubscription) && empty(resolvedAgentlessScanningLocations))
-  ? fail('either "agentlessScanningLocationsPerSubscription"/"dspmLocationsPerSubscription" or "agentlessScanningLocations"/"dspmLocations" must be non-empty if DSPM or vulnerability scanning is enabled')
+  ? fail('either "agentlessScanningLocationsPerSubscription" or "agentlessScanningLocations" must be non-empty if DSPM or vulnerability scanning is enabled')
   : resolvedAgentlessScanningLocations
 
 /* Agentless Cross-Account Validation */

@@ -70,7 +70,7 @@ resource accessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
   }
 }
 
-resource scannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
+resource scannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (inputEnableDspm) {
   name: guid(managementGroup().id, scannerRoleName)
   properties: {
     roleName: scannerRoleName
@@ -78,9 +78,9 @@ resource scannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
     type: 'CustomRole'
     permissions: [
       {
-        actions: inputEnableDspm ? scannerRolePermissions.dspmActions : []
+        actions: scannerRolePermissions.dspmActions
         notActions: []
-        dataActions: inputEnableDspm ? scannerRolePermissions.dspmDataActions : []
+        dataActions: scannerRolePermissions.dspmDataActions
         notDataActions: []
       }
     ]
@@ -156,7 +156,9 @@ resource scannerRgRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if
 
 /* Outputs */
 output accessRoleId string = accessRole.id
-output scannerRoleId string = scannerRole.id
+output scannerRoleId string = inputEnableDspm ? scannerRole.id : ''
 output resourceGroupAccessRoleId string = includeResourceGroupRoles ? resourceGroupAccessRole.id : ''
 output customVnetSubnetRoleId string = useCustomSubnets ? customVnetSubnetRole.id : ''
-output resourceGroupScannerRoleId string = (inputEnableVulnerabilityScanning && includeResourceGroupRoles) ? scannerRgRole.id : ''
+output resourceGroupScannerRoleId string = (inputEnableVulnerabilityScanning && includeResourceGroupRoles)
+  ? scannerRgRole.id
+  : ''

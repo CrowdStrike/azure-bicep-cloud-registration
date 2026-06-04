@@ -121,7 +121,9 @@ module scanningSub 'scanningForSub.bicep' = [
       resourceGroupAccessRoleId: useExternalRoles
         ? resourceGroupAccessRoleId
         : subRoles[i]!.outputs.resourceGroupAccessRoleId
-      resourceGroupScannerRoleId: useExternalRoles ? resourceGroupScannerRoleId : subRoles[i]!.outputs.resourceGroupScannerRoleId
+      resourceGroupScannerRoleId: useExternalRoles
+        ? resourceGroupScannerRoleId
+        : subRoles[i]!.outputs.resourceGroupScannerRoleId
       resourceGroupName: resourceGroupName
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix

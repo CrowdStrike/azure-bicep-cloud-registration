@@ -115,7 +115,7 @@ module scanningResourceGroupModule 'scanningResourceGroup.bicep' = if (shouldDep
   }
 }
 
-resource scannerRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource scannerRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (inputEnableDspm) {
   name: shouldDeployResources
     ? guid(subscription().id, 'scanningManagedIdentityPrincipalId', scannerRoleId)
     : guid(subscription().id, scanningManagedIdentityPrincipalId, scannerRoleId)

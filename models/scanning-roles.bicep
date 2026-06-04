@@ -109,7 +109,7 @@ var customVnetSubnetRolePermissions = {
 
 @export()
 @description('Permissions for the CrowdStrike Agentless Scanning Scanner Resource Group Role (vulnerability scanning).')
-var scannerRgRolePermissions = {
+var resourceGroupScannerRolePermissions = {
   description: 'CrowdStrike Agentless Scanning Scanner Resource Group Role'
   actions: [
     'Microsoft.Compute/virtualMachines/attachDetachDataDisks/action'

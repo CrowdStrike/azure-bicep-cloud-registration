@@ -3,7 +3,7 @@ import {
   scannerRolePermissions
   resourceGroupAccessRolePermissions
   customVnetSubnetRolePermissions
-  scannerRgRolePermissions
+  resourceGroupScannerRolePermissions
 } from '../../models/scanning-roles.bicep'
 
 targetScope = 'managementGroup'
@@ -43,7 +43,7 @@ var accessRoleName = '${resourceNamePrefix}role-csscanning-access-${managementGr
 var scannerRoleName = '${resourceNamePrefix}role-csscanning-scanner-${managementGroup().name}${resourceNameSuffix}'
 var resourceGroupAccessRoleName = '${resourceNamePrefix}role-csscanning-rgaccess-${managementGroup().name}${resourceNameSuffix}'
 var customVnetRoleName = '${resourceNamePrefix}role-csscanning-custom-vnet-${managementGroup().name}${resourceNameSuffix}'
-var scannerRgRoleName = '${resourceNamePrefix}role-csscanning-scannerrg-${managementGroup().name}${resourceNameSuffix}'
+var resourceGroupScannerRoleName = '${resourceNamePrefix}role-csscanning-rgscanner-${managementGroup().name}${resourceNameSuffix}'
 
 /* Role Definitions */
 resource accessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
@@ -134,15 +134,15 @@ resource customVnetSubnetRole 'Microsoft.Authorization/roleDefinitions@2022-04-0
   }
 }
 
-resource scannerRgRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (inputEnableVulnerabilityScanning && includeResourceGroupRoles) {
-  name: guid(managementGroup().id, scannerRgRoleName)
+resource resourceGroupScannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (inputEnableVulnerabilityScanning && includeResourceGroupRoles) {
+  name: guid(managementGroup().id, resourceGroupScannerRoleName)
   properties: {
-    roleName: scannerRgRoleName
-    description: scannerRgRolePermissions.description
+    roleName: resourceGroupScannerRoleName
+    description: resourceGroupScannerRolePermissions.description
     type: 'CustomRole'
     permissions: [
       {
-        actions: scannerRgRolePermissions.actions
+        actions: resourceGroupScannerRolePermissions.actions
         notActions: []
         dataActions: []
         notDataActions: []
@@ -160,5 +160,5 @@ output scannerRoleId string = inputEnableDspm ? scannerRole.id : ''
 output resourceGroupAccessRoleId string = includeResourceGroupRoles ? resourceGroupAccessRole.id : ''
 output customVnetSubnetRoleId string = useCustomSubnets ? customVnetSubnetRole.id : ''
 output resourceGroupScannerRoleId string = (inputEnableVulnerabilityScanning && includeResourceGroupRoles)
-  ? scannerRgRole.id
+  ? resourceGroupScannerRole.id
   : ''

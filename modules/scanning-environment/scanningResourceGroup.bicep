@@ -53,7 +53,7 @@ var clientCredentialsName = 'client-credentials'
 var validatedResourceGroupAccessRoleId = empty(resourceGroupAccessRoleId)
   ? fail('"resourceGroupAccessRoleId" must be provided to scanningResourceGroup module')
   : resourceGroupAccessRoleId
-var validatedScannerRgRoleId = inputEnableVulnerabilityScanning && empty(resourceGroupScannerRoleId)
+var validatedResourceGroupScannerRoleId = inputEnableVulnerabilityScanning && empty(resourceGroupScannerRoleId)
   ? fail('"resourceGroupScannerRoleId" must be provided when vulnerability scanning is enabled')
   : resourceGroupScannerRoleId
 
@@ -146,10 +146,10 @@ resource clientCredentials 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = {
   tags: tags
 }
 
-resource scannerRgRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (inputEnableVulnerabilityScanning) {
-  name: guid(subscription().id, resourceGroup().id, validatedScannerRgRoleId, scannerManagedIdentity.id)
+resource resourceGroupScannerRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (inputEnableVulnerabilityScanning) {
+  name: guid(subscription().id, resourceGroup().id, validatedResourceGroupScannerRoleId, scannerManagedIdentity.id)
   properties: {
-    roleDefinitionId: validatedScannerRgRoleId
+    roleDefinitionId: validatedResourceGroupScannerRoleId
     principalId: scannerManagedIdentity.properties.principalId
     principalType: 'ServicePrincipal'
   }

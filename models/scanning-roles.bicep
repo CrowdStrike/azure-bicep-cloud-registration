@@ -81,6 +81,7 @@ var resourceGroupAccessRolePermissions = {
     'Microsoft.Resources/deploymentScripts/read'
     'Microsoft.KeyVault/vaults/read'
     'Microsoft.Compute/virtualMachines/retrieveBootDiagnosticsData/action'
+    'Microsoft.Authorization/locks/read'
   ]
   conditionalPublicIPActions: [
     'Microsoft.Network/publicIPAddresses/read'

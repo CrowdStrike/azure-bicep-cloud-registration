@@ -41,9 +41,9 @@ param inputEnableVulnerabilityScanning bool = false
 /* Variables */
 var accessRoleName = '${resourceNamePrefix}role-csscanning-access-${managementGroup().name}${resourceNameSuffix}'
 var scannerRoleName = '${resourceNamePrefix}role-csscanning-scanner-${managementGroup().name}${resourceNameSuffix}'
-var resourceGroupAccessRoleName = '${resourceNamePrefix}role-csscanning-rgaccess-${managementGroup().name}${resourceNameSuffix}'
+var resourceGroupAccessRoleName = '${resourceNamePrefix}role-csscanning-rg-access-${managementGroup().name}${resourceNameSuffix}'
 var customVnetRoleName = '${resourceNamePrefix}role-csscanning-custom-vnet-${managementGroup().name}${resourceNameSuffix}'
-var resourceGroupScannerRoleName = '${resourceNamePrefix}role-csscanning-rgscanner-${managementGroup().name}${resourceNameSuffix}'
+var resourceGroupScannerRoleName = '${resourceNamePrefix}role-csscanning-rg-scanner-${managementGroup().name}${resourceNameSuffix}'
 
 /* Role Definitions */
 resource accessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {

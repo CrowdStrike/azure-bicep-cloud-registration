@@ -1,5 +1,5 @@
 /*
-  This Bicep template update the Event Hub settings back to Falcon Cloud Security.
+  This Bicep template updates the Event Hub settings back to the Falcon platform.
   Copyright (c) 2025 CrowdStrike, Inc.
 */
 

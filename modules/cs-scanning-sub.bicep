@@ -46,6 +46,9 @@ param agentlessScanningHostSubscriptionId string = ''
 @description('Controls whether to enable DSPM.')
 param inputEnableDspm bool = false
 
+@description('Controls whether to enable vulnerability scanning.')
+param inputEnableVulnerabilityScanning bool = false
+
 @description('Azure locations (regions) where DSPM will be deployed.')
 param inputAgentlessScanningLocations array = []
 
@@ -97,8 +100,10 @@ module scanningHostRoles 'scanning-environment/scanningRolesForSub.bicep' = if (
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
-    includeResourceGroupAccessRole: true
+    includeResourceGroupRoles: true
     useCustomSubnets: hostSubUseCustomSubnets
+    inputEnableDspm: inputEnableDspm
+    inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
   }
 }
 
@@ -119,6 +124,7 @@ module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCross
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
     agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
     inputEnableDspm: inputEnableDspm
+    inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
     inputAgentlessScanningLocations: inputAgentlessScanningLocations
     inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
     inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
@@ -126,6 +132,7 @@ module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCross
     scannerRoleId: scanningHostRoles!.outputs.scannerRoleId
     resourceGroupAccessRoleId: scanningHostRoles!.outputs.resourceGroupAccessRoleId
     customVnetSubnetRoleId: scanningHostRoles!.outputs.customVnetSubnetRoleId
+    resourceGroupScannerRoleId: scanningHostRoles!.outputs.resourceGroupScannerRoleId
     resourceGroupName: resourceGroupName
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
@@ -150,10 +157,11 @@ module scanningSub 'scanning-environment/scanningSubBatch.bicep' = [
       scanningManagedIdentityPrincipalId: isCrossSubscriptionDeployment
         ? scanningHostSub!.outputs.scanningManagedIdentityPrincipalId
         : ''
-      includeResourceGroupAccessRole: !isCrossSubscriptionDeployment
+      includeResourceGroupRoles: !isCrossSubscriptionDeployment
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
       agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
       inputEnableDspm: inputEnableDspm
+      inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
       inputAgentlessScanningLocations: inputAgentlessScanningLocations
       inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
       inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration

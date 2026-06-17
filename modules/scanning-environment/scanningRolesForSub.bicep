@@ -3,6 +3,7 @@ import {
   scannerRolePermissions
   resourceGroupAccessRolePermissions
   customVnetSubnetRolePermissions
+  resourceGroupScannerRolePermissions
 } from '../../models/scanning-roles.bicep'
 
 targetScope = 'subscription'
@@ -25,17 +26,24 @@ param resourceNameSuffix string = ''
 @description('Whether NAT Gateway is enabled. When false, public IP permissions are included for VM connectivity.')
 param agentlessScanningDeployNatGateway bool = true
 
-@description('Whether to create the resource group access role definition. Only needed for the host subscription.')
-param includeResourceGroupAccessRole bool = true
+@description('Whether to create the resource group role definitions. Only needed for the host subscription.')
+param includeResourceGroupRoles bool = true
 
 @description('Whether custom VNet subnets are used. When true, creates the custom VNet subnet access role.')
 param useCustomSubnets bool = false
 
+@description('Controls whether to enable DSPM.')
+param inputEnableDspm bool = false
+
+@description('Controls whether to enable vulnerability scanning.')
+param inputEnableVulnerabilityScanning bool = false
+
 /* Variables */
 var accessRoleName = '${resourceNamePrefix}role-csscanning-access-${subscription().subscriptionId}${resourceNameSuffix}'
 var scannerRoleName = '${resourceNamePrefix}role-csscanning-scanner-${subscription().subscriptionId}${resourceNameSuffix}'
-var resourceGroupAccessRoleName = '${resourceNamePrefix}role-csscanning-rgaccess-${subscription().subscriptionId}${resourceNameSuffix}'
+var resourceGroupAccessRoleName = '${resourceNamePrefix}role-csscanning-rg-access-${subscription().subscriptionId}${resourceNameSuffix}'
 var customVnetRoleName = '${resourceNamePrefix}role-csscanning-custom-vnet-${subscription().subscriptionId}${resourceNameSuffix}'
+var resourceGroupScannerRoleName = '${resourceNamePrefix}role-csscanning-rg-scanner-${subscription().subscriptionId}${resourceNameSuffix}'
 
 /* Role Definitions */
 resource accessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
@@ -46,7 +54,11 @@ resource accessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
     type: 'CustomRole'
     permissions: [
       {
-        actions: accessRolePermissions.actions
+        actions: union(
+          accessRolePermissions.baseActions,
+          inputEnableDspm ? accessRolePermissions.dspmActions : [],
+          inputEnableVulnerabilityScanning ? accessRolePermissions.vulnerabilityScanningActions : []
+        )
         notActions: []
         dataActions: []
         notDataActions: []
@@ -58,7 +70,7 @@ resource accessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
   }
 }
 
-resource scannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
+resource scannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (inputEnableDspm) {
   name: guid(subscription().id, scannerRoleName)
   properties: {
     roleName: scannerRoleName
@@ -66,9 +78,9 @@ resource scannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
     type: 'CustomRole'
     permissions: [
       {
-        actions: scannerRolePermissions.actions
+        actions: scannerRolePermissions.dspmActions
         notActions: []
-        dataActions: scannerRolePermissions.dataActions
+        dataActions: scannerRolePermissions.dspmDataActions
         notDataActions: []
       }
     ]
@@ -78,7 +90,7 @@ resource scannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
   }
 }
 
-resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (includeResourceGroupAccessRole) {
+resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (includeResourceGroupRoles) {
   name: guid(subscription().id, resourceGroupAccessRoleName)
   properties: {
     roleName: resourceGroupAccessRoleName
@@ -88,7 +100,8 @@ resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-0
       {
         actions: union(
           resourceGroupAccessRolePermissions.actions,
-          !agentlessScanningDeployNatGateway ? resourceGroupAccessRolePermissions.conditionalPublicIPActions : []
+          !agentlessScanningDeployNatGateway ? resourceGroupAccessRolePermissions.conditionalPublicIPActions : [],
+          inputEnableVulnerabilityScanning ? resourceGroupAccessRolePermissions.vulnerabilityScanningActions : []
         )
         notActions: []
         dataActions: []
@@ -122,8 +135,31 @@ resource customVnetSubnetRole 'Microsoft.Authorization/roleDefinitions@2022-04-0
   }
 }
 
+resource resourceGroupScannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (inputEnableVulnerabilityScanning && includeResourceGroupRoles) {
+  name: guid(subscription().id, resourceGroupScannerRoleName)
+  properties: {
+    roleName: resourceGroupScannerRoleName
+    description: resourceGroupScannerRolePermissions.description
+    type: 'CustomRole'
+    permissions: [
+      {
+        actions: resourceGroupScannerRolePermissions.actions
+        notActions: []
+        dataActions: []
+        notDataActions: []
+      }
+    ]
+    assignableScopes: [
+      subscription().id
+    ]
+  }
+}
+
 /* Outputs */
 output accessRoleId string = accessRole.id
-output scannerRoleId string = scannerRole.id
-output resourceGroupAccessRoleId string = includeResourceGroupAccessRole ? resourceGroupAccessRole.id : ''
+output scannerRoleId string = inputEnableDspm ? scannerRole.id : ''
+output resourceGroupAccessRoleId string = includeResourceGroupRoles ? resourceGroupAccessRole.id : ''
 output customVnetSubnetRoleId string = useCustomSubnets ? customVnetSubnetRole.id : ''
+output resourceGroupScannerRoleId string = (inputEnableVulnerabilityScanning && includeResourceGroupRoles)
+  ? resourceGroupScannerRole.id
+  : ''

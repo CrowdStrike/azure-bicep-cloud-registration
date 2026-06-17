@@ -51,6 +51,9 @@ param agentlessScanningHostSubscriptionId string = ''
 @description('Controls whether to enable DSPM.')
 param inputEnableDspm bool = false
 
+@description('Controls whether to enable vulnerability scanning.')
+param inputEnableVulnerabilityScanning bool = false
+
 @description('Azure locations (regions) where DSPM will be deployed.')
 param inputAgentlessScanningLocations array = []
 
@@ -69,8 +72,11 @@ param scannerRoleId string = ''
 @description('Role definition ID for resource group access role. When provided, uses MG-scoped role instead of creating per-subscription.')
 param resourceGroupAccessRoleId string = ''
 
-@description('Whether to create the resource group access role definition in per-subscription roles. Only needed for host subscriptions.')
-param includeResourceGroupAccessRole bool = true
+@description('Role definition ID for scanner resource group role. When provided, uses MG-scoped role instead of creating per-subscription.')
+param resourceGroupScannerRoleId string = ''
+
+@description('Whether to create the resource group role definitions in per-subscription roles. Only needed for host subscriptions.')
+param includeResourceGroupRoles bool = true
 
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
@@ -85,7 +91,9 @@ module subRoles 'scanningRolesForSub.bicep' = [
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
-      includeResourceGroupAccessRole: includeResourceGroupAccessRole
+      includeResourceGroupRoles: includeResourceGroupRoles
+      inputEnableDspm: inputEnableDspm
+      inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
     }
   }
 ]
@@ -104,6 +112,7 @@ module scanningSub 'scanningForSub.bicep' = [
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
       agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
       inputEnableDspm: inputEnableDspm
+      inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
       inputAgentlessScanningLocations: inputAgentlessScanningLocations
       inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
       inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
@@ -112,6 +121,9 @@ module scanningSub 'scanningForSub.bicep' = [
       resourceGroupAccessRoleId: useExternalRoles
         ? resourceGroupAccessRoleId
         : subRoles[i]!.outputs.resourceGroupAccessRoleId
+      resourceGroupScannerRoleId: useExternalRoles
+        ? resourceGroupScannerRoleId
+        : subRoles[i]!.outputs.resourceGroupScannerRoleId
       resourceGroupName: resourceGroupName
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix

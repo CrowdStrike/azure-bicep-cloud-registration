@@ -9,14 +9,22 @@
 @description('Permissions for the CrowdStrike Agentless Scanning Access Role.')
 var accessRolePermissions = {
   description: 'CrowdStrike Agentless Scanning Access Role'
-  actions: [
-    // ============ Blob Storage ============
-    'Microsoft.Storage/storageAccounts/read' // Check location and public access
-    'Microsoft.Storage/storageAccounts/PrivateEndpointConnectionsApproval/action' // Approve private link connections
-
+  baseActions: [
     // ============ Validation ============
     'Microsoft.Authorization/roleAssignments/read'
     'Microsoft.Authorization/policyDefinitions/read'
+  ]
+  dspmActions: [
+    // ============ Blob Storage ============
+    'Microsoft.Storage/storageAccounts/read' // Check location and public access
+    'Microsoft.Storage/storageAccounts/PrivateEndpointConnectionsApproval/action' // Approve private link connections
+  ]
+  vulnerabilityScanningActions: [
+    'Microsoft.Compute/disks/beginGetAccess/action' // Access source disk for snapshot
+    'Microsoft.Compute/disks/read' // Read source disk metadata
+    'Microsoft.Compute/virtualMachines/read' // Read VM metadata
+    'Microsoft.Compute/virtualMachineScaleSets/read' // Read VMSS metadata
+    'Microsoft.Compute/virtualMachineScaleSets/virtualMachines/read' // Read VMSS instance metadata
   ]
 }
 
@@ -24,10 +32,10 @@ var accessRolePermissions = {
 @description('Permissions for the CrowdStrike Agentless Scanning Scanner Role.')
 var scannerRolePermissions = {
   description: 'CrowdStrike Agentless Scanning Scanner Role'
-  actions: [
+  dspmActions: [
     'Microsoft.Storage/storageAccounts/blobServices/containers/read'
   ]
-  dataActions: [
+  dspmDataActions: [
     'Microsoft.Storage/storageAccounts/blobServices/containers/blobs/read'
   ]
 }
@@ -37,7 +45,7 @@ var scannerRolePermissions = {
 var resourceGroupAccessRolePermissions = {
   description: 'CrowdStrike Agentless Scanning Resource Group Access Role'
   actions: [
-    // ============ Blob Storage ============
+    // ============ Common ============
     // Private Endpoint
     'Microsoft.Network/privateEndpoints/read'
     'Microsoft.Network/privateEndpoints/write'
@@ -73,11 +81,19 @@ var resourceGroupAccessRolePermissions = {
     'Microsoft.Resources/deploymentScripts/read'
     'Microsoft.KeyVault/vaults/read'
     'Microsoft.Compute/virtualMachines/retrieveBootDiagnosticsData/action'
+    'Microsoft.Authorization/locks/read'
   ]
   conditionalPublicIPActions: [
     'Microsoft.Network/publicIPAddresses/read'
     'Microsoft.Network/publicIPAddresses/write'
     'Microsoft.Network/publicIPAddresses/join/action'
+  ]
+  vulnerabilityScanningActions: [
+    'Microsoft.Compute/snapshots/read'
+    'Microsoft.Compute/snapshots/write'
+    'Microsoft.Compute/snapshots/delete'
+    'Microsoft.Compute/disks/write'
+    'Microsoft.Compute/disks/delete'
   ]
 }
 
@@ -89,5 +105,14 @@ var customVnetSubnetRolePermissions = {
     'Microsoft.Network/virtualNetworks/subnets/join/action'
     'Microsoft.Network/virtualNetworks/read'
     'Microsoft.Network/virtualNetworks/subnets/read'
+  ]
+}
+
+@export()
+@description('Permissions for the CrowdStrike Agentless Scanning Scanner Resource Group Role (vulnerability scanning).')
+var resourceGroupScannerRolePermissions = {
+  description: 'CrowdStrike Agentless Scanning Scanner Resource Group Role'
+  actions: [
+    'Microsoft.Compute/virtualMachines/attachDetachDataDisks/action'
   ]
 }

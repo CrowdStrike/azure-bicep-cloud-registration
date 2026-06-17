@@ -53,6 +53,9 @@ param agentlessScanningHostSubscriptionId string = ''
 @description('Controls whether to enable DSPM.')
 param inputEnableDspm bool = false
 
+@description('Controls whether to enable vulnerability scanning.')
+param inputEnableVulnerabilityScanning bool = false
+
 @description('Azure locations (regions) where DSPM will be deployed.')
 param inputAgentlessScanningLocations array = []
 
@@ -70,6 +73,9 @@ param scannerRoleId string = ''
 
 @description('Role definition ID for resource group access role from management group scope.')
 param resourceGroupAccessRoleId string = ''
+
+@description('Role definition ID for scanner resource group role from management group scope.')
+param resourceGroupScannerRoleId string = ''
 
 @description('Maximum number of subscriptions per batch for scanning deployment. Default is 750 to stay safely under the 800 limit.')
 @minValue(1)
@@ -95,12 +101,14 @@ module scanningSub 'scanningSubBatch.bicep' = [
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
       agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
       inputEnableDspm: inputEnableDspm
+      inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
       inputAgentlessScanningLocations: inputAgentlessScanningLocations
       inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
       inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
       accessRoleId: accessRoleId
       scannerRoleId: scannerRoleId
       resourceGroupAccessRoleId: resourceGroupAccessRoleId
+      resourceGroupScannerRoleId: resourceGroupScannerRoleId
       resourceGroupName: resourceGroupName
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix

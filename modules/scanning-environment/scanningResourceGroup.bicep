@@ -1,5 +1,3 @@
-import { resourceGroupAccessRolePermissions } from '../../models/scanning-roles.bicep'
-
 targetScope = 'resourceGroup'
 
 /*
@@ -35,49 +33,34 @@ param tags object
 @description('Whether NAT Gateway is enabled. When false, public IP permissions are included for VM connectivity.')
 param agentlessScanningDeployNatGateway bool = true
 
+@description('Controls whether to enable vulnerability scanning.')
+param inputEnableVulnerabilityScanning bool = false
+
 @description('Role definition ID for resource group access role. When provided, skips per-subscription role creation (management group mode).')
 param resourceGroupAccessRoleId string = ''
 
+@description('Role definition ID for scanner resource group role. When provided, skips per-subscription role creation (management group mode).')
+param resourceGroupScannerRoleId string = ''
+
 /* Variables */
-var useExternalRgRole = !empty(resourceGroupAccessRoleId)
 var environment = length(env) > 0 ? '-${env}' : env
-// NOTE: key vault has name limit constraints, so prefix and suffix are omitted 
+// NOTE: key vault has name limit constraints, so prefix and suffix are omitted
 var keyVaultName = 'kv-cs-${uniqueString(resourceGroup().id, 'CrowdStrikeScanningKeyVault', 'v2')}'
 var managedIdentityName = '${resourceNamePrefix}id-csscanning${environment}${resourceNameSuffix}'
 var clientCredentialsName = 'client-credentials'
-var resourceGroupAccessRoleName = '${resourceNamePrefix}role-csscanning-rgaccess-${subscription().subscriptionId}${resourceNameSuffix}'
 
-resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (!useExternalRgRole) {
-  name: guid(resourceGroup().id, resourceGroupAccessRoleName)
-  properties: {
-    roleName: resourceGroupAccessRoleName
-    description: resourceGroupAccessRolePermissions.description
-    type: 'CustomRole'
-    permissions: [
-      {
-        actions: union(
-          resourceGroupAccessRolePermissions.actions,
-          !agentlessScanningDeployNatGateway ? resourceGroupAccessRolePermissions.conditionalPublicIPActions : []
-        )
-        notActions: []
-        dataActions: []
-        notDataActions: []
-      }
-    ]
-    assignableScopes: [
-      resourceGroup().id
-    ]
-  }
-}
+/* Input Validation */
+var validatedResourceGroupAccessRoleId = empty(resourceGroupAccessRoleId)
+  ? fail('"resourceGroupAccessRoleId" must be provided to scanningResourceGroup module')
+  : resourceGroupAccessRoleId
+var validatedResourceGroupScannerRoleId = inputEnableVulnerabilityScanning && empty(resourceGroupScannerRoleId)
+  ? fail('"resourceGroupScannerRoleId" must be provided when vulnerability scanning is enabled')
+  : resourceGroupScannerRoleId
 
 resource rgRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(
-    subscription().id,
-    scanningPrincipalId,
-    useExternalRgRole ? resourceGroupAccessRoleId : resourceGroupAccessRole.id
-  )
+  name: guid(subscription().id, scanningPrincipalId, validatedResourceGroupAccessRoleId)
   properties: {
-    roleDefinitionId: useExternalRgRole ? resourceGroupAccessRoleId : resourceGroupAccessRole.id
+    roleDefinitionId: validatedResourceGroupAccessRoleId
     principalId: scanningPrincipalId
     principalType: 'ServicePrincipal'
   }
@@ -161,6 +144,15 @@ resource clientCredentials 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = {
     })
   }
   tags: tags
+}
+
+resource resourceGroupScannerRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (inputEnableVulnerabilityScanning) {
+  name: guid(subscription().id, resourceGroup().id, validatedResourceGroupScannerRoleId, scannerManagedIdentity.id)
+  properties: {
+    roleDefinitionId: validatedResourceGroupScannerRoleId
+    principalId: scannerManagedIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
 }
 
 output scanningKeyVaultName string = scanningKeyVault.name

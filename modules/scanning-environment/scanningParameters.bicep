@@ -15,6 +15,9 @@ param inputFalconClientId string
 @description('Controls whether to enable DSPM.')
 param inputEnableDspm bool
 
+@description('Controls whether to enable vulnerability scanning.')
+param inputEnableVulnerabilityScanning bool
+
 @description('Azure locations (regions) where DSPM will be deployed.')
 param inputAgentlessScanningLocations array
 
@@ -48,7 +51,7 @@ param inputTags object
 /* Variables */
 var environment = length(inputEnv) > 0 ? '-${inputEnv}' : inputEnv
 var policyDefinitionName = '${inputResourceNamePrefix}policy-csscanning-parameters${environment}${inputResourceNameSuffix}'
-var version = '1.1.0+bicep.1'
+var version = '1.2.0+bicep.1'
 
 /* Functions */
 func boolToJson(value bool) string => value ? 'true' : 'false'
@@ -61,6 +64,7 @@ var parameterDefinitions = {
   scanningPrincipalId: stringToJson(scanningPrincipalId)
   falconClientId: stringToJson(inputFalconClientId)
   enableDspm: boolToJson(inputEnableDspm)
+  enableVulnerabilityScanning: boolToJson(inputEnableVulnerabilityScanning)
   agentlessScanningLocations: string(inputAgentlessScanningLocations)
   agentlessScanningLocationsPerSubscription: string(inputAgentlessScanningLocationsPerSubscription)
   agentlessScanningDeployNatGateway: boolToJson(inputAgentlessScanningDeployNatGateway)

@@ -51,6 +51,9 @@ param agentlessScanningHostSubscriptionId string = ''
 @description('Controls whether to enable DSPM.')
 param inputEnableDspm bool = false
 
+@description('Controls whether to enable vulnerability scanning.')
+param inputEnableVulnerabilityScanning bool = false
+
 @description('Azure locations (regions) where DSPM will be deployed.')
 param inputAgentlessScanningLocations array = []
 
@@ -71,6 +74,9 @@ param resourceGroupAccessRoleId string
 
 @description('Role definition ID for custom VNet subnet access role (created externally at subscription scope). Empty when custom subnets are not used.')
 param customVnetSubnetRoleId string = ''
+
+@description('Role definition ID for scanner resource group role (created externally at MG or subscription scope). Empty when not provided.')
+param resourceGroupScannerRoleId string = ''
 
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
@@ -99,7 +105,9 @@ module scanningResourceGroupModule 'scanningResourceGroup.bicep' = if (shouldDep
     falconClientSecret: falconClientSecret
     scanningPrincipalId: scanningPrincipalId
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
+    inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
     resourceGroupAccessRoleId: resourceGroupAccessRoleId
+    resourceGroupScannerRoleId: resourceGroupScannerRoleId
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
     env: env
@@ -107,7 +115,7 @@ module scanningResourceGroupModule 'scanningResourceGroup.bicep' = if (shouldDep
   }
 }
 
-resource scannerRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource scannerRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (inputEnableDspm) {
   name: shouldDeployResources
     ? guid(subscription().id, 'scanningManagedIdentityPrincipalId', scannerRoleId)
     : guid(subscription().id, scanningManagedIdentityPrincipalId, scannerRoleId)
@@ -165,6 +173,7 @@ module scanningParametersModule 'scanningParameters.bicep' = {
     scanningPrincipalId: scanningPrincipalId
     inputFalconClientId: falconClientId
     inputEnableDspm: inputEnableDspm
+    inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
     inputAgentlessScanningLocations: inputAgentlessScanningLocations
     inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
     inputAgentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway

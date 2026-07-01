@@ -30,7 +30,7 @@ function Get-FalconAPIAccessToken {
     )
     try {
         $Params = @{
-            Uri     = "https://${FalconAPIBaseUrl}/oauth2/token"
+            Uri     = "https://${FalconAPIBaseUrl}/cloud-security-registration/token/v1"
             Method  = "POST"
             Headers = @{
                 "Content-Type" = "application/x-www-form-urlencoded"
@@ -42,7 +42,7 @@ function Get-FalconAPIAccessToken {
         }
         return ((Invoke-WebRequest @Params).Content | ConvertFrom-Json).access_token
     }
-    catch [System.Exception] { 
+    catch [System.Exception] {
         Write-Error "An exception was caught: $($_.Exception.Message)"
         break
     }

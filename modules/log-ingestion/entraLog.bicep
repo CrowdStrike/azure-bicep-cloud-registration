@@ -128,7 +128,7 @@ resource entraDiagnosticSettings 'microsoft.aadiam/diagnosticSettings@2017-04-01
         }
       }
       {
-        category: 'NetworkAccessTraffic'
+        category: 'NetworkAccessTrafficLogs'
         enabled: true
         retentionPolicy: {
           days: 0

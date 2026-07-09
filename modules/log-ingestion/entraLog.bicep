@@ -79,6 +79,62 @@ resource entraDiagnosticSettings 'microsoft.aadiam/diagnosticSettings@2017-04-01
           enabled: false
         }
       }
+      {
+        category: 'MicrosoftGraphActivityLogs'
+        enabled: true
+        retentionPolicy: {
+          days: 0
+          enabled: false
+        }
+      }
+      {
+        category: 'ProvisioningLogs'
+        enabled: true
+        retentionPolicy: {
+          days: 0
+          enabled: false
+        }
+      }
+      {
+        category: 'UserRiskEvents'
+        enabled: true
+        retentionPolicy: {
+          days: 0
+          enabled: false
+        }
+      }
+      {
+        category: 'RiskyUsers'
+        enabled: true
+        retentionPolicy: {
+          days: 0
+          enabled: false
+        }
+      }
+      {
+        category: 'RiskyServicePrincipals'
+        enabled: true
+        retentionPolicy: {
+          days: 0
+          enabled: false
+        }
+      }
+      {
+        category: 'ServicePrincipalRiskEvents'
+        enabled: true
+        retentionPolicy: {
+          days: 0
+          enabled: false
+        }
+      }
+      {
+        category: 'NetworkAccessTrafficLogs'
+        enabled: true
+        retentionPolicy: {
+          days: 0
+          enabled: false
+        }
+      }
     ]
   }
 }

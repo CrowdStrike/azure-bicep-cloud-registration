@@ -43,6 +43,9 @@ param falconIpAddresses array
 @description('List of Azure subscription IDs to monitor. These subscriptions will be configured for CrowdStrike monitoring.')
 param subscriptionIds array
 
+@description('Azure cloud type for this registration. Use "commercial" for standard Azure or "gov" for Azure Government. Empty string is treated as commercial.')
+param accountType string = ''
+
 var environment = length(env) > 0 ? '-${env}' : env
 
 module deploymentForSubs 'log-ingestion/logIngestionForSub.bicep' = {
@@ -59,6 +62,7 @@ module deploymentForSubs 'log-ingestion/logIngestionForSub.bicep' = {
     location: location
     env: env
     tags: tags
+    accountType: accountType
   }
 }
 

@@ -36,6 +36,9 @@ param activityLogSettings ActivityLogSettings
 @description('Configuration settings for Microsoft Entra ID log collection and monitoring.')
 param entraIdLogSettings EntraIdLogSettings
 
+@description('Azure cloud type for this registration. Use "commercial" for standard Azure or "gov" for Azure Government. Empty string is treated as commercial.')
+param accountType string = ''
+
 @description('List of IP addresses of CrowdStrike Falcon service. Please refer to https://falcon.crowdstrike.com/documentation/page/re07d589/add-crowdstrike-ip-addresses-to-cloud-provider-allowlists-0 for the IP address list of your Falcon region.')
 param falconIpAddresses array
 
@@ -97,6 +100,7 @@ module entraDiagnosticSettings 'entraLog.bicep' = if (shouldDeployEventhubForEnt
     diagnosticSettingsName: '${resourceNamePrefix}diag-cslogentid${environment}${resourceNameSuffix}'
     eventHubName: eventHub.outputs.eventhubs.entraLog.eventHubName
     eventHubAuthorizationRuleId: eventHub.outputs.eventhubs.entraLog.eventHubAuthorizationRuleId
+    accountType: accountType
   }
 }
 

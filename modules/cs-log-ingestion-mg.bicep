@@ -51,6 +51,9 @@ param env string
 @description('Tags to be applied to all deployed resources. Used for resource organization, governance, and cost tracking.')
 param tags object
 
+@description('Azure cloud type for this registration. Use "commercial" for standard Azure or "gov" for Azure Government. Empty string is treated as commercial.')
+param accountType string = ''
+
 var environment = length(env) > 0 ? '-${env}' : env
 
 // Deployment for subscriptions
@@ -69,6 +72,7 @@ module deploymentForSubs 'log-ingestion/logIngestionForSub.bicep' = {
     location: location
     env: env
     tags: tags
+    accountType: accountType
   }
 }
 

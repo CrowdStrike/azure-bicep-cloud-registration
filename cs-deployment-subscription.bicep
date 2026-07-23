@@ -324,6 +324,7 @@ module logIngestion 'modules/cs-log-ingestion-sub.bicep' = if (shouldDeployLogIn
     location: location
     env: env
     tags: tags
+    accountType: accountType
   }
   dependsOn: [
     infraResourceGroup

@@ -153,7 +153,9 @@ var validatedDeploymentScriptSettings = (deploymentScriptSettings != null && spl
   ? fail('"deploymentScriptSettings.storageAccountId" must be in the "csInfraSubscriptionId" subscription, since deployment scripts only support an existing storage account from their own subscription')
   : (deploymentScriptSettings.?subnetId != null && split(deploymentScriptSettings!.subnetId!, '/')[2] != csInfraSubscriptionId)
       ? fail('"deploymentScriptSettings.subnetId" must be in the "csInfraSubscriptionId" subscription, since deployment scripts always run there and Azure Container Instances require the delegated subnet to be in the same subscription as the container group')
-      : deploymentScriptSettings
+      : (deploymentScriptSettings != null && deploymentScriptSettings.?subnetId == null && empty(deploymentScriptSettings.?storageAccountKey))
+          ? fail('"deploymentScriptSettings.storageAccountKey" is required unless "deploymentScriptSettings.subnetId" is set - Azure Container Instances can only mount an existing storage account without a key when running inside a virtual network')
+          : deploymentScriptSettings
 var shouldDeployScriptRunnerIdentity = shouldDeployLogIngestion && validatedDeploymentScriptSettings != null
 var validatedAgentlessScanningLocationsPerSubscription = shouldDeployScanningEnvironment && (empty(resolvedAgentlessScanningLocationsPerSubscription) && empty(resolvedAgentlessScanningLocations))
   ? fail('either "agentlessScanningLocationsPerSubscription" or "agentlessScanningLocations" must be non-empty if DSPM or vulnerability scanning is enabled')

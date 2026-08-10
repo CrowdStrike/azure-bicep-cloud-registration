@@ -51,10 +51,14 @@ resource subscriptionsInManagementGroup 'Microsoft.Resources/deploymentScripts@2
       cleanupPreference: 'OnExpiration'
       forceUpdateTag: forceUpdateTag
       storageAccountSettings: deploymentScriptSettings != null
-        ? {
-            storageAccountName: last(split(deploymentScriptSettings!.storageAccountId, '/'))
-            storageAccountKey: deploymentScriptSettings!.storageAccountKey
-          }
+        ? union(
+            {
+              storageAccountName: last(split(deploymentScriptSettings!.storageAccountId, '/'))
+            },
+            deploymentScriptSettings.?subnetId != null
+              ? {}
+              : { storageAccountKey: deploymentScriptSettings.?storageAccountKey }
+          )
         : null
       containerSettings: deploymentScriptSettings.?subnetId != null
         ? {

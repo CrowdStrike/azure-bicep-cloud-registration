@@ -137,9 +137,9 @@ You can use any of these methods to pass parameters:
 | `agentlessScanningLocationsPerSubscription`                                   | no       | A map of subscriptions to list of locations where agentless scanning environment will be deployed (DSPM/Vulnerability scanning).                                                                                                                                                                                                                       |
 | `agentlessScanningDeployNatGateway`                                           | no       | Indicates Agentless Scanning environment will be deployed with NAT Gateway. Default is `true`.                                                                                                                                                                                                                                                         |
 | `agentlessScanningHostSubscriptionId`                                         | no       | Azure agentless scanning host subscription ID. When set, cross-subscription mode is enabled and scanning infrastructure is deployed only to this subscription.                                                                                                                                                                                         |
-| `deploymentScriptSettings.storageAccountName`                                | no       | Name of an existing storage account for deployment scripts to use instead of the auto-provisioned one. Required if the target tenant's Azure Policy disallows public network access on auto-created storage accounts. Note: due to a current Microsoft platform limitation (tracked at [Azure/bicep#16604](https://github.com/Azure/bicep/issues/16604)), deployment scripts cannot authenticate to a storage account with Shared Key access disabled, the supplied storage account must have `allowSharedKeyAccess` enabled internally, even if public network access is fully disabled.                     |
-| `deploymentScriptSettings.storageAccountKey`                                 | no       | Access key for the existing storage account named in `deploymentScriptSettings.storageAccountName`. Required whenever `deploymentScriptSettings.storageAccountName` is set.                                                                                                                                                                            |
-| `deploymentScriptSettings.subnetId`                                          | no       | Resource ID of a subnet, delegated to `Microsoft.ContainerInstance/containerGroups`, that the deployment script container will run in. Required only if the storage account named in `deploymentScriptSettings.storageAccountName` is not reachable from a public or service-endpoint-allowed network path.                                          |
+| `deploymentScriptSettings.storageAccountId`                                  | no       | Resource ID of an existing storage account for deployment scripts to use instead of the auto-provisioned one. Required if the target tenant's Azure Policy disallows public network access on auto-created storage accounts. Must be in the same subscription as `csInfraSubscriptionId` - deployment scripts only support an existing storage account from their own subscription. Note: due to a current Microsoft platform limitation (tracked at [Azure/bicep#16604](https://github.com/Azure/bicep/issues/16604)), deployment scripts cannot authenticate to a storage account with Shared Key access disabled, the supplied storage account must have `allowSharedKeyAccess` enabled internally, even if public network access is fully disabled. |
+| `deploymentScriptSettings.storageAccountKey`                                 | no       | Access key for the existing storage account referenced by `deploymentScriptSettings.storageAccountId`. Required whenever `deploymentScriptSettings.storageAccountId` is set.                                                                                                                                                                           |
+| `deploymentScriptSettings.subnetId`                                          | no       | Resource ID of a subnet, delegated to `Microsoft.ContainerInstance/containerGroups`, that the deployment script container will run in. Must be in the same subscription as `csInfraSubscriptionId`, since Azure Container Instances require the delegated subnet to be in the same subscription as the container group. Required only if the storage account referenced by `deploymentScriptSettings.storageAccountId` is not reachable from a public or service-endpoint-allowed network path.                                          |
 
 ## Bicep parameter file example
 ```bicep
@@ -205,12 +205,13 @@ param tags = {
 param location = 'westeurope'
 
 // Optional: Use an existing, policy-compliant storage account for deployment scripts
-// instead of the auto-provisioned one. See "Template parameters" and "Troubleshooting"
-// for details, including a platform limitation around Shared Key access.
+// instead of the auto-provisioned one. Must be in the same subscription as csInfraSubscriptionId.
+// See "Template parameters" and "Troubleshooting" for details, including a platform
+// limitation around Shared Key access.
 // param deploymentScriptSettings = {
-//   storageAccountName: '<existing storage account name>'
+//   storageAccountId: '<resource ID of an existing storage account in the csInfraSubscriptionId subscription>'
 //   storageAccountKey: readEnvironmentVariable('DEPLOYMENT_SCRIPT_STORAGE_ACCOUNT_KEY', '')
-//   subnetId: '<subnet resource ID, only if the storage account is reachable only via private endpoint>'
+//   subnetId: '<subnet resource ID in the csInfraSubscriptionId subscription, only if the storage account is reachable only via private endpoint>'
 // }
 ```
 
@@ -381,7 +382,17 @@ This happens because `Microsoft.Resources/deploymentScripts` auto-provisions a s
 To resolve this, set `deploymentScriptSettings` to point at an existing, policy-compliant storage account (and `deploymentScriptSettings.subnetId` if the account is only reachable via a private endpoint) instead of relying on auto-provisioning. See the `deploymentScriptSettings.*` rows in the [Template parameters](#template-parameters) table.
 
 > [!NOTE]
-> A pure managed-identity/RBAC solution (no shared key) is **not currently possible**, due to an acknowledged, unresolved Microsoft platform limitation: deployment scripts require key-based storage authentication even when using a managed identity over a private endpoint. See [Azure/bicep-types-az#2199](https://github.com/Azure/bicep-types-az/issues/2199) and [Azure/bicep#16604](https://github.com/Azure/bicep/issues/16604). Per Microsoft's own comments on those issues, the targeted fix is "fall 2026," and that target has already slipped once as of this writing. As a result, the storage account supplied via `deploymentScriptSettings.storageAccountName` must have Shared Key access (`allowSharedKeyAccess`) enabled internally, even if you disable its public network access entirely.
+> A pure managed-identity/RBAC solution (no shared key) is **not currently possible**, due to an acknowledged, unresolved Microsoft platform limitation: deployment scripts require key-based storage authentication even when using a managed identity over a private endpoint. See [Azure/bicep-types-az#2199](https://github.com/Azure/bicep-types-az/issues/2199) and [Azure/bicep#16604](https://github.com/Azure/bicep/issues/16604). Per Microsoft's own comments on those issues, the targeted fix is "fall 2026," and that target has already slipped once as of this writing. As a result, the storage account supplied via `deploymentScriptSettings.storageAccountId` must have Shared Key access (`allowSharedKeyAccess`) enabled internally, even if you disable its public network access entirely.
+
+### Deployment fails with DeploymentScriptExistingStorageNotInSameSubscriptionAsDeploymentScript
+
+If `deploymentScriptSettings.storageAccountId` references a storage account outside the `csInfraSubscriptionId` subscription, deployment fails with:
+
+```
+DeploymentScriptExistingStorageNotInSameSubscriptionAsDeploymentScript: The existing storage provided in deployment isn't found in the subscription where the script is being deployed.
+```
+
+This is a hard Azure platform limitation: `Microsoft.Resources/deploymentScripts` only accepts an existing storage account from its own subscription. Since deployment scripts always run in the `csInfraSubscriptionId` resource group, the storage account referenced by `deploymentScriptSettings.storageAccountId` must be created (or moved) into that same subscription. There's no workaround, and the same constraint applies to `deploymentScriptSettings.subnetId` (see [Template parameters](#template-parameters)).
 
 ## Contributing
 

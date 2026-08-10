@@ -7,8 +7,8 @@
 @export()
 @description('Configuration to use an existing, policy-compliant storage account for deployment scripts instead of the auto-provisioned one. Required when the target tenant enforces a policy disallowing public network access on newly created storage accounts.')
 type DeploymentScriptSettings = {
-  @description('Name of the existing storage account deployment scripts will use.')
-  storageAccountName: string
+  @description('Resource ID of the existing storage account deployment scripts will use. Must be in the same subscription as "csInfraSubscriptionId", since deployment scripts only support an existing storage account from their own subscription.')
+  storageAccountId: string
 
   @description('Access key for the existing storage account.')
   @secure()

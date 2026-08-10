@@ -52,7 +52,7 @@ resource subscriptionsInManagementGroup 'Microsoft.Resources/deploymentScripts@2
       forceUpdateTag: forceUpdateTag
       storageAccountSettings: deploymentScriptSettings != null
         ? {
-            storageAccountName: deploymentScriptSettings!.storageAccountName
+            storageAccountName: last(split(deploymentScriptSettings!.storageAccountId, '/'))
             storageAccountKey: deploymentScriptSettings!.storageAccountKey
           }
         : null

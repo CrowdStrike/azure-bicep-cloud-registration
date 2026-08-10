@@ -59,7 +59,7 @@ resource subscriptionsInManagementGroup 'Microsoft.Resources/deploymentScripts@2
       containerSettings: (deploymentScriptSettings != null && deploymentScriptSettings!.subnetId != null)
         ? {
             subnetIds: [
-              { id: deploymentScriptSettings!.subnetId }
+              { id: deploymentScriptSettings!.subnetId! }
             ]
           }
         : null

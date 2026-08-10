@@ -155,6 +155,12 @@ var validatedResourceNamePrefix = length(resourceNamePrefix) + length(resourceNa
 var validatedResourceNameSuffix = length(resourceNamePrefix) + length(resourceNameSuffix) > 10
   ? fail('Combined prefix and suffix length must not exceed 10 characters')
   : resourceNameSuffix
+var validatedDeploymentScriptSettings = (deploymentScriptSettings.?subnetId != null && split(
+    deploymentScriptSettings!.subnetId!,
+    '/'
+  )[2] != csInfraSubscriptionId)
+  ? fail('"deploymentScriptSettings.subnetId" must be in the "csInfraSubscriptionId" subscription, since deployment scripts always run there and Azure Container Instances require the delegated subnet to be in the same subscription as the container group')
+  : deploymentScriptSettings
 var validatedAgentlessScanningLocationsPerSubscription = shouldDeployScanningEnvironment && (empty(resolvedAgentlessScanningLocationsPerSubscription) && empty(resolvedAgentlessScanningLocations))
   ? fail('either "agentlessScanningLocationsPerSubscription" or "agentlessScanningLocations" must be non-empty if DSPM or vulnerability scanning is enabled')
   : resolvedAgentlessScanningLocationsPerSubscription
@@ -296,7 +302,7 @@ module deploymentScope 'modules/cs-deployment-scope-mg.bicep' = if (shouldResolv
     env: env
     location: location
     tags: tags
-    deploymentScriptSettings: deploymentScriptSettings
+    deploymentScriptSettings: validatedDeploymentScriptSettings
   }
 }
 
@@ -432,7 +438,7 @@ module updateRegistration 'modules/cs-update-registration-rg.bicep' = if (should
     env: env
     location: location
     tags: tags
-    deploymentScriptSettings: deploymentScriptSettings
+    deploymentScriptSettings: validatedDeploymentScriptSettings
   }
 }
 

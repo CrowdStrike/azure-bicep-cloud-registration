@@ -71,10 +71,10 @@ resource subscriptionsInManagementGroup 'Microsoft.Resources/deploymentScripts@2
           storageAccountKey: deploymentScriptSettings!.storageAccountKey
         }
       : null
-    containerSettings: (deploymentScriptSettings != null && deploymentScriptSettings!.subnetId != null)
+    containerSettings: deploymentScriptSettings.?subnetId != null
       ? {
           subnetIds: [
-            { id: deploymentScriptSettings!.subnetId! }
+            { id: deploymentScriptSettings.?subnetId! }
           ]
         }
       : null

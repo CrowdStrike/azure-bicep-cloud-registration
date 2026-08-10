@@ -1,15 +1,12 @@
-targetScope = 'managementGroup'
+targetScope = 'subscription'
 
 /*
   This Bicep template creates a user-assigned managed identity for executing deployment scripts
-  and assigns necessary permissions at the management group level.
-  Copyright (c) 2025 CrowdStrike, Inc.
+  at the subscription level.
+  Copyright (c) 2026 CrowdStrike, Inc.
 */
 
 import { DeploymentScriptSettings } from '../models/deployment-script.bicep'
-
-@description('List of Azure management group IDs to monitor. These management groups will be configured for CrowdStrike monitoring.')
-param managementGroupIds array
 
 @minLength(36)
 @maxLength(36)
@@ -48,28 +45,6 @@ module scriptRunnerIdentity 'common/managedIdentity.bicep' = {
     name: '${resourceNamePrefix}id-csscriptrunner${environment}${resourceNameSuffix}'
     location: location
     tags: tags
-  }
-}
-
-module roleAssignmentToMGs 'script-runner-identity/roleAssignmentToMgmtGroup.bicep' = [
-  for (mgmtGroupId, i) in managementGroupIds: {
-    name: '${resourceNamePrefix}cs-ra-script-runner-mg${environment}${resourceNameSuffix}'
-    scope: managementGroup(mgmtGroupId)
-    params: {
-      scriptRunnerIdentityId: scriptRunnerIdentity.outputs.principalId
-      env: env
-    }
-  }
-]
-
-// Need to assign Reader role in infra subscription so that the script can set context to the subscription
-// The reason why we need to do this is because that we can only guarantee "Microsoft.Management" resource provider is registered here.
-module roleAssignmentToInfraSub 'script-runner-identity/roleAssignmentToSub.bicep' = {
-  name: '${resourceNamePrefix}cs-ra-script-runner-infra-sub${environment}${resourceNameSuffix}'
-  scope: subscription(csInfraSubscriptionId)
-  params: {
-    scriptRunnerIdentityId: scriptRunnerIdentity.outputs.principalId
-    env: env
   }
 }
 

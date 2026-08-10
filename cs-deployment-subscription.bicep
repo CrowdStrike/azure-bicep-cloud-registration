@@ -154,7 +154,7 @@ var validatedDeploymentScriptSettings = (deploymentScriptSettings != null && spl
   : (deploymentScriptSettings.?subnetId != null && split(deploymentScriptSettings!.subnetId!, '/')[2] != csInfraSubscriptionId)
       ? fail('"deploymentScriptSettings.subnetId" must be in the "csInfraSubscriptionId" subscription, since deployment scripts always run there and Azure Container Instances require the delegated subnet to be in the same subscription as the container group')
       : deploymentScriptSettings
-var shouldDeployScriptRunnerIdentity = shouldDeployLogIngestion && validatedDeploymentScriptSettings.?subnetId != null
+var shouldDeployScriptRunnerIdentity = shouldDeployLogIngestion && validatedDeploymentScriptSettings != null
 var validatedAgentlessScanningLocationsPerSubscription = shouldDeployScanningEnvironment && (empty(resolvedAgentlessScanningLocationsPerSubscription) && empty(resolvedAgentlessScanningLocations))
   ? fail('either "agentlessScanningLocationsPerSubscription" or "agentlessScanningLocations" must be non-empty if DSPM or vulnerability scanning is enabled')
   : resolvedAgentlessScanningLocationsPerSubscription
@@ -301,13 +301,17 @@ module infraResourceGroup 'modules/common/resourceGroup.bicep' = if (shouldDeplo
   }
 }
 
-module scriptRunnerIdentity 'modules/common/managedIdentity.bicep' = if (shouldDeployScriptRunnerIdentity) {
+module scriptRunnerIdentity 'modules/cs-script-runner-identity-sub.bicep' = if (shouldDeployScriptRunnerIdentity) {
   name: '${validatedResourceNamePrefix}cs-script-runner-identity${environment}${validatedResourceNameSuffix}'
-  scope: az.resourceGroup(csInfraSubscriptionId, resourceGroupName)
   params: {
-    name: '${validatedResourceNamePrefix}id-csscriptrunner${environment}${validatedResourceNameSuffix}'
+    csInfraSubscriptionId: csInfraSubscriptionId
+    resourceGroupName: resourceGroupName
+    resourceNamePrefix: validatedResourceNamePrefix
+    resourceNameSuffix: validatedResourceNameSuffix
+    env: env
     location: location
     tags: tags
+    deploymentScriptSettings: validatedDeploymentScriptSettings
   }
   dependsOn: [
     infraResourceGroup

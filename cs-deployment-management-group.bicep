@@ -136,7 +136,6 @@ var environment = length(env) > 0 ? '-${env}' : env
 var shouldDeployLogIngestion = enableRealTimeVisibility
 var shouldDeployScanningEnvironment = enableDspm || enableVulnerabilityScanning
 var shouldResolveDeploymentScope = shouldDeployLogIngestion || shouldDeployScanningEnvironment
-
 /* Input Validation */
 // Resolve locations with fallback: new params take precedence, fall back to deprecated dspm params
 var resolvedAgentlessScanningLocationsPerSubscription = !empty(agentlessScanningLocationsPerSubscription)
@@ -284,6 +283,7 @@ module scriptRunnerIdentity 'modules/cs-script-runner-identity-mg.bicep' = if (s
     env: env
     location: location
     tags: tags
+    deploymentScriptSettings: validatedDeploymentScriptSettings
   }
 
   dependsOn: [

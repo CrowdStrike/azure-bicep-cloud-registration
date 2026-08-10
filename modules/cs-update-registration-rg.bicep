@@ -48,6 +48,9 @@ param accountType string = ''
 @description('Configuration to use an existing, policy-compliant storage account for deployment scripts instead of the auto-provisioned one.')
 param deploymentScriptSettings DeploymentScriptSettings?
 
+@description('Resource ID of the user-assigned managed identity to attach to the deployment script. Required by Azure whenever the deployment script runs inside a virtual network (deploymentScriptSettings.subnetId is set).')
+param scriptRunnerIdentityId string?
+
 var environment = length(env) > 0 ? '-${env}' : env
 
 module deploymentScope 'update-registration/updateRegistration.bicep' = {
@@ -82,5 +85,6 @@ module deploymentScope 'update-registration/updateRegistration.bicep' = {
     location: location
     tags: tags
     deploymentScriptSettings: deploymentScriptSettings
+    scriptRunnerIdentityId: scriptRunnerIdentityId
   }
 }

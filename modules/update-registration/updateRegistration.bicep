@@ -36,6 +36,9 @@ param accountType string = ''
 @description('Configuration to use an existing, policy-compliant storage account for deployment scripts instead of the auto-provisioned one.')
 param deploymentScriptSettings DeploymentScriptSettings?
 
+@description('Resource ID of the user-assigned managed identity to attach to the deployment script. Required by Azure whenever the deployment script runs inside a virtual network (deploymentScriptSettings.subnetId is set).')
+param scriptRunnerIdentityId string?
+
 @description('A unique string generated for each deployment, to make sure the script is always run.')
 param forceUpdateTag string = newGuid()
 
@@ -44,6 +47,14 @@ resource subscriptionsInManagementGroup 'Microsoft.Resources/deploymentScripts@2
   location: location
   kind: 'AzurePowerShell'
   tags: tags
+  identity: scriptRunnerIdentityId != null
+    ? {
+        type: 'UserAssigned'
+        userAssignedIdentities: {
+          '${scriptRunnerIdentityId}': {}
+        }
+      }
+    : null
   properties: {
     azPowerShellVersion: '12.3'
     environmentVariables: [

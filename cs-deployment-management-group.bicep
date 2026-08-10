@@ -439,6 +439,7 @@ module updateRegistration 'modules/cs-update-registration-rg.bicep' = if (should
     location: location
     tags: tags
     deploymentScriptSettings: validatedDeploymentScriptSettings
+    scriptRunnerIdentityId: scriptRunnerIdentity!.outputs.id
   }
 }
 

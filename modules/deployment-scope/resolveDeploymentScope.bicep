@@ -3,6 +3,8 @@
   Copyright (c) 2025 CrowdStrike, Inc.
 */
 
+import { DeploymentScriptSettings } from '../../models/deployment-script.bicep'
+
 @minLength(36)
 @maxLength(36)
 @description('Subscription ID where CrowdStrike infrastructure resources will be deployed. This subscription hosts shared resources like Event Hubs.')
@@ -22,6 +24,9 @@ param env string
 
 @description('Tags to be applied to all deployed resources. Used for resource organization, governance, and cost tracking.')
 param tags object
+
+@description('Configuration to use an existing, policy-compliant storage account for deployment scripts instead of the auto-provisioned one.')
+param deploymentScriptSettings DeploymentScriptSettings?
 
 @description('A unique string generated for each deployment, to make sure the script is always run.')
 param forceUpdateTag string = newGuid()
@@ -45,6 +50,19 @@ resource subscriptionsInManagementGroup 'Microsoft.Resources/deploymentScripts@2
       retentionInterval: 'PT24H'
       cleanupPreference: 'OnExpiration'
       forceUpdateTag: forceUpdateTag
+      storageAccountSettings: deploymentScriptSettings != null
+        ? {
+            storageAccountName: deploymentScriptSettings!.storageAccountName
+            storageAccountKey: deploymentScriptSettings!.storageAccountKey
+          }
+        : null
+      containerSettings: (deploymentScriptSettings != null && deploymentScriptSettings!.subnetId != null)
+        ? {
+            subnetIds: [
+              { id: deploymentScriptSettings!.subnetId }
+            ]
+          }
+        : null
     }
   }
 ]

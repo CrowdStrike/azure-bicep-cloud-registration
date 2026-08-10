@@ -3,6 +3,8 @@
   Copyright (c) 2025 CrowdStrike, Inc.
 */
 
+import { DeploymentScriptSettings } from '../../models/deployment-script.bicep'
+
 @description('Base URL of the Falcon API.')
 param falconApiFqdn string
 
@@ -30,6 +32,9 @@ param isInitialRegistration bool
 
 @description('Azure cloud type for this registration. Use "commercial" for standard Azure or "gov" for Azure Government. Empty string omits the field from the API request.')
 param accountType string = ''
+
+@description('Configuration to use an existing, policy-compliant storage account for deployment scripts instead of the auto-provisioned one.')
+param deploymentScriptSettings DeploymentScriptSettings?
 
 @description('A unique string generated for each deployment, to make sure the script is always run.')
 param forceUpdateTag string = newGuid()
@@ -60,5 +65,18 @@ resource subscriptionsInManagementGroup 'Microsoft.Resources/deploymentScripts@2
     retentionInterval: 'PT24H'
     cleanupPreference: 'OnExpiration'
     forceUpdateTag: forceUpdateTag
+    storageAccountSettings: deploymentScriptSettings != null
+      ? {
+          storageAccountName: deploymentScriptSettings!.storageAccountName
+          storageAccountKey: deploymentScriptSettings!.storageAccountKey
+        }
+      : null
+    containerSettings: (deploymentScriptSettings != null && deploymentScriptSettings!.subnetId != null)
+      ? {
+          subnetIds: [
+            { id: deploymentScriptSettings!.subnetId }
+          ]
+        }
+      : null
   }
 }

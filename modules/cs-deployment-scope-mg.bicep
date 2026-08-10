@@ -6,6 +6,8 @@ targetScope = 'managementGroup'
   Copyright (c) 2025 CrowdStrike, Inc.
 */
 
+import { DeploymentScriptSettings } from '../models/deployment-script.bicep'
+
 @description('List of Azure management group IDs to monitor. These management groups will be configured for CrowdStrike monitoring.')
 param managementGroupIds array
 
@@ -40,6 +42,9 @@ param env string
 @description('Tags to be applied to all deployed resources. Used for resource organization, governance, and cost tracking.')
 param tags object
 
+@description('Configuration to use an existing, policy-compliant storage account for deployment scripts instead of the auto-provisioned one.')
+param deploymentScriptSettings DeploymentScriptSettings?
+
 var environment = length(env) > 0 ? '-${env}' : env
 
 /* Get all enabled Azure subscriptions in the current specified management groups */
@@ -53,6 +58,7 @@ module deploymentScope 'deployment-scope/resolveDeploymentScope.bicep' = {
     env: env
     location: location
     tags: tags
+    deploymentScriptSettings: deploymentScriptSettings
   }
 }
 

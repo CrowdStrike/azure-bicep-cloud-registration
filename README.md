@@ -137,6 +137,9 @@ You can use any of these methods to pass parameters:
 | `agentlessScanningLocationsPerSubscription`                                   | no       | A map of subscriptions to list of locations where agentless scanning environment will be deployed (DSPM/Vulnerability scanning).                                                                                                                                                                                                                       |
 | `agentlessScanningDeployNatGateway`                                           | no       | Indicates Agentless Scanning environment will be deployed with NAT Gateway. Default is `true`.                                                                                                                                                                                                                                                         |
 | `agentlessScanningHostSubscriptionId`                                         | no       | Azure agentless scanning host subscription ID. When set, cross-subscription mode is enabled and scanning infrastructure is deployed only to this subscription.                                                                                                                                                                                         |
+| `deploymentScriptSettings.storageAccountName`                                | no       | Name of an existing storage account for deployment scripts to use instead of the auto-provisioned one. Required if the target tenant's Azure Policy disallows public network access on auto-created storage accounts. Note: due to a current Microsoft platform limitation (tracked at [Azure/bicep#16604](https://github.com/Azure/bicep/issues/16604)), deployment scripts cannot authenticate to a storage account with Shared Key access disabled, the supplied storage account must have `allowSharedKeyAccess` enabled internally, even if public network access is fully disabled.                     |
+| `deploymentScriptSettings.storageAccountKey`                                 | no       | Access key for the existing storage account named in `deploymentScriptSettings.storageAccountName`. Required whenever `deploymentScriptSettings.storageAccountName` is set.                                                                                                                                                                            |
+| `deploymentScriptSettings.subnetId`                                          | no       | Resource ID of a subnet, delegated to `Microsoft.ContainerInstance/containerGroups`, that the deployment script container will run in. Required only if the storage account named in `deploymentScriptSettings.storageAccountName` is not reachable from a public or service-endpoint-allowed network path.                                          |
 
 ## Bicep parameter file example
 ```bicep
@@ -200,6 +203,15 @@ param tags = {
 
 // Optional: Resource region
 param location = 'westeurope'
+
+// Optional: Use an existing, policy-compliant storage account for deployment scripts
+// instead of the auto-provisioned one. See "Template parameters" and "Troubleshooting"
+// for details, including a platform limitation around Shared Key access.
+// param deploymentScriptSettings = {
+//   storageAccountName: '<existing storage account name>'
+//   storageAccountKey: readEnvironmentVariable('DEPLOYMENT_SCRIPT_STORAGE_ACCOUNT_KEY', '')
+//   subnetId: '<subnet resource ID, only if the storage account is reachable only via private endpoint>'
+// }
 ```
 
 ## Deployment
@@ -359,6 +371,17 @@ To delete the deployment stack successfully, follow these steps:
    ```
    az stack mg delete --name <deployment-stack-name> --management-group-id <management-group-id> --action-on-unmanage detachAll
    ```
+
+### Deployment fails because the auto-created deployment script storage account violates policy
+
+If your Azure tenant enforces a policy such as "Storage accounts should disable public network access," deployment can fail with a `DeploymentScriptOperationFailed` error, or a policy-disallowed error, referencing an auto-generated storage account (for example, a name ending in `zscripts`).
+
+This happens because `Microsoft.Resources/deploymentScripts` auto-provisions a storage account with public network access enabled whenever no storage account is explicitly specified. This auto-provisioned account violates policies that require public network access to be disabled.
+
+To resolve this, set `deploymentScriptSettings` to point at an existing, policy-compliant storage account (and `deploymentScriptSettings.subnetId` if the account is only reachable via a private endpoint) instead of relying on auto-provisioning. See the `deploymentScriptSettings.*` rows in the [Template parameters](#template-parameters) table.
+
+> [!NOTE]
+> A pure managed-identity/RBAC solution (no shared key) is **not currently possible**, due to an acknowledged, unresolved Microsoft platform limitation: deployment scripts require key-based storage authentication even when using a managed identity over a private endpoint. See [Azure/bicep-types-az#2199](https://github.com/Azure/bicep-types-az/issues/2199) and [Azure/bicep#16604](https://github.com/Azure/bicep/issues/16604). Per Microsoft's own comments on those issues, the targeted fix is "fall 2026," and that target has already slipped once as of this writing. As a result, the storage account supplied via `deploymentScriptSettings.storageAccountName` must have Shared Key access (`allowSharedKeyAccess`) enabled internally, even if you disable its public network access entirely.
 
 ## Contributing
 

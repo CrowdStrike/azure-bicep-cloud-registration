@@ -1,3 +1,5 @@
+import { DeploymentScriptSettings } from '../models/deployment-script.bicep'
+
 @description('Base URL of the Falcon API.')
 param falconApiFqdn string
 
@@ -43,6 +45,9 @@ param isInitialRegistration bool
 @description('Azure cloud type for this registration. Use "commercial" for standard Azure or "gov" for Azure Government.')
 param accountType string = ''
 
+@description('Configuration to use an existing, policy-compliant storage account for deployment scripts instead of the auto-provisioned one.')
+param deploymentScriptSettings DeploymentScriptSettings?
+
 var environment = length(env) > 0 ? '-${env}' : env
 
 module deploymentScope 'update-registration/updateRegistration.bicep' = {
@@ -76,5 +81,6 @@ module deploymentScope 'update-registration/updateRegistration.bicep' = {
     env: env
     location: location
     tags: tags
+    deploymentScriptSettings: deploymentScriptSettings
   }
 }

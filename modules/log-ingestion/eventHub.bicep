@@ -214,6 +214,7 @@ output eventhubs object = {
     eventHubConsumerGrouopName: shouldDeployActivityLog
       ? '$Default'
       : activityLogSettings.?existingEventhub.?consumerGroupName ?? ''
+    managementType: shouldUseExistingEventHubForActivityLog ? 'unmanaged' : (shouldDeployActivityLog ? 'managed' : '')
   }
   entraLog: {
     eventHubNamespaceName: shouldUseExistingEventHubForEntraLog
@@ -236,5 +237,6 @@ output eventhubs object = {
     eventHubConsumerGrouopName: shouldDeployEntraLog
       ? '$Default'
       : entraLogSettings.?existingEventhub.?consumerGroupName ?? ''
+    managementType: shouldUseExistingEventHubForEntraLog ? 'unmanaged' : (shouldDeployEntraLog ? 'managed' : '')
   }
 }

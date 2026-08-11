@@ -114,3 +114,5 @@ output activityLogEventHubConsumerGroupName string = eventHub.outputs.eventhubs.
 output entraLogEventHubName string = eventHub.outputs.eventhubs.entraLog.eventHubName
 output entraLogEventHubId string = eventHub.outputs.eventhubs.entraLog.eventHubId
 output entraLogEventHubConsumerGroupName string = eventHub.outputs.eventhubs.entraLog.eventHubConsumerGrouopName
+output activityLogEventHubManagementType string = eventHub.outputs.eventhubs.activityLog.managementType
+output entraLogEventHubManagementType string = eventHub.outputs.eventhubs.entraLog.managementType

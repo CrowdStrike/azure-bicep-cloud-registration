@@ -430,6 +430,31 @@ module updateRegistration 'modules/cs-update-registration-rg.bicep' = if (should
   }
 }
 
+var eventHubSettings = shouldDeployLogIngestion
+  ? concat(
+      logIngestion!.outputs.activityLogEventHubId != ''
+        ? [
+            {
+              purpose: 'activity_logs'
+              event_hub_id: logIngestion!.outputs.activityLogEventHubId
+              consumer_group: logIngestion!.outputs.activityLogEventHubConsumerGroupName
+              management_type: logIngestion!.outputs.activityLogEventHubManagementType
+            }
+          ]
+        : [],
+      logIngestion!.outputs.entraLogEventHubId != ''
+        ? [
+            {
+              purpose: 'entra_logs'
+              event_hub_id: logIngestion!.outputs.entraLogEventHubId
+              consumer_group: logIngestion!.outputs.entraLogEventHubConsumerGroupName
+              management_type: logIngestion!.outputs.entraLogEventHubManagementType
+            }
+          ]
+        : []
+    )
+  : []
+
 output customReaderRoleNameForSubs array = assetInventory.outputs.customRoleNameForSubs
 output customReaderRoleNameForMGs array = assetInventory.outputs.customRoleNameForMGs
 output activityLogEventHubId string = shouldDeployLogIngestion ? logIngestion!.outputs.activityLogEventHubId : ''
@@ -440,3 +465,4 @@ output entraLogEventHubId string = shouldDeployLogIngestion ? logIngestion!.outp
 output entraLogEventHubConsumerGroupName string = shouldDeployLogIngestion
   ? logIngestion!.outputs.entraLogEventHubConsumerGroupName
   : ''
+output eventHubSettings array = eventHubSettings

@@ -100,3 +100,5 @@ output activityLogEventHubId string = deploymentForSubs.outputs.activityLogEvent
 output activityLogEventHubConsumerGroupName string = deploymentForSubs.outputs.activityLogEventHubConsumerGroupName
 output entraLogEventHubId string = deploymentForSubs.outputs.entraLogEventHubId
 output entraLogEventHubConsumerGroupName string = deploymentForSubs.outputs.entraLogEventHubConsumerGroupName
+output activityLogEventHubManagementType string = deploymentForSubs.outputs.activityLogEventHubManagementType
+output entraLogEventHubManagementType string = deploymentForSubs.outputs.entraLogEventHubManagementType

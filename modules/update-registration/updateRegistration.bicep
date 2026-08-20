@@ -57,8 +57,8 @@ resource subscriptionsInManagementGroup 'Microsoft.Resources/deploymentScripts@2
     ]
     arguments: '-AzureTenantId \\"${tenant().tenantId}\\" -IsInitialRegistration ${isInitialRegistration ? '$True' : '$False'} -EventHubsJson \'${replace(string(eventHubs), '"', '\\"')}\' -AccountType \\"${accountType}\\"'
     scriptContent: loadTextContent('../../scripts/Update-Registration.ps1')
-    retentionInterval: 'PT1H'
-    cleanupPreference: 'Always'
+    retentionInterval: 'PT24H'
+    cleanupPreference: 'OnExpiration'
     forceUpdateTag: forceUpdateTag
   }
 }

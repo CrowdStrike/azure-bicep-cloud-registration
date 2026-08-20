@@ -16,6 +16,8 @@ param (
     [string]$AccountType = ""
 )
 
+$ErrorActionPreference = 'Stop'
+
 # Get CrowdStrike API Access Token
 function Get-FalconAPIAccessToken {
     param (
@@ -42,9 +44,9 @@ function Get-FalconAPIAccessToken {
         }
         return ((Invoke-WebRequest @Params).Content | ConvertFrom-Json).access_token
     }
-    catch [System.Exception] { 
-        Write-Error "An exception was caught: $($_.Exception.Message)"
-        break
+    catch {
+        Write-Error "Failed to issue Falcon API access token: $($_.Exception.Message)"
+        throw
     }
 }
 
@@ -92,9 +94,9 @@ function Set-AzureEventHubsInfo {
         $response = Invoke-WebRequest @Params
         Write-Output "Update registration success. Response: $($response.Content)`n"
     }
-    catch [System.Exception] { 
-        Write-Error "An exception was caught: $($_.Exception.Message), $($_.ErrorDetails.Message)"
-        break
+    catch {
+        Write-Error "Failed to update registration setting: $($_.Exception.Message), $($_.ErrorDetails.Message)"
+        throw
     }
 }
 

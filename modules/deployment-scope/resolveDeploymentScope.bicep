@@ -42,8 +42,8 @@ resource subscriptionsInManagementGroup 'Microsoft.Resources/deploymentScripts@2
       azPowerShellVersion: '12.3'
       arguments: '-AzureTenantId ${tenant().tenantId} -ManagementGroupId "${mgmtGroupId}" -CSInfraSubscriptionId "${csInfraSubscriptionId}"'
       scriptContent: loadTextContent('../../scripts/Resolve-Deployment-Scope.ps1')
-      retentionInterval: 'PT1H'
-      cleanupPreference: 'Always'
+      retentionInterval: 'PT24H'
+      cleanupPreference: 'OnExpiration'
       forceUpdateTag: forceUpdateTag
     }
   }

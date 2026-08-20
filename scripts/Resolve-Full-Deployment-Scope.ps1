@@ -10,6 +10,8 @@ param(
     [string[]] $SubscriptionIds = @()
 )
 
+$ErrorActionPreference = 'Stop'
+
 try {
     $setInputMamtGroupIds = [System.Collections.Generic.HashSet[string]]::new()
     $totalActiveSubscriptions = [System.Collections.Generic.HashSet[string]]::new()
@@ -68,6 +70,6 @@ try {
         'individualActiveSubscriptionIds' = [System.Collections.Generic.List[string]]($individualActiveSubscriptionIds) # active individual subscriptions not covered by specified management groups
     }
 } catch {
-    Write-Error "An exception was caught: $($_.Exception.Message)"
-    break
+    Write-Error "Failed to resolve full deployment scope: $($_.Exception.Message)"
+    throw
 }

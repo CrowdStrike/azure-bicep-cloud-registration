@@ -11,6 +11,8 @@ param(
     [string] $ManagementGroupId
 )
 
+$ErrorActionPreference = 'Stop'
+
 try {
     $activeSubscriptions = [System.Collections.Generic.HashSet[string]]::new()
 
@@ -46,6 +48,6 @@ try {
         'activeSubscriptions' = [System.Collections.Generic.List[string]]($activeSubscriptions)
     }
 } catch {
-    Write-Error "An exception was caught: $($_.Exception.Message)"
-    break
+    Write-Error "Failed to resolve subscriptions in management group: $($_.Exception.Message)"
+    throw
 }

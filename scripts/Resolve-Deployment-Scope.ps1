@@ -11,16 +11,14 @@ param(
     [string] $ManagementGroupId
 )
 
-$ErrorActionPreference = 'Stop'
-
 try {
     $activeSubscriptions = [System.Collections.Generic.HashSet[string]]::new()
 
-    Set-AzContext -Subscription $CSInfraSubscriptionId -Tenant $AzureTenantId
+    Set-AzContext -Subscription $CSInfraSubscriptionId -Tenant $AzureTenantId -ErrorAction Stop
 
     # Level order traversal from the specified management group
     $curLevel = @(
-        Get-AzManagementGroup -GroupId $ManagementGroupId -Recurse -Expand
+        Get-AzManagementGroup -GroupId $ManagementGroupId -Recurse -Expand -ErrorAction Stop
     )
     while($curLevel) {
         $nextLevel = @()
@@ -30,7 +28,7 @@ try {
                     [void] $activeSubscriptions.Add($child.Name)
                 } elseif ($child.Type -eq "Microsoft.Management/managementGroups") {
                     $nextLevel += $child
-                } 
+                }
             }
         }
         $curLevel = $nextLevel
@@ -38,7 +36,7 @@ try {
 
     # Filter out disabled subscriptions
     foreach ($subId in $activeSubscriptions) {
-        $sub = Get-AzSubscription -SubscriptionId $subId -TenantId $AzureTenantId
+        $sub = Get-AzSubscription -SubscriptionId $subId -TenantId $AzureTenantId -ErrorAction Stop
         if ($sub.State -ne "Enabled") {
             [void] $activeSubscriptions.Remove($sub.Id)
         }

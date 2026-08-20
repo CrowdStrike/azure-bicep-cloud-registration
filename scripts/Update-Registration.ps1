@@ -16,8 +16,6 @@ param (
     [string]$AccountType = ""
 )
 
-$ErrorActionPreference = 'Stop'
-
 # Get CrowdStrike API Access Token
 function Get-FalconAPIAccessToken {
     param (

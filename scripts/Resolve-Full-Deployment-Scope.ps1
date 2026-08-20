@@ -10,8 +10,6 @@ param(
     [string[]] $SubscriptionIds = @()
 )
 
-$ErrorActionPreference = 'Stop'
-
 try {
     $setInputMamtGroupIds = [System.Collections.Generic.HashSet[string]]::new()
     $totalActiveSubscriptions = [System.Collections.Generic.HashSet[string]]::new()
@@ -29,7 +27,7 @@ try {
 
     # Level order traversal from "Tenant Root Group"
     $curLevel = @(
-        @{ parents = @(); value = Get-AzManagementGroup -GroupId $AzureTenantId -Recurse -Expand}
+        @{ parents = @(); value = Get-AzManagementGroup -GroupId $AzureTenantId -Recurse -Expand -ErrorAction Stop}
     )
     while($curLevel) {
         $nextLevel = @()
@@ -49,7 +47,7 @@ try {
                         parents =  $parents
                         value = $child
                     }
-                } 
+                }
             }
         }
         $curLevel = $nextLevel
@@ -57,7 +55,7 @@ try {
 
     # Filter out disabled subscriptions
     foreach ($subId in $totalActiveSubscriptions) {
-        $sub = Get-AzSubscription -SubscriptionId $subId -TenantId $AzureTenantId
+        $sub = Get-AzSubscription -SubscriptionId $subId -TenantId $AzureTenantId -ErrorAction Stop
         if ($sub.State -ne "Enabled") {
             [void] $totalActiveSubscriptions.Remove($sub.Id)
             [void] $individualActiveSubscriptionIds.Remove($sub.Id)

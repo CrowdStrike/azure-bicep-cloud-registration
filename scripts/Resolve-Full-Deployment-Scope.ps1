@@ -27,7 +27,7 @@ try {
 
     # Level order traversal from "Tenant Root Group"
     $curLevel = @(
-        @{ parents = @(); value = Get-AzManagementGroup -GroupId $AzureTenantId -Recurse -Expand}
+        @{ parents = @(); value = Get-AzManagementGroup -GroupId $AzureTenantId -Recurse -Expand -ErrorAction Stop}
     )
     while($curLevel) {
         $nextLevel = @()
@@ -47,7 +47,7 @@ try {
                         parents =  $parents
                         value = $child
                     }
-                } 
+                }
             }
         }
         $curLevel = $nextLevel
@@ -55,7 +55,7 @@ try {
 
     # Filter out disabled subscriptions
     foreach ($subId in $totalActiveSubscriptions) {
-        $sub = Get-AzSubscription -SubscriptionId $subId -TenantId $AzureTenantId
+        $sub = Get-AzSubscription -SubscriptionId $subId -TenantId $AzureTenantId -ErrorAction Stop
         if ($sub.State -ne "Enabled") {
             [void] $totalActiveSubscriptions.Remove($sub.Id)
             [void] $individualActiveSubscriptionIds.Remove($sub.Id)
@@ -68,6 +68,6 @@ try {
         'individualActiveSubscriptionIds' = [System.Collections.Generic.List[string]]($individualActiveSubscriptionIds) # active individual subscriptions not covered by specified management groups
     }
 } catch {
-    Write-Error "An exception was caught: $($_.Exception.Message)"
-    break
+    Write-Error "Failed to resolve full deployment scope: $($_.Exception.Message)"
+    throw
 }

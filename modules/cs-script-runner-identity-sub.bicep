@@ -1,21 +1,12 @@
-targetScope = 'managementGroup'
+targetScope = 'subscription'
 
 /*
-  This Bicep template resolves the deployment scope by identifying all active subscriptions
-  within specified management groups for CrowdStrike monitoring.
-  Copyright (c) 2025 CrowdStrike, Inc.
+  This Bicep template creates a user-assigned managed identity for executing deployment scripts
+  at the subscription level.
+  Copyright (c) 2026 CrowdStrike, Inc.
 */
 
 import { DeploymentScriptSettings } from '../models/deployment-script.bicep'
-
-@description('List of Azure management group IDs to monitor. These management groups will be configured for CrowdStrike monitoring.')
-param managementGroupIds array
-
-@description('List of Azure subscription IDs to monitor. These subscriptions will be configured for CrowdStrike monitoring.')
-param subscriptionIds array
-
-@description('Resource ID of the user-assigned managed identity that will execute deployment scripts. This identity needs appropriate permissions.')
-param scriptRunnerIdentityId string
 
 @minLength(36)
 @maxLength(36)
@@ -47,25 +38,27 @@ param deploymentScriptSettings DeploymentScriptSettings?
 
 var environment = length(env) > 0 ? '-${env}' : env
 
-/* Get all enabled Azure subscriptions in the current specified management groups */
-module deploymentScope 'deployment-scope/resolveDeploymentScope.bicep' = {
-  name: '${resourceNamePrefix}cs-deployment-scope${environment}${resourceNameSuffix}'
+module scriptRunnerIdentity 'common/managedIdentity.bicep' = {
+  name: '${resourceNamePrefix}cs-id-script-runner${environment}${resourceNameSuffix}'
   scope: az.resourceGroup(csInfraSubscriptionId, resourceGroupName)
   params: {
-    csInfraSubscriptionId: csInfraSubscriptionId
-    scriptRunnerIdentityId: scriptRunnerIdentityId
-    managementGroupIds: managementGroupIds
-    env: env
+    name: '${resourceNamePrefix}id-csscriptrunner${environment}${resourceNameSuffix}'
     location: location
     tags: tags
-    deploymentScriptSettings: deploymentScriptSettings
   }
 }
 
-output subscriptionsByManagementGroup array = [
-  for (mgmtGroupId, i) in managementGroupIds: {
-    managementGroupId: mgmtGroupId
-    activeSubscriptionIds: deploymentScope.outputs.subscriptionsByManageGroups[i]
+// Microsoft.Resources/deploymentScripts requires this role on its identity whenever
+// an existing storage account is supplied via storageAccountSettings - the storage
+// account key alone is not sufficient. See modules/common/storageFileDataRoleAssignment.bicep.
+module storageFileDataRoleAssignment 'common/storageFileDataRoleAssignment.bicep' = if (deploymentScriptSettings != null) {
+  name: '${resourceNamePrefix}cs-ra-script-runner-storage${environment}${resourceNameSuffix}'
+  scope: az.resourceGroup(csInfraSubscriptionId, split(deploymentScriptSettings!.storageAccountId, '/')[4])
+  params: {
+    storageAccountName: last(split(deploymentScriptSettings!.storageAccountId, '/'))
+    scriptRunnerIdentityId: scriptRunnerIdentity.outputs.principalId
   }
-]
-output allSubscriptions array = union(flatten(deploymentScope.outputs.subscriptionsByManageGroups), subscriptionIds)
+}
+
+output id string = scriptRunnerIdentity.outputs.id
+output principalId string = scriptRunnerIdentity.outputs.principalId

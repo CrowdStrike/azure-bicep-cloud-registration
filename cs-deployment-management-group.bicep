@@ -1,4 +1,5 @@
 import { LogIngestionSettings } from 'models/log-ingestion.bicep'
+import { DeploymentScriptSettings } from 'models/deployment-script.bicep'
 
 targetScope = 'managementGroup'
 
@@ -122,6 +123,9 @@ param agentlessScanningCustomVnetConfiguration object = {}
 @description('Azure cloud type for this registration. Use "commercial" for standard Azure or "gov" for Azure Government.')
 param accountType string = ''
 
+@description('Configuration to use an existing, policy-compliant storage account for deployment scripts instead of the auto-provisioned one.')
+param deploymentScriptSettings DeploymentScriptSettings?
+
 /* Variables */
 var subscriptions = union(subscriptionIds, csInfraSubscriptionId == '' ? [] : [csInfraSubscriptionId]) // remove duplicated values
 var managementGroups = union(
@@ -132,7 +136,6 @@ var environment = length(env) > 0 ? '-${env}' : env
 var shouldDeployLogIngestion = enableRealTimeVisibility
 var shouldDeployScanningEnvironment = enableDspm || enableVulnerabilityScanning
 var shouldResolveDeploymentScope = shouldDeployLogIngestion || shouldDeployScanningEnvironment
-
 /* Input Validation */
 // Resolve locations with fallback: new params take precedence, fall back to deprecated dspm params
 var resolvedAgentlessScanningLocationsPerSubscription = !empty(agentlessScanningLocationsPerSubscription)
@@ -151,6 +154,16 @@ var validatedResourceNamePrefix = length(resourceNamePrefix) + length(resourceNa
 var validatedResourceNameSuffix = length(resourceNamePrefix) + length(resourceNameSuffix) > 10
   ? fail('Combined prefix and suffix length must not exceed 10 characters')
   : resourceNameSuffix
+var validatedDeploymentScriptSettings = (deploymentScriptSettings != null && split(
+    deploymentScriptSettings!.storageAccountId,
+    '/'
+  )[2] != csInfraSubscriptionId)
+  ? fail('"deploymentScriptSettings.storageAccountId" must be in the "csInfraSubscriptionId" subscription, since deployment scripts only support an existing storage account from their own subscription')
+  : (deploymentScriptSettings.?subnetId != null && split(deploymentScriptSettings!.subnetId!, '/')[2] != csInfraSubscriptionId)
+      ? fail('"deploymentScriptSettings.subnetId" must be in the "csInfraSubscriptionId" subscription, since deployment scripts always run there and Azure Container Instances require the delegated subnet to be in the same subscription as the container group')
+      : (deploymentScriptSettings != null && deploymentScriptSettings.?subnetId == null && empty(deploymentScriptSettings.?storageAccountKey))
+          ? fail('"deploymentScriptSettings.storageAccountKey" is required unless "deploymentScriptSettings.subnetId" is set - Azure Container Instances can only mount an existing storage account without a key when running inside a virtual network')
+          : deploymentScriptSettings
 var validatedAgentlessScanningLocationsPerSubscription = shouldDeployScanningEnvironment && (empty(resolvedAgentlessScanningLocationsPerSubscription) && empty(resolvedAgentlessScanningLocations))
   ? fail('either "agentlessScanningLocationsPerSubscription" or "agentlessScanningLocations" must be non-empty if DSPM or vulnerability scanning is enabled')
   : resolvedAgentlessScanningLocationsPerSubscription
@@ -272,6 +285,7 @@ module scriptRunnerIdentity 'modules/cs-script-runner-identity-mg.bicep' = if (s
     env: env
     location: location
     tags: tags
+    deploymentScriptSettings: validatedDeploymentScriptSettings
   }
 
   dependsOn: [
@@ -292,6 +306,7 @@ module deploymentScope 'modules/cs-deployment-scope-mg.bicep' = if (shouldResolv
     env: env
     location: location
     tags: tags
+    deploymentScriptSettings: validatedDeploymentScriptSettings
   }
 }
 
@@ -427,6 +442,8 @@ module updateRegistration 'modules/cs-update-registration-rg.bicep' = if (should
     env: env
     location: location
     tags: tags
+    deploymentScriptSettings: validatedDeploymentScriptSettings
+    scriptRunnerIdentityId: scriptRunnerIdentity!.outputs.id
   }
 }
 

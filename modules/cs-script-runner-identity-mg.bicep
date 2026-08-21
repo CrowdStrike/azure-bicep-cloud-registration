@@ -6,6 +6,8 @@ targetScope = 'managementGroup'
   Copyright (c) 2025 CrowdStrike, Inc.
 */
 
+import { DeploymentScriptSettings } from '../models/deployment-script.bicep'
+
 @description('List of Azure management group IDs to monitor. These management groups will be configured for CrowdStrike monitoring.')
 param managementGroupIds array
 
@@ -33,6 +35,9 @@ param env string
 
 @description('Tags to be applied to all deployed resources. Used for resource organization, governance, and cost tracking.')
 param tags object
+
+@description('Configuration to use an existing, policy-compliant storage account for deployment scripts instead of the auto-provisioned one.')
+param deploymentScriptSettings DeploymentScriptSettings?
 
 var environment = length(env) > 0 ? '-${env}' : env
 
@@ -68,4 +73,17 @@ module roleAssignmentToInfraSub 'script-runner-identity/roleAssignmentToSub.bice
   }
 }
 
+// Microsoft.Resources/deploymentScripts requires this role on its identity whenever
+// an existing storage account is supplied via storageAccountSettings - the storage
+// account key alone is not sufficient. See modules/common/storageFileDataRoleAssignment.bicep.
+module storageFileDataRoleAssignment 'common/storageFileDataRoleAssignment.bicep' = if (deploymentScriptSettings != null) {
+  name: '${resourceNamePrefix}cs-ra-script-runner-storage${environment}${resourceNameSuffix}'
+  scope: az.resourceGroup(csInfraSubscriptionId, split(deploymentScriptSettings!.storageAccountId, '/')[4])
+  params: {
+    storageAccountName: last(split(deploymentScriptSettings!.storageAccountId, '/'))
+    scriptRunnerIdentityId: scriptRunnerIdentity.outputs.principalId
+  }
+}
+
 output id string = scriptRunnerIdentity.outputs.id
+output principalId string = scriptRunnerIdentity.outputs.principalId

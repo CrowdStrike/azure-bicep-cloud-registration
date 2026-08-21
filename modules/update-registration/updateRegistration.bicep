@@ -3,6 +3,8 @@
   Copyright (c) 2025 CrowdStrike, Inc.
 */
 
+import { DeploymentScriptSettings } from '../../models/deployment-script.bicep'
+
 @description('Base URL of the Falcon API.')
 param falconApiFqdn string
 
@@ -31,6 +33,12 @@ param isInitialRegistration bool
 @description('Azure cloud type for this registration. Use "commercial" for standard Azure or "gov" for Azure Government. Empty string omits the field from the API request.')
 param accountType string = ''
 
+@description('Configuration to use an existing, policy-compliant storage account for deployment scripts instead of the auto-provisioned one.')
+param deploymentScriptSettings DeploymentScriptSettings?
+
+@description('Resource ID of the user-assigned managed identity to attach to the deployment script. Required by Azure whenever the deployment script runs inside a virtual network (deploymentScriptSettings.subnetId is set).')
+param scriptRunnerIdentityId string?
+
 @description('A unique string generated for each deployment, to make sure the script is always run.')
 param forceUpdateTag string = newGuid()
 
@@ -39,6 +47,14 @@ resource subscriptionsInManagementGroup 'Microsoft.Resources/deploymentScripts@2
   location: location
   kind: 'AzurePowerShell'
   tags: tags
+  identity: scriptRunnerIdentityId != null
+    ? {
+        type: 'UserAssigned'
+        userAssignedIdentities: {
+          '${scriptRunnerIdentityId}': {}
+        }
+      }
+    : null
   properties: {
     azPowerShellVersion: '12.3'
     environmentVariables: [
@@ -60,5 +76,22 @@ resource subscriptionsInManagementGroup 'Microsoft.Resources/deploymentScripts@2
     retentionInterval: 'PT24H'
     cleanupPreference: 'OnExpiration'
     forceUpdateTag: forceUpdateTag
+    storageAccountSettings: deploymentScriptSettings != null
+      ? union(
+          {
+            storageAccountName: last(split(deploymentScriptSettings!.storageAccountId, '/'))
+          },
+          deploymentScriptSettings.?subnetId != null
+            ? {}
+            : { storageAccountKey: deploymentScriptSettings.?storageAccountKey }
+        )
+      : null
+    containerSettings: deploymentScriptSettings.?subnetId != null
+      ? {
+          subnetIds: [
+            { id: deploymentScriptSettings.?subnetId! }
+          ]
+        }
+      : null
   }
 }

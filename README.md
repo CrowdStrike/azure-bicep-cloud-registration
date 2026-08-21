@@ -137,6 +137,9 @@ You can use any of these methods to pass parameters:
 | `agentlessScanningLocationsPerSubscription`                                   | no       | A map of subscriptions to list of locations where agentless scanning environment will be deployed (DSPM/Vulnerability scanning).                                                                                                                                                                                                                       |
 | `agentlessScanningDeployNatGateway`                                           | no       | Indicates Agentless Scanning environment will be deployed with NAT Gateway. Default is `true`.                                                                                                                                                                                                                                                         |
 | `agentlessScanningHostSubscriptionId`                                         | no       | Azure agentless scanning host subscription ID. When set, cross-subscription mode is enabled and scanning infrastructure is deployed only to this subscription.                                                                                                                                                                                         |
+| `deploymentScriptSettings.storageAccountId`                                  | no       | Resource ID of an existing storage account for deployment scripts to use instead of the auto-provisioned one. Required if the target tenant's Azure Policy disallows public network access on auto-created storage accounts. See [Storage account requirements](#storage-account-requirements-for-deploymentscriptsettings) for constraints this storage account must meet. When `deploymentScriptSettings` is set, the template automatically grants the `Storage File Data Privileged Contributor` role on this storage account to the script-runner managed identity - Azure requires this role for a deployment script to use an existing storage account, in addition to (or, when `deploymentScriptSettings.subnetId` is set, instead of) the storage account key. The deploying principal needs permission to create role assignments on the storage account (see [Required permissions](#required-permissions)). |
+| `deploymentScriptSettings.storageAccountKey`                                 | no       | Access key for the existing storage account referenced by `deploymentScriptSettings.storageAccountId`. Required unless `deploymentScriptSettings.subnetId` is also set - when the deployment script runs inside a virtual network, Azure Container Instances can mount the storage account using the script-runner identity's `Storage File Data Privileged Contributor` role (granted automatically) instead of a key.                                                                                                                                                                           |
+| `deploymentScriptSettings.subnetId`                                          | no       | Resource ID of a subnet, delegated to `Microsoft.ContainerInstance/containerGroups`, that the deployment script container will run in. Required only if the storage account referenced by `deploymentScriptSettings.storageAccountId` is not reachable from a public or service-endpoint-allowed network path. See [Storage account requirements](#storage-account-requirements-for-deploymentscriptsettings) for subnet subscription constraints. |
 
 ## Bicep parameter file example
 ```bicep
@@ -200,6 +203,17 @@ param tags = {
 
 // Optional: Resource region
 param location = 'westeurope'
+
+// Optional: Use an existing, policy-compliant storage account for deployment scripts
+// instead of the auto-provisioned one. Must be in the same subscription as csInfraSubscriptionId.
+// See "Template parameters" and "Troubleshooting" for details, including a platform
+// limitation around Shared Key access.
+// param deploymentScriptSettings = {
+//   storageAccountId: '<resource ID of an existing storage account in the csInfraSubscriptionId subscription>'
+//   subnetId: '<subnet resource ID in the csInfraSubscriptionId subscription, only if the storage account is reachable only via private endpoint>'
+//   // storageAccountKey is required unless subnetId (above) is set:
+//   storageAccountKey: readEnvironmentVariable('DEPLOYMENT_SCRIPT_STORAGE_ACCOUNT_KEY', '')
+// }
 ```
 
 ## Deployment
@@ -359,6 +373,34 @@ To delete the deployment stack successfully, follow these steps:
    ```
    az stack mg delete --name <deployment-stack-name> --management-group-id <management-group-id> --action-on-unmanage detachAll
    ```
+
+### Deployment fails because the auto-created deployment script storage account violates policy
+
+If your Azure tenant enforces a policy such as "Storage accounts should disable public network access," deployment can fail with a `DeploymentScriptOperationFailed` error, or a policy-disallowed error, referencing an auto-generated storage account (for example, a name ending in `zscripts`).
+
+This happens because `Microsoft.Resources/deploymentScripts` auto-provisions a storage account with public network access enabled whenever no storage account is explicitly specified. This auto-provisioned account violates policies that require public network access to be disabled.
+
+To resolve this, set `deploymentScriptSettings` to point at an existing, policy-compliant storage account (and `deploymentScriptSettings.subnetId` if the account is only reachable via a private endpoint) instead of relying on auto-provisioning. See the `deploymentScriptSettings.*` rows in the [Template parameters](#template-parameters) table.
+
+> [!NOTE]
+> **`allowSharedKeyAccess` must be `true` on the storage account, regardless of whether `deploymentScriptSettings.subnetId` is set or a key is supplied.**
+>
+> This is a known Microsoft platform limitation, not specific to this template - tracked at [Azure/bicep-types-az#2199](https://github.com/Azure/bicep-types-az/issues/2199) and [Azure/bicep#16604](https://github.com/Azure/bicep/issues/16604). Confirmed by testing: with `allowSharedKeyAccess: false`, deployment fails with `DeploymentScriptACIProvisioningTimeout` even when using `deploymentScriptSettings.subnetId` with the RBAC role granted automatically below and no key value supplied - the underlying Azure Container Instance never starts provisioning.
+>
+> If your tenant enforces a policy requiring `allowSharedKeyAccess` to be disabled, there's currently no supported way to run deployment scripts against that storage account; request a scoped policy exemption instead.
+>
+> See [Storage account requirements](#storage-account-requirements-for-deploymentscriptsettings) below for the full set of requirements.
+
+### Storage account requirements for `deploymentScriptSettings`
+
+An existing storage account supplied via `deploymentScriptSettings.storageAccountId` must meet all of the following requirements:
+
+- Must be in the same subscription as `csInfraSubscriptionId` - `Microsoft.Resources/deploymentScripts` only accepts an existing storage account from its own subscription.
+- `allowSharedKeyAccess` must be `true`, regardless of whether `deploymentScriptSettings.subnetId` is set or a key is supplied - see the [note above](#deployment-fails-because-the-auto-created-deployment-script-storage-account-violates-policy) for tracked Azure issues and details.
+- `networkAcls.defaultAction` must be `Allow` (or `networkAcls` omitted entirely) - storage account firewall rules aren't supported by deployment scripts, independent of `publicNetworkAccess`. Use `publicNetworkAccess: 'Disabled'` instead to block public access.
+- If `deploymentScriptSettings.subnetId` is set, that subnet must also be in the `csInfraSubscriptionId` subscription - Azure Container Instances require the delegated subnet to be in the same subscription as the container group.
+
+See Microsoft's [Access a private virtual network from a Bicep deployment script](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/deployment-script-vnet-private-endpoint) for the reference architecture this feature is based on.
 
 ## Contributing
 

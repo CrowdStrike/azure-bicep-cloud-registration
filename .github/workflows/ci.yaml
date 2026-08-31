@@ -11,6 +11,7 @@ permissions: read-all
 jobs:
   bicep-build:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -37,6 +38,7 @@ jobs:
 
   bicep-lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -62,6 +64,7 @@ jobs:
 
   bicep-format:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:

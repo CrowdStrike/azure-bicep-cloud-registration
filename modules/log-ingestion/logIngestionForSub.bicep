@@ -45,10 +45,8 @@ param falconIpAddresses array
 @description('List of Azure subscription IDs to monitor. These subscriptions will be configured for CrowdStrike monitoring.')
 param subscriptionIds array
 
-@description('Maximum number of subscriptions per batch for Activity Log deployment. Default is 750 to stay safely under the 800 limit.')
-@minValue(1)
-@maxValue(800)
-param batchSize int = 750
+@description('Maximum number of subscriptions per batch for Activity Log deployment.')
+param batchSize int
 
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env

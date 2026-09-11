@@ -54,6 +54,9 @@ param tags object
 @description('Azure cloud type for this registration. Use "commercial" for standard Azure or "gov" for Azure Government. Empty string is treated as commercial.')
 param accountType string = ''
 
+@description('Maximum number of subscriptions per batch for Activity Log deployment.')
+param batchSize int
+
 var environment = length(env) > 0 ? '-${env}' : env
 
 // Deployment for subscriptions
@@ -73,6 +76,7 @@ module deploymentForSubs 'log-ingestion/logIngestionForSub.bicep' = {
     env: env
     tags: tags
     accountType: accountType
+    batchSize: batchSize
   }
 }
 

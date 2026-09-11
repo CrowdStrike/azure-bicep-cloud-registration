@@ -64,10 +64,8 @@ param inputAgentlessScanningLocationsPerSubscription object = {}
 @description('Per-region custom VNet configuration for agentless scanning.')
 param inputAgentlessScanningCustomVnetConfiguration object = {}
 
-@description('Maximum number of subscriptions per batch for scanning deployment. Default is 750 to stay safely under the 800 limit.')
-@minValue(1)
-@maxValue(800)
-param batchSize int = 750
+@description('Maximum number of subscriptions per batch for scanning deployment.')
+param batchSize int
 
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env

@@ -23,18 +23,24 @@ param azurePrincipalId string
 @description('Environment label (e.g., prod, stag, dev) used for resource naming and tagging. Helps distinguish between different deployment environments.')
 param env string
 
+@description('Maximum number of subscriptions per batch for Asset Inventory role assignment deployment.')
+param batchSize int
+
 var environment = length(env) > 0 ? '-${env}' : env
 var shouldDeployForSubs = !contains(managementGroupIds, tenant().tenantId)
+var numberOfBatches = (length(subscriptionIds) + batchSize - 1) / batchSize
 
-module deploymentForSubs 'asset-inventory/assetInventoryForSub.bicep' = [
-  for subId in subscriptionIds: if (shouldDeployForSubs) {
-    name: '${resourceNamePrefix}cs-inv-deployment-sub-${uniqueString(subId)}${environment}${resourceNameSuffix}'
-    scope: subscription(subId)
+module deploymentForSubs 'asset-inventory/assetInventorySubBatch.bicep' = [
+  for i in range(0, numberOfBatches): if (shouldDeployForSubs) {
+    name: '${resourceNamePrefix}cs-inv-batch-${i}${environment}${resourceNameSuffix}'
+    scope: subscription(subscriptionIds[i * batchSize])
     params: {
+      subscriptionIds: take(skip(subscriptionIds, i * batchSize), batchSize)
       azurePrincipalId: azurePrincipalId
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix
       env: env
+      batchNumber: i
     }
   }
 ]
@@ -54,7 +60,9 @@ module deploymentForMGs 'asset-inventory/assetInventoryForMgmtGroup.bicep' = [
 ]
 
 output customRoleNameForSubs array = [
-  for (sub, i) in subscriptionIds: shouldDeployForSubs ? deploymentForSubs[i]!.outputs.customRoleName : ''
+  for (sub, i) in subscriptionIds: shouldDeployForSubs
+    ? deploymentForSubs[i / batchSize]!.outputs.customRoleNames[i % batchSize]
+    : ''
 ]
 output customRoleNameForMGs array = [
   for (mgmtGroupId, i) in managementGroupIds: deploymentForMGs[i].outputs.customRoleName

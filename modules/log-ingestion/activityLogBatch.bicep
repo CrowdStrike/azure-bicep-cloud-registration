@@ -36,7 +36,6 @@ param batchNumber int
 var environment = length(env) > 0 ? '-${env}' : env
 
 /* Deploy Activity Log Diagnostic Settings for subscriptions in this batch */
-@batchSize(25)
 module activityDiagnosticSettings 'activityLog.bicep' = [
   for subId in subscriptionIds: {
     name: '${resourceNamePrefix}cs-log-activity-${batchNumber}-${uniqueString(subId)}${environment}${resourceNameSuffix}'

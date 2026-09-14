@@ -83,7 +83,6 @@ var environment = length(env) > 0 ? '-${env}' : env
 var useExternalRoles = !empty(accessRoleId)
 
 /* Create per-subscription roles when no MG-scoped roles are provided */
-@batchSize(25)
 module subRoles 'scanningRolesForSub.bicep' = [
   for sub in subscriptionEntries: if (!useExternalRoles) {
     name: '${resourceNamePrefix}cs-scanning-roles-${uniqueString(sub.subscriptionId)}${environment}${resourceNameSuffix}'
@@ -100,7 +99,6 @@ module subRoles 'scanningRolesForSub.bicep' = [
 ]
 
 /* Deploy scanning infrastructure for subscriptions in this batch */
-@batchSize(25)
 module scanningSub 'scanningForSub.bicep' = [
   for (sub, i) in subscriptionEntries: {
     name: '${resourceNamePrefix}cs-scanning-${sub.subscriptionId}${environment}${resourceNameSuffix}'

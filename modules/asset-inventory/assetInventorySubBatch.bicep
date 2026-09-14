@@ -30,7 +30,6 @@ param batchNumber int
 var environment = length(env) > 0 ? '-${env}' : env
 
 /* Deploy Asset Inventory role assignments for subscriptions in this batch */
-@batchSize(25)
 module deploymentForSubs 'assetInventoryForSub.bicep' = [
   for subId in subscriptionIds: {
     name: '${resourceNamePrefix}cs-inv-deployment-sub-${batchNumber}-${uniqueString(subId)}${environment}${resourceNameSuffix}'

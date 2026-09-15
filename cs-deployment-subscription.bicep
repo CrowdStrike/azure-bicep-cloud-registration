@@ -19,6 +19,11 @@ param subscriptionIds array = []
 @description('Subscription ID where CrowdStrike infrastructure resources will be deployed. This subscription hosts shared resources like event hubs.')
 param csInfraSubscriptionId string = ''
 
+@description('Maximum number of subscriptions per batch when deploying per-subscription resources (Activity Log diagnostic settings, asset inventory role assignments, agentless scanning infrastructure). Azure Resource Manager enforces an 800-item limit on template copy loops. Lower this value if deployments time out or fail with a large number of subscriptions.')
+@minValue(1)
+@maxValue(800)
+param subscriptionBatchSize int = 750
+
 @description('Base URL of the Falcon API.')
 param falconApiFqdn string = ''
 
@@ -274,6 +279,7 @@ module assetInventory 'modules/cs-asset-inventory-sub.bicep' = {
     resourceNamePrefix: validatedResourceNamePrefix
     resourceNameSuffix: validatedResourceNameSuffix
     env: env
+    batchSize: subscriptionBatchSize
   }
 }
 
@@ -325,6 +331,7 @@ module logIngestion 'modules/cs-log-ingestion-sub.bicep' = if (shouldDeployLogIn
     env: env
     tags: tags
     accountType: accountType
+    batchSize: subscriptionBatchSize
   }
   dependsOn: [
     infraResourceGroup
@@ -351,6 +358,7 @@ module scanningEnvironment 'modules/cs-scanning-sub.bicep' = if (shouldDeploySca
     resourceNameSuffix: validatedResourceNameSuffix
     env: env
     tags: tags
+    batchSize: subscriptionBatchSize
   }
   dependsOn: [
     infraResourceGroup

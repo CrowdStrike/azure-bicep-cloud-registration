@@ -20,19 +20,26 @@ param azurePrincipalId string
 @description('Environment label (e.g., prod, stag, dev) used for resource naming and tagging. Helps distinguish between different deployment environments.')
 param env string
 
-var environment = length(env) > 0 ? '-${env}' : env
+@description('Maximum number of subscriptions per batch for Asset Inventory role assignment deployment.')
+param batchSize int
 
-module deploymentForSubs 'asset-inventory/assetInventoryForSub.bicep' = [
-  for subId in subscriptionIds: {
-    name: '${resourceNamePrefix}cs-inv-deployment-sub${environment}${resourceNameSuffix}'
-    scope: subscription(subId)
+var environment = length(env) > 0 ? '-${env}' : env
+var numberOfBatches = (length(subscriptionIds) + batchSize - 1) / batchSize
+
+module deploymentForSubs 'asset-inventory/assetInventorySubBatch.bicep' = [
+  for i in range(0, numberOfBatches): {
+    name: '${resourceNamePrefix}cs-inv-batch-${i}${environment}${resourceNameSuffix}'
     params: {
+      subscriptionIds: take(skip(subscriptionIds, i * batchSize), batchSize)
       azurePrincipalId: azurePrincipalId
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix
       env: env
+      batchNumber: i
     }
   }
 ]
 
-output customRoleNameForSubs array = [for (sub, i) in subscriptionIds: deploymentForSubs[i].outputs.customRoleName]
+output customRoleNameForSubs array = [
+  for (sub, i) in subscriptionIds: deploymentForSubs[i / batchSize].outputs.customRoleNames[i % batchSize]
+]

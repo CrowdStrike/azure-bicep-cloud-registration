@@ -160,6 +160,4 @@ output accessRoleId string = accessRole.id
 output scannerRoleId string = inputEnableDspm ? scannerRole.id : ''
 output resourceGroupAccessRoleId string = includeResourceGroupRoles ? resourceGroupAccessRole.id : ''
 output customVnetSubnetRoleId string = useCustomSubnets ? customVnetSubnetRole.id : ''
-output resourceGroupScannerRoleId string = includeResourceGroupRoles
-  ? resourceGroupScannerRole.id
-  : ''
+output resourceGroupScannerRoleId string = includeResourceGroupRoles ? resourceGroupScannerRole.id : ''

@@ -34,9 +34,14 @@ var scannerRolePermissions = {
   description: 'CrowdStrike Agentless Scanning Scanner Role'
   dspmActions: [
     'Microsoft.Storage/storageAccounts/blobServices/containers/read'
+    'Microsoft.Storage/storageAccounts/tableServices/tables/read'
+    'Microsoft.Storage/storageAccounts/fileServices/read'
+    'Microsoft.Storage/storageAccounts/fileServices/shares/read'
   ]
   dspmDataActions: [
     'Microsoft.Storage/storageAccounts/blobServices/containers/blobs/read'
+    'Microsoft.Storage/storageAccounts/tableServices/tables/entities/read'
+    'Microsoft.Storage/storageAccounts/fileServices/fileshares/files/read'
   ]
 }
 

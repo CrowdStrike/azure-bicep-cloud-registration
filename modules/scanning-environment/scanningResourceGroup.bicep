@@ -33,9 +33,6 @@ param tags object
 @description('Whether NAT Gateway is enabled. When false, public IP permissions are included for VM connectivity.')
 param agentlessScanningDeployNatGateway bool = true
 
-@description('Controls whether to enable vulnerability scanning.')
-param inputEnableVulnerabilityScanning bool = false
-
 @description('Role definition ID for resource group access role. When provided, skips per-subscription role creation (management group mode).')
 param resourceGroupAccessRoleId string = ''
 
@@ -53,8 +50,8 @@ var clientCredentialsName = 'client-credentials'
 var validatedResourceGroupAccessRoleId = empty(resourceGroupAccessRoleId)
   ? fail('"resourceGroupAccessRoleId" must be provided to scanningResourceGroup module')
   : resourceGroupAccessRoleId
-var validatedResourceGroupScannerRoleId = inputEnableVulnerabilityScanning && empty(resourceGroupScannerRoleId)
-  ? fail('"resourceGroupScannerRoleId" must be provided when vulnerability scanning is enabled')
+var validatedResourceGroupScannerRoleId = empty(resourceGroupScannerRoleId)
+  ? fail('"resourceGroupScannerRoleId" must be provided')
   : resourceGroupScannerRoleId
 
 resource rgRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
@@ -146,7 +143,7 @@ resource clientCredentials 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = {
   tags: tags
 }
 
-resource resourceGroupScannerRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (inputEnableVulnerabilityScanning) {
+resource resourceGroupScannerRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(subscription().id, resourceGroup().id, validatedResourceGroupScannerRoleId, scannerManagedIdentity.id)
   properties: {
     roleDefinitionId: validatedResourceGroupScannerRoleId

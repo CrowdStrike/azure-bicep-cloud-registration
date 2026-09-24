@@ -105,7 +105,6 @@ module scanningResourceGroupModule 'scanningResourceGroup.bicep' = if (shouldDep
     falconClientSecret: falconClientSecret
     scanningPrincipalId: scanningPrincipalId
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
-    inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
     resourceGroupAccessRoleId: resourceGroupAccessRoleId
     resourceGroupScannerRoleId: resourceGroupScannerRoleId
     resourceNamePrefix: resourceNamePrefix

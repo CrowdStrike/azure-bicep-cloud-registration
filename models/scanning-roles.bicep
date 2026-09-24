@@ -19,15 +19,8 @@ var accessRolePermissions = {
     'Microsoft.Storage/storageAccounts/read' // Check location and public access
     'Microsoft.Storage/storageAccounts/PrivateEndpointConnectionsApproval/action' // Approve private link connections
   ]
-  dspmVirtualMachinesActions: [
+  virtualMachinesScanningActions: [
     // ============ Virtual Machines ============
-    'Microsoft.Compute/disks/beginGetAccess/action' // Access source disk for snapshot
-    'Microsoft.Compute/disks/read' // Read source disk metadata
-    'Microsoft.Compute/virtualMachines/read' // Read VM metadata
-    'Microsoft.Compute/virtualMachineScaleSets/read' // Read VMSS metadata
-    'Microsoft.Compute/virtualMachineScaleSets/virtualMachines/read' // Read VMSS instance metadata
-  ]
-  vulnerabilityScanningActions: [
     'Microsoft.Compute/disks/beginGetAccess/action' // Access source disk for snapshot
     'Microsoft.Compute/disks/read' // Read source disk metadata
     'Microsoft.Compute/virtualMachines/read' // Read VM metadata

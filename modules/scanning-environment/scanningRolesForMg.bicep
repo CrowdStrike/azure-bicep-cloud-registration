@@ -57,8 +57,9 @@ resource accessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
         actions: union(
           accessRolePermissions.baseActions,
           inputEnableDspm ? accessRolePermissions.dspmBlobStorageActions : [],
-          inputEnableDspm ? accessRolePermissions.dspmVirtualMachinesActions : [],
-          inputEnableVulnerabilityScanning ? accessRolePermissions.vulnerabilityScanningActions : []
+          (inputEnableDspm || inputEnableVulnerabilityScanning)
+            ? accessRolePermissions.virtualMachinesScanningActions
+            : []
         )
         notActions: []
         dataActions: []

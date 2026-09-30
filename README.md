@@ -58,7 +58,7 @@ The Bicep templates perform the following actions:
 
 ## Prerequisites
 
-1. Create a registration for your Azure tenant on Falcon Cloud Security and grant admin consent to Falcon Cloud Security App
+1. Create a registration for your Azure tenant on Falcon Cloud Security and grant admin consent to Falcon Cloud Security App.
    - [US-1](https://falcon.crowdstrike.com/cloud-security/registration-v2/azure)
    - [US-2](https://falcon.us-2.crowdstrike.com/cloud-security/registration-v2/azure)
    - [EU-1](https://falcon.eu-1.crowdstrike.com/cloud-security/registration-v2/azure)

@@ -56,8 +56,10 @@ resource accessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
       {
         actions: union(
           accessRolePermissions.baseActions,
-          inputEnableDspm ? accessRolePermissions.dspmActions : [],
-          inputEnableVulnerabilityScanning ? accessRolePermissions.vulnerabilityScanningActions : []
+          inputEnableDspm ? accessRolePermissions.dspmBlobStorageActions : [],
+          (inputEnableDspm || inputEnableVulnerabilityScanning)
+            ? accessRolePermissions.virtualMachinesScanningActions
+            : []
         )
         notActions: []
         dataActions: []
@@ -101,7 +103,7 @@ resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-0
         actions: union(
           resourceGroupAccessRolePermissions.actions,
           !agentlessScanningDeployNatGateway ? resourceGroupAccessRolePermissions.conditionalPublicIPActions : [],
-          inputEnableVulnerabilityScanning ? resourceGroupAccessRolePermissions.vulnerabilityScanningActions : []
+          resourceGroupAccessRolePermissions.virtualMachinesScanningActions
         )
         notActions: []
         dataActions: []
@@ -135,7 +137,7 @@ resource customVnetSubnetRole 'Microsoft.Authorization/roleDefinitions@2022-04-0
   }
 }
 
-resource resourceGroupScannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (inputEnableVulnerabilityScanning && includeResourceGroupRoles) {
+resource resourceGroupScannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (includeResourceGroupRoles) {
   name: guid(subscription().id, resourceGroupScannerRoleName)
   properties: {
     roleName: resourceGroupScannerRoleName
@@ -160,6 +162,4 @@ output accessRoleId string = accessRole.id
 output scannerRoleId string = inputEnableDspm ? scannerRole.id : ''
 output resourceGroupAccessRoleId string = includeResourceGroupRoles ? resourceGroupAccessRole.id : ''
 output customVnetSubnetRoleId string = useCustomSubnets ? customVnetSubnetRole.id : ''
-output resourceGroupScannerRoleId string = (inputEnableVulnerabilityScanning && includeResourceGroupRoles)
-  ? resourceGroupScannerRole.id
-  : ''
+output resourceGroupScannerRoleId string = includeResourceGroupRoles ? resourceGroupScannerRole.id : ''

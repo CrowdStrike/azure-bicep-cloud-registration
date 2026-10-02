@@ -15,12 +15,15 @@ param env string
 
 var customRole = {
   roleName: 'role-csreader'
-  roleDescription: 'CrowdStrike custom role to allow read access to App Service and Function.'
+  roleDescription: 'CrowdStrike custom role to allow read access to App Service and Function, and administer Resource Locks.'
   roleActions: [
     'Microsoft.Web/sites/Read'
     'Microsoft.Web/sites/config/Read'
     'Microsoft.Web/sites/config/list/Action'
     'Microsoft.Web/sites/publish/action'
+    'Microsoft.Authorization/locks/read'
+    'Microsoft.Authorization/locks/write'
+    'Microsoft.Authorization/locks/delete'
   ]
 }
 

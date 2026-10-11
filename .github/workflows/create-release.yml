@@ -12,7 +12,7 @@ jobs:
       contents: write # Required to create a release and upload assets
     steps:
     - name: Checkout repo
-      uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
     - name: Create Bicep template release package
       run: zip -r ${{ github.event.repository.name }}.zip . -x ".git/*" ".github/*" ".gitignore"

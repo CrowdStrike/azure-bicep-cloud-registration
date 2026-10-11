@@ -24,7 +24,7 @@ param subscriptionIds array = []
 @description('Subscription ID where CrowdStrike infrastructure resources will be deployed. This subscription hosts shared resources like event hubs.')
 param csInfraSubscriptionId string = ''
 
-@description('Maximum number of subscriptions per batch when deploying per-subscription resources (Activity Log diagnostic settings, asset inventory role assignments, agentless scanning infrastructure). Azure Resource Manager enforces an 800-item limit on template copy loops.')
+@description('Maximum number of subscriptions per batch when deploying per-subscription resources (Activity Log diagnostic settings, asset inventory role assignments, agentless scanning infrastructure). Azure Resource Manager enforces an 800-item limit on template copy loops. Agentless scanning batches are capped at 400 subscriptions because each subscription declares 2 resources per scanning batch.')
 @minValue(1)
 @maxValue(800)
 param subscriptionBatchSize int = 750

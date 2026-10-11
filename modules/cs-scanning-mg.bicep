@@ -1,3 +1,5 @@
+import { maxScanningBatchSize } from '../models/scanning.bicep'
+
 targetScope = 'managementGroup'
 
 /*
@@ -64,11 +66,13 @@ param inputAgentlessScanningLocationsPerSubscription object = {}
 @description('Per-region custom VNet configuration for agentless scanning.')
 param inputAgentlessScanningCustomVnetConfiguration object = {}
 
-@description('Maximum number of subscriptions per batch for scanning deployment.')
+@description('Maximum number of subscriptions per batch for scanning deployment. Capped at maxScanningBatchSize.')
 param batchSize int
 
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
+// Each subscription declares 2 resources in a scanning batch, so the shared batch size can exceed the 800-resource limit
+var scanningBatchSize = min(batchSize, maxScanningBatchSize)
 var isCrossSubscriptionDeployment = !empty(agentlessScanningHostSubscriptionId)
 var crossHostSubscriptionEntry = isCrossSubscriptionDeployment
   ? filter(
@@ -262,7 +266,7 @@ module scanningHostPerMg 'scanning-environment/scanningForMg.bicep' = if (isHost
     resourceNameSuffix: resourceNameSuffix
     env: env
     tags: tags
-    batchSize: batchSize
+    batchSize: scanningBatchSize
   }
 }
 
@@ -296,21 +300,23 @@ module scanningPerMg 'scanning-environment/scanningForMg.bicep' = [
       resourceNameSuffix: resourceNameSuffix
       env: env
       tags: tags
-      batchSize: batchSize
+      batchSize: scanningBatchSize
     }
   }
 ]
 
 /* Deploy scanning for standalone subscriptions (not under any management group) */
 var totalStandaloneSubs = length(nonHostStandaloneEntries)
-var standaloneNumberOfBatches = totalStandaloneSubs == 0 ? 0 : (totalStandaloneSubs + batchSize - 1) / batchSize
+var standaloneNumberOfBatches = totalStandaloneSubs == 0
+  ? 0
+  : (totalStandaloneSubs + scanningBatchSize - 1) / scanningBatchSize
 
 module scanningStandaloneBatch 'scanning-environment/scanningSubBatch.bicep' = [
   for i in range(0, standaloneNumberOfBatches): {
     name: '${resourceNamePrefix}cs-scanning-standalone-${i}${environment}${resourceNameSuffix}'
     scope: subscription(csInfraSubscriptionId)
     params: {
-      subscriptionEntries: take(skip(nonHostStandaloneEntries, i * batchSize), batchSize)
+      subscriptionEntries: take(skip(nonHostStandaloneEntries, i * scanningBatchSize), scanningBatchSize)
       falconClientId: falconClientId
       falconClientSecret: falconClientSecret
       scanningPrincipalId: scanningPrincipalId

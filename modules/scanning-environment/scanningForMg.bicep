@@ -77,10 +77,10 @@ param resourceGroupAccessRoleId string = ''
 @description('Role definition ID for scanner resource group role from management group scope.')
 param resourceGroupScannerRoleId string = ''
 
-@description('Maximum number of subscriptions per batch for scanning deployment. Default is 750 to stay safely under the 800 limit.')
+@description('Maximum number of subscriptions per batch for scanning deployment. Each subscription declares 2 resources per batch, so the maximum is 400 to stay under the 800 limit.')
 @minValue(1)
-@maxValue(800)
-param batchSize int = 750
+@maxValue(400)
+param batchSize int = 400
 
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env

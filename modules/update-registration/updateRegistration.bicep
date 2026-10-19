@@ -43,7 +43,9 @@ param scriptRunnerIdentityId string?
 param forceUpdateTag string = newGuid()
 
 resource subscriptionsInManagementGroup 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
-  name: guid('updateRegistration', resourceGroup().id, env, location)
+  // Unique per deployment so each run gets its own backing storage account/container group (avoids storage lock collisions on quick redeploys)
+  #disable-next-line use-stable-resource-identifiers
+  name: guid('updateRegistration', resourceGroup().id, env, location, forceUpdateTag)
   location: location
   kind: 'AzurePowerShell'
   tags: tags

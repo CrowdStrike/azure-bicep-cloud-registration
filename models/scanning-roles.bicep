@@ -19,6 +19,10 @@ var accessRolePermissions = {
     'Microsoft.Storage/storageAccounts/read' // Check location and public access
     'Microsoft.Storage/storageAccounts/PrivateEndpointConnectionsApproval/action' // Approve private link connections
   ]
+  dspmAzureSqlActions: [
+    // ============ Azure SQL ============
+    'Microsoft.Sql/servers/databases/write' // Copy a source database into the host scanning resource group
+  ]
   virtualMachinesScanningActions: [
     // ============ Virtual Machines ============
     'Microsoft.Compute/disks/beginGetAccess/action' // Access source disk for snapshot
@@ -100,6 +104,14 @@ var resourceGroupAccessRolePermissions = {
     'Microsoft.Compute/snapshots/delete'
     'Microsoft.Compute/disks/write'
     'Microsoft.Compute/disks/delete'
+  ]
+  dspmAzureSqlActions: [
+    // ============ Azure SQL ============
+    'Microsoft.Sql/servers/write'
+    'Microsoft.Sql/servers/databases/write'
+    'Microsoft.Sql/servers/privateEndpointConnectionsApproval/action'
+    'Microsoft.Sql/servers/delete'
+    'Microsoft.Sql/servers/databases/delete'
   ]
 }
 

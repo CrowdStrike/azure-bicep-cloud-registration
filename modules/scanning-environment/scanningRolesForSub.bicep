@@ -57,6 +57,7 @@ resource accessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
         actions: union(
           accessRolePermissions.baseActions,
           inputEnableDspm ? accessRolePermissions.dspmBlobStorageActions : [],
+          inputEnableDspm ? accessRolePermissions.dspmAzureSqlActions : [],
           (inputEnableDspm || inputEnableVulnerabilityScanning)
             ? accessRolePermissions.virtualMachinesScanningActions
             : []
@@ -103,7 +104,8 @@ resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-0
         actions: union(
           resourceGroupAccessRolePermissions.actions,
           !agentlessScanningDeployNatGateway ? resourceGroupAccessRolePermissions.conditionalPublicIPActions : [],
-          resourceGroupAccessRolePermissions.virtualMachinesScanningActions
+          resourceGroupAccessRolePermissions.virtualMachinesScanningActions,
+          inputEnableDspm ? resourceGroupAccessRolePermissions.dspmAzureSqlActions : []
         )
         notActions: []
         dataActions: []

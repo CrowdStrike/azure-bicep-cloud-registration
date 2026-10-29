@@ -111,6 +111,11 @@ resource activityLogEventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01
   }
 }
 
+resource activityLogConsumerGroup 'Microsoft.EventHub/namespaces/eventhubs/consumergroups@2024-01-01' = if (shouldDeployActivityLog) {
+  name: 'crowdstrike'
+  parent: activityLogEventHub
+}
+
 resource entraLogEventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' = if (shouldDeployEntraLog) {
   name: '${resourceNamePrefix}${defaultSettings.entraLogEventHubName}${resourceNameSuffix}'
   parent: eventHubNamespace
@@ -121,6 +126,11 @@ resource entraLogEventHub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' =
       retentionTimeInHours: 24
     }
   }
+}
+
+resource entraLogConsumerGroup 'Microsoft.EventHub/namespaces/eventhubs/consumergroups@2024-01-01' = if (shouldDeployEntraLog) {
+  name: 'crowdstrike'
+  parent: entraLogEventHub
 }
 
 resource authorizationRule 'Microsoft.EventHub/namespaces/authorizationRules@2024-01-01' = if (shouldDeployEventHubNamespace) {
@@ -211,8 +221,8 @@ output eventhubs object = {
       ? existingActivityLogEventHubNamespace.?properties.?serviceBusEndpoint ?? ''
       : (shouldDeployActivityLog ? eventHubNamespace.?properties.?serviceBusEndpoint ?? '' : '')
     eventHubAuthorizationRuleId: shouldDeployActivityLog ? authorizationRule.id : ''
-    eventHubConsumerGrouopName: shouldDeployActivityLog
-      ? '$Default'
+    eventHubConsumerGroupName: shouldDeployActivityLog
+      ? activityLogConsumerGroup.name
       : activityLogSettings.?existingEventhub.?consumerGroupName ?? ''
     managementType: shouldUseExistingEventHubForActivityLog ? 'unmanaged' : (shouldDeployActivityLog ? 'managed' : '')
   }
@@ -234,8 +244,8 @@ output eventhubs object = {
           : existingEntraLogEventHubNamespace.?properties.?serviceBusEndpoint ?? '')
       : (shouldDeployEntraLog ? eventHubNamespace.?properties.?serviceBusEndpoint : '')
     eventHubAuthorizationRuleId: shouldDeployEntraLog ? authorizationRule.id : ''
-    eventHubConsumerGrouopName: shouldDeployEntraLog
-      ? '$Default'
+    eventHubConsumerGroupName: shouldDeployEntraLog
+      ? entraLogConsumerGroup.name
       : entraLogSettings.?existingEventhub.?consumerGroupName ?? ''
     managementType: shouldUseExistingEventHubForEntraLog ? 'unmanaged' : (shouldDeployEntraLog ? 'managed' : '')
   }

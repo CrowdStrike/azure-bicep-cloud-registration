@@ -14,6 +14,9 @@ param managementGroupIds array
 @description('List of Azure subscription IDs to monitor. These subscriptions will be configured for CrowdStrike monitoring.')
 param subscriptionIds array
 
+@description('Lowercase list of Azure subscription IDs to exclude from the resolved deployment scope.')
+param excludedSubscriptionIds array = []
+
 @description('Resource ID of the user-assigned managed identity that will execute deployment scripts. This identity needs appropriate permissions.')
 param scriptRunnerIdentityId string
 
@@ -65,7 +68,13 @@ module deploymentScope 'deployment-scope/resolveDeploymentScope.bicep' = {
 output subscriptionsByManagementGroup array = [
   for (mgmtGroupId, i) in managementGroupIds: {
     managementGroupId: mgmtGroupId
-    activeSubscriptionIds: deploymentScope.outputs.subscriptionsByManageGroups[i]
+    activeSubscriptionIds: filter(
+      deploymentScope.outputs.subscriptionsByManageGroups[i],
+      id => !contains(excludedSubscriptionIds, toLower(id))
+    )
   }
 ]
-output allSubscriptions array = union(flatten(deploymentScope.outputs.subscriptionsByManageGroups), subscriptionIds)
+output allSubscriptions array = filter(
+  union(flatten(deploymentScope.outputs.subscriptionsByManageGroups), subscriptionIds),
+  id => !contains(excludedSubscriptionIds, toLower(id))
+)

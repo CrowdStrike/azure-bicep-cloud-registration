@@ -21,6 +21,9 @@ param managementGroupIds array = []
 @description('List of Azure subscription IDs to monitor. These subscriptions will be configured for CrowdStrike monitoring.')
 param subscriptionIds array = []
 
+@description('List of Azure subscription IDs to exclude from deployment. Excluded subscriptions are skipped even if they belong to the specified management groups.')
+param excludedSubscriptionIds array = []
+
 @description('Subscription ID where CrowdStrike infrastructure resources will be deployed. This subscription hosts shared resources like event hubs.')
 param csInfraSubscriptionId string = ''
 
@@ -132,7 +135,11 @@ param accountType string = ''
 param deploymentScriptSettings DeploymentScriptSettings?
 
 /* Variables */
-var subscriptions = union(subscriptionIds, csInfraSubscriptionId == '' ? [] : [csInfraSubscriptionId]) // remove duplicated values
+var normalizedExcludedSubscriptionIds = map(excludedSubscriptionIds, id => toLower(id))
+var subscriptions = filter(
+  union(subscriptionIds, csInfraSubscriptionId == '' ? [] : [csInfraSubscriptionId]),
+  id => !contains(normalizedExcludedSubscriptionIds, toLower(id))
+) // remove duplicated and excluded values
 var managementGroups = union(
   length(managementGroupIds) == 0 && length(subscriptionIds) == 0 ? [tenant().tenantId] : managementGroupIds,
   []
@@ -143,9 +150,16 @@ var shouldDeployScanningEnvironment = enableDspm || enableVulnerabilityScanning
 var shouldResolveDeploymentScope = shouldDeployLogIngestion || shouldDeployScanningEnvironment
 /* Input Validation */
 // Resolve locations with fallback: new params take precedence, fall back to deprecated dspm params
-var resolvedAgentlessScanningLocationsPerSubscription = !empty(agentlessScanningLocationsPerSubscription)
-  ? agentlessScanningLocationsPerSubscription
-  : dspmLocationsPerSubscription
+var resolvedAgentlessScanningLocationsPerSubscription = toObject(
+  filter(
+    items(!empty(agentlessScanningLocationsPerSubscription)
+      ? agentlessScanningLocationsPerSubscription
+      : dspmLocationsPerSubscription),
+    entry => !contains(normalizedExcludedSubscriptionIds, toLower(entry.key))
+  ),
+  entry => entry.key,
+  entry => entry.value
+)
 var resolvedAgentlessScanningLocations = !empty(agentlessScanningLocations) ? agentlessScanningLocations : dspmLocations
 var validatedFalconClientID = (shouldDeployLogIngestion || shouldDeployScanningEnvironment) && empty(falconClientId)
   ? fail('"falconClientId" is required when real-time visibility and detection is enabled, please specify it in parameters.bicepparam')
@@ -304,6 +318,7 @@ module deploymentScope 'modules/cs-deployment-scope-mg.bicep' = if (shouldResolv
   params: {
     managementGroupIds: managementGroups
     subscriptionIds: subscriptions
+    excludedSubscriptionIds: normalizedExcludedSubscriptionIds
     resourceGroupName: resourceGroupName
     scriptRunnerIdentityId: scriptRunnerIdentity!.outputs.id
     csInfraSubscriptionId: csInfraSubscriptionId

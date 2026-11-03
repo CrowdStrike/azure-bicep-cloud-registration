@@ -47,6 +47,7 @@ param subscriptionIds array
 param accountType string = ''
 
 @description('Maximum number of subscriptions per batch for Activity Log deployment.')
+@minValue(1)
 param batchSize int
 
 var environment = length(env) > 0 ? '-${env}' : env

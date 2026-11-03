@@ -102,7 +102,7 @@ You can use any of these methods to pass parameters:
 | `csInfraSubscriptionId`                                                       | no       | Subscription ID where CrowdStrike infrastructure resources will be deployed. This subscription hosts shared resources like Event Hubs. Required when `enableRealTimeVisibility`, `enableDspm` or `enableVulnerabilityScanning` are set to `true`.                                                                                                      |
 | `managementGroupIds`                                                          | no       | List of management groups to be integrated into Falcon Cloud Security. Only used to register management groups.                                                                                                                                                                                                                                        |
 | `subscriptionIds`                                                             | no       | List of individual subscriptions to be integrated into Falcon Cloud Security.                                                                                                                                                                                                                                                                          |
-| `subscriptionBatchSize`                                                       | no       | Maximum number of subscriptions processed per batch when deploying per-subscription resources (activity log diagnostic settings, asset inventory role assignments, agentless scanning infrastructure). Default is `750`. Azure Resource Manager enforces an 800-item limit on template `copy` loops. |
+| `subscriptionBatchSize`                                                       | no       | Maximum number of subscriptions processed per batch when deploying per-subscription resources (activity log diagnostic settings, resource groups, asset inventory role assignments, agentless scanning infrastructure). Default is `750`. Modules whose batches would exceed Azure Resource Manager limits use a lower cap. See [Troubleshooting](#deployment-fails-with-deploymentsizeexceeded) before changing it. |
 | `location`                                                                    | no       | Azure location (region) where global resources will be deployed. Default is the deployment location.                                                                                                                                                                                                                                                   |
 | `resourceNamePrefix`                                                          | no       | Optional prefix added to all resource names for organization and identification purposes.                                                                                                                                                                                                                                                              |
 | `resourceNameSuffix`                                                          | no       | Optional suffix added to all resource names for organization and identification purposes.                                                                                                                                                                                                                                                              |
@@ -375,6 +375,19 @@ To delete the deployment stack successfully, follow these steps:
    az stack mg delete --name <deployment-stack-name> --management-group-id <management-group-id> --action-on-unmanage detachAll
    ```
 
+### Deployment fails with `DeploymentSizeExceeded`
+
+Azure Resource Manager rejects a single deployment larger than 4 MB. Per-subscription resources are deployed in batches of at most `subscriptionBatchSize` subscriptions, and modules with large per-subscription templates, such as agentless scanning, use a lower cap. If a batch deployment still exceeds the limit, lower `subscriptionBatchSize` in your parameters file and re-run the same deployment command.
+
+Do not lower it more than needed. Every batch adds a copy of the batch template to the deployment that starts the batches, so with small batches that deployment can exceed 4 MB instead. To see how many subscriptions fit at a given value, run `python3 tools/check_template_limits.py --verbose --set subscriptionBatchSize=<value>`.
+
+To find the deployment that exceeded the limit, list the failed operations of the failed deployment. Batch deployments run at management group or subscription scope in both entry points, so use the command for the scope of the failed deployment:
+
+```sh
+az deployment operation mg list --management-group-id <management-group-id> --name <failed-deployment-name> --query "[?properties.provisioningState=='Failed'].{target:properties.targetResource.resourceName, error:properties.statusMessage.error.code}" -o table
+az deployment operation sub list --subscription <subscription-id> --name <failed-deployment-name> --query "[?properties.provisioningState=='Failed'].{target:properties.targetResource.resourceName, error:properties.statusMessage.error.code}" -o table
+```
+
 ### Deployment fails because the auto-created deployment script storage account violates policy
 
 If your Azure tenant enforces a policy such as "Storage accounts should disable public network access," deployment can fail with a `DeploymentScriptOperationFailed` error, or a policy-disallowed error, referencing an auto-generated storage account (for example, a name ending in `zscripts`).
@@ -406,6 +419,16 @@ See Microsoft's [Access a private virtual network from a Bicep deployment script
 ## Contributing
 
 If you want to develop new content or improve on this collection, please open an issue or create a pull request. All contributions are welcome!
+
+Before opening a pull request, check that the templates stay within Azure Resource Manager limits (4 MB per deployment after copy loops are expanded, 800 resources, parameter/variable/output counts). The tests in `tools/test_template_limits.py` compile both entry points with the Azure CLI, check every batch deployment at the default and at the maximum `subscriptionBatchSize`, and assert the registration sizes the templates support (subscriptions per management group or subscription registration, management groups, regions). They run in CI:
+
+```sh
+python3 -m unittest discover -s tools -v
+```
+
+To print the estimated size of every batch deployment, the largest batch size it allows, and how many entries fit, run `python3 tools/check_template_limits.py --verbose`.
+
+Each batch module exports its own cap next to the loop it limits: `maxResourceGroupBatchSize` (`modules/common/resourceGroupBatch.bicep`), `maxActivityLogBatchSize` (`modules/log-ingestion/activityLogBatch.bicep`), `maxAssetInventoryBatchSize` (`modules/asset-inventory/assetInventorySubBatch.bicep`), `maxScanningBatchSize` (`modules/scanning-environment/scanningSubBatch.bicep`) and `maxScanningMgBatchSize` (`modules/scanning-environment/scanningMgBatch.bicep`). Use `--set <parameter>=<value>` to check a non-default value, for example `--set subscriptionBatchSize=100`.
 
 ## Support
 

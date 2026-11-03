@@ -1,3 +1,5 @@
+import { maxResourceGroupBatchSize } from 'common/resourceGroupBatch.bicep'
+
 targetScope = 'managementGroup'
 
 /*
@@ -34,6 +36,10 @@ param resourceNamePrefix string = ''
 @description('Optional suffix added to all resource names for organization and identification purposes.')
 param resourceNameSuffix string = ''
 
+@description('Maximum number of subscriptions per batch for resource group deployment. Capped at maxResourceGroupBatchSize.')
+@minValue(1)
+param batchSize int
+
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
 var filteredSubscriptionIds = filter(
@@ -41,14 +47,21 @@ var filteredSubscriptionIds = filter(
   subscriptionId => !contains(ignoredSubscriptionIds, subscriptionId)
 )
 
-module resourceGroups 'common/resourceGroup.bicep' = [
-  for subscriptionId in filteredSubscriptionIds: {
-    name: '${resourceNamePrefix}cs-rg-${uniqueString(subscriptionId)}${environment}${resourceNameSuffix}'
-    scope: subscription(subscriptionId)
+var resourceGroupBatchSize = min(batchSize, maxResourceGroupBatchSize)
+var numberOfBatches = (length(filteredSubscriptionIds) + resourceGroupBatchSize - 1) / resourceGroupBatchSize
+
+module resourceGroupBatches 'common/resourceGroupBatch.bicep' = [
+  for i in range(0, numberOfBatches): {
+    name: '${resourceNamePrefix}cs-rg-batch-${i}${environment}${resourceNameSuffix}'
+    scope: subscription(filteredSubscriptionIds[i * resourceGroupBatchSize])
     params: {
+      subscriptionIds: take(skip(filteredSubscriptionIds, i * resourceGroupBatchSize), resourceGroupBatchSize)
       resourceGroupName: resourceGroupName
       location: location
+      env: env
       tags: tags
+      resourceNamePrefix: resourceNamePrefix
+      resourceNameSuffix: resourceNameSuffix
     }
   }
 ]

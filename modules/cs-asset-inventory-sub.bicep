@@ -1,3 +1,5 @@
+import { maxAssetInventoryBatchSize } from 'asset-inventory/assetInventorySubBatch.bicep'
+
 targetScope = 'subscription'
 
 /*
@@ -20,17 +22,19 @@ param azurePrincipalId string
 @description('Environment label (e.g., prod, stag, dev) used for resource naming and tagging. Helps distinguish between different deployment environments.')
 param env string
 
-@description('Maximum number of subscriptions per batch for Asset Inventory role assignment deployment.')
+@description('Maximum number of subscriptions per batch for Asset Inventory role assignment deployment. Capped at maxAssetInventoryBatchSize.')
+@minValue(1)
 param batchSize int
 
 var environment = length(env) > 0 ? '-${env}' : env
-var numberOfBatches = (length(subscriptionIds) + batchSize - 1) / batchSize
+var assetInventoryBatchSize = min(batchSize, maxAssetInventoryBatchSize)
+var numberOfBatches = (length(subscriptionIds) + assetInventoryBatchSize - 1) / assetInventoryBatchSize
 
 module deploymentForSubs 'asset-inventory/assetInventorySubBatch.bicep' = [
   for i in range(0, numberOfBatches): {
     name: '${resourceNamePrefix}cs-inv-batch-${i}${environment}${resourceNameSuffix}'
     params: {
-      subscriptionIds: take(skip(subscriptionIds, i * batchSize), batchSize)
+      subscriptionIds: take(skip(subscriptionIds, i * assetInventoryBatchSize), assetInventoryBatchSize)
       azurePrincipalId: azurePrincipalId
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix
@@ -41,5 +45,5 @@ module deploymentForSubs 'asset-inventory/assetInventorySubBatch.bicep' = [
 ]
 
 output customRoleNameForSubs array = [
-  for (sub, i) in subscriptionIds: deploymentForSubs[i / batchSize].outputs.customRoleNames[i % batchSize]
+  for (sub, i) in subscriptionIds: deploymentForSubs[i / assetInventoryBatchSize].outputs.customRoleNames[i % assetInventoryBatchSize]
 ]

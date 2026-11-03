@@ -20,7 +20,7 @@ param subscriptionIds array = []
 @description('Subscription ID where CrowdStrike infrastructure resources will be deployed. This subscription hosts shared resources like event hubs.')
 param csInfraSubscriptionId string = ''
 
-@description('Maximum number of subscriptions per batch when deploying per-subscription resources (Activity Log diagnostic settings, asset inventory role assignments, agentless scanning infrastructure). Azure Resource Manager enforces an 800-item limit on template copy loops.')
+@description('Maximum number of subscriptions per batch when deploying per-subscription resources (Activity Log diagnostic settings, resource groups, asset inventory role assignments, agentless scanning infrastructure). Modules whose batches would exceed the Azure Resource Manager limits of 800 resources or 4 MB per deployment use a lower cap. Lower it if a batch deployment fails with DeploymentSizeExceeded.')
 @minValue(1)
 @maxValue(800)
 param subscriptionBatchSize int = 750
@@ -340,6 +340,7 @@ module perSubscriptionResourceGroups 'modules/cs-resource-groups-sub.bicep' = if
     env: env
     location: location
     tags: tags
+    batchSize: subscriptionBatchSize
   }
 }
 

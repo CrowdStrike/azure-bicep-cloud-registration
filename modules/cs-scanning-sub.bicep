@@ -1,3 +1,6 @@
+import { filterLocationsPerSubscription } from '../models/scanning.bicep'
+import { maxScanningBatchSize } from 'scanning-environment/scanningSubBatch.bicep'
+
 targetScope = 'subscription'
 
 /*
@@ -58,11 +61,13 @@ param inputAgentlessScanningLocationsPerSubscription object = {}
 @description('Per-region custom VNet configuration for agentless scanning.')
 param inputAgentlessScanningCustomVnetConfiguration object = {}
 
-@description('Maximum number of subscriptions per batch for scanning deployment.')
+@description('Maximum number of subscriptions per batch for scanning deployment. Capped at maxScanningBatchSize.')
+@minValue(1)
 param batchSize int
 
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
+var scanningBatchSize = min(batchSize, maxScanningBatchSize)
 var isCrossSubscriptionDeployment = !empty(agentlessScanningHostSubscriptionId)
 var crossHostSubscriptionEntry = isCrossSubscriptionDeployment
   ? filter(
@@ -124,7 +129,10 @@ module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCross
     inputEnableDspm: inputEnableDspm
     inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
     inputAgentlessScanningLocations: inputAgentlessScanningLocations
-    inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
+    inputAgentlessScanningLocationsPerSubscription: filterLocationsPerSubscription(
+      inputAgentlessScanningLocationsPerSubscription,
+      verifiedCrossHostSubscriptionEntry
+    )
     inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
     accessRoleId: scanningHostRoles!.outputs.accessRoleId
     scannerRoleId: scanningHostRoles!.outputs.scannerRoleId
@@ -141,14 +149,14 @@ module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCross
 
 // Per-account mode: deploy full infra to every subscription
 // Cross-account mode: deploy role assignments only to non-host subscriptions
-// Deploy in batches to handle 800+ subscriptions
+// Deploy in batches to stay under the 800 resource and 4 MB deployment size limits
 var totalSubscriptions = length(nonCrossHostSubscriptionEntries)
-var numberOfBatches = totalSubscriptions == 0 ? 0 : (totalSubscriptions + batchSize - 1) / batchSize
+var numberOfBatches = totalSubscriptions == 0 ? 0 : (totalSubscriptions + scanningBatchSize - 1) / scanningBatchSize
 module scanningSub 'scanning-environment/scanningSubBatch.bicep' = [
   for i in range(0, numberOfBatches): {
     name: '${resourceNamePrefix}cs-scanning-batch-${i}${environment}${resourceNameSuffix}'
     params: {
-      subscriptionEntries: take(skip(nonCrossHostSubscriptionEntries, i * batchSize), batchSize)
+      subscriptionEntries: take(skip(nonCrossHostSubscriptionEntries, i * scanningBatchSize), scanningBatchSize)
       falconClientId: falconClientId
       falconClientSecret: falconClientSecret
       scanningPrincipalId: scanningPrincipalId
@@ -161,7 +169,10 @@ module scanningSub 'scanning-environment/scanningSubBatch.bicep' = [
       inputEnableDspm: inputEnableDspm
       inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
       inputAgentlessScanningLocations: inputAgentlessScanningLocations
-      inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
+      inputAgentlessScanningLocationsPerSubscription: filterLocationsPerSubscription(
+        inputAgentlessScanningLocationsPerSubscription,
+        take(skip(nonCrossHostSubscriptionEntries, i * scanningBatchSize), scanningBatchSize)
+      )
       inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
       resourceGroupName: resourceGroupName
       resourceNamePrefix: resourceNamePrefix

@@ -1,3 +1,7 @@
+import { filterLocationsPerSubscription } from '../models/scanning.bicep'
+import { maxScanningBatchSize } from 'scanning-environment/scanningSubBatch.bicep'
+import { maxScanningMgBatchSize } from 'scanning-environment/scanningMgBatch.bicep'
+
 targetScope = 'managementGroup'
 
 /*
@@ -64,11 +68,13 @@ param inputAgentlessScanningLocationsPerSubscription object = {}
 @description('Per-region custom VNet configuration for agentless scanning.')
 param inputAgentlessScanningCustomVnetConfiguration object = {}
 
-@description('Maximum number of subscriptions per batch for scanning deployment.')
+@description('Maximum number of subscriptions per batch for scanning deployment. Capped at maxScanningBatchSize.')
+@minValue(1)
 param batchSize int
 
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
+var scanningBatchSize = min(batchSize, maxScanningBatchSize)
 var isCrossSubscriptionDeployment = !empty(agentlessScanningHostSubscriptionId)
 var crossHostSubscriptionEntry = isCrossSubscriptionDeployment
   ? filter(
@@ -135,6 +141,11 @@ var isHostSubStandalone = isCrossSubscriptionDeployment && !empty(filter(
 // Is host sub under a management group?
 var isHostSubUnderMg = isCrossSubscriptionDeployment && !isHostSubStandalone
 
+// Non-host subs in the host MG (cross-account, host sub under MG)
+var hostMgNonHostSubscriptionEntries = isHostSubUnderMg
+  ? filter(hostMgEntries[0].subscriptionEntries, sub => sub.subscriptionId != agentlessScanningHostSubscriptionId)
+  : []
+
 // Whether host sub uses custom VNet subnets (for custom VNet role creation)
 var hostSubUseCustomSubnets = isCrossSubscriptionDeployment && length(verifiedCrossHostSubscriptionEntry) > 0
   ? length(filter(
@@ -157,22 +168,6 @@ module scanningHostMgRoles 'scanning-environment/scanningRolesForMg.bicep' = if 
     inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
   }
 }
-
-/* Define custom roles at each non-host management group scope */
-module scanningRoles 'scanning-environment/scanningRolesForMg.bicep' = [
-  for mgEntry in nonHostMgEntries: {
-    name: '${resourceNamePrefix}cs-scanning-roles-${uniqueString(mgEntry.managementGroupId)}${environment}${resourceNameSuffix}'
-    scope: managementGroup(mgEntry.managementGroupId)
-    params: {
-      resourceNamePrefix: resourceNamePrefix
-      resourceNameSuffix: resourceNameSuffix
-      agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
-      includeResourceGroupRoles: !isCrossSubscriptionDeployment
-      inputEnableDspm: inputEnableDspm
-      inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
-    }
-  }
-]
 
 /* Create per-subscription roles for host sub when it's not under any MG */
 module scanningHostRoles 'scanning-environment/scanningRolesForSub.bicep' = if (isHostSubStandalone) {
@@ -210,7 +205,10 @@ module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCross
     inputEnableDspm: inputEnableDspm
     inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
     inputAgentlessScanningLocations: inputAgentlessScanningLocations
-    inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
+    inputAgentlessScanningLocationsPerSubscription: filterLocationsPerSubscription(
+      inputAgentlessScanningLocationsPerSubscription,
+      verifiedCrossHostSubscriptionEntry
+    )
     inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
     accessRoleId: isHostSubUnderMg ? scanningHostMgRoles!.outputs.accessRoleId : scanningHostRoles!.outputs.accessRoleId
     scannerRoleId: isHostSubUnderMg
@@ -238,9 +236,7 @@ module scanningHostPerMg 'scanning-environment/scanningForMg.bicep' = if (isHost
   name: '${resourceNamePrefix}cs-scanning-host-mg-${uniqueString(isHostSubUnderMg ? hostMgEntries[0].managementGroupId : managementGroup().name)}${environment}${resourceNameSuffix}'
   scope: managementGroup(isHostSubUnderMg ? hostMgEntries[0].managementGroupId : managementGroup().name)
   params: {
-    subscriptionEntries: isHostSubUnderMg
-      ? filter(hostMgEntries[0].subscriptionEntries, sub => sub.subscriptionId != agentlessScanningHostSubscriptionId)
-      : []
+    subscriptionEntries: hostMgNonHostSubscriptionEntries
     falconClientId: falconClientId
     falconClientSecret: falconClientSecret
     scanningPrincipalId: scanningPrincipalId
@@ -255,62 +251,71 @@ module scanningHostPerMg 'scanning-environment/scanningForMg.bicep' = if (isHost
     inputEnableDspm: inputEnableDspm
     inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
     inputAgentlessScanningLocations: inputAgentlessScanningLocations
-    inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
+    inputAgentlessScanningLocationsPerSubscription: filterLocationsPerSubscription(
+      inputAgentlessScanningLocationsPerSubscription,
+      hostMgNonHostSubscriptionEntries
+    )
     inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
     resourceGroupName: resourceGroupName
     resourceNamePrefix: resourceNamePrefix
     resourceNameSuffix: resourceNameSuffix
     env: env
     tags: tags
-    batchSize: batchSize
+    batchSize: scanningBatchSize
   }
 }
 
-/* Deploy scanning infrastructure for non-host management groups */
-module scanningPerMg 'scanning-environment/scanningForMg.bicep' = [
-  for (mgEntry, i) in nonHostMgEntries: {
-    name: '${resourceNamePrefix}cs-scanning-mg-${uniqueString(mgEntry.managementGroupId)}${environment}${resourceNameSuffix}'
-    scope: managementGroup(mgEntry.managementGroupId)
+/* Deploy roles and scanning infrastructure for non-host management groups, in batches to stay under the 4 MB deployment size limit */
+var mgNumberOfBatches = (length(nonHostMgEntries) + maxScanningMgBatchSize - 1) / maxScanningMgBatchSize
+
+module scanningMgBatch 'scanning-environment/scanningMgBatch.bicep' = [
+  for i in range(0, mgNumberOfBatches): {
+    name: '${resourceNamePrefix}cs-scan-mg-batch-${i}${environment}${resourceNameSuffix}'
     params: {
-      subscriptionEntries: mgEntry.subscriptionEntries
+      managementGroupEntries: take(skip(nonHostMgEntries, i * maxScanningMgBatchSize), maxScanningMgBatchSize)
       falconClientId: falconClientId
       falconClientSecret: falconClientSecret
       scanningPrincipalId: scanningPrincipalId
       scanningManagedIdentityPrincipalId: isCrossSubscriptionDeployment
         ? scanningHostSub!.outputs.scanningManagedIdentityPrincipalId
         : ''
-      accessRoleId: scanningRoles[i].outputs.accessRoleId
-      scannerRoleId: scanningRoles[i].outputs.scannerRoleId
-      resourceGroupAccessRoleId: scanningRoles[i].outputs.resourceGroupAccessRoleId
-      resourceGroupScannerRoleId: scanningRoles[i].outputs.resourceGroupScannerRoleId
+      includeResourceGroupRoles: !isCrossSubscriptionDeployment
       csInfraSubscriptionId: csInfraSubscriptionId
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
       agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
       inputEnableDspm: inputEnableDspm
       inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
       inputAgentlessScanningLocations: inputAgentlessScanningLocations
-      inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
+      inputAgentlessScanningLocationsPerSubscription: filterLocationsPerSubscription(
+        inputAgentlessScanningLocationsPerSubscription,
+        flatten(map(
+          take(skip(nonHostMgEntries, i * maxScanningMgBatchSize), maxScanningMgBatchSize),
+          mgEntry => mgEntry.subscriptionEntries
+        ))
+      )
       inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
       resourceGroupName: resourceGroupName
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix
       env: env
       tags: tags
-      batchSize: batchSize
+      batchSize: scanningBatchSize
     }
   }
 ]
 
 /* Deploy scanning for standalone subscriptions (not under any management group) */
 var totalStandaloneSubs = length(nonHostStandaloneEntries)
-var standaloneNumberOfBatches = totalStandaloneSubs == 0 ? 0 : (totalStandaloneSubs + batchSize - 1) / batchSize
+var standaloneNumberOfBatches = totalStandaloneSubs == 0
+  ? 0
+  : (totalStandaloneSubs + scanningBatchSize - 1) / scanningBatchSize
 
 module scanningStandaloneBatch 'scanning-environment/scanningSubBatch.bicep' = [
   for i in range(0, standaloneNumberOfBatches): {
     name: '${resourceNamePrefix}cs-scanning-standalone-${i}${environment}${resourceNameSuffix}'
     scope: subscription(csInfraSubscriptionId)
     params: {
-      subscriptionEntries: take(skip(nonHostStandaloneEntries, i * batchSize), batchSize)
+      subscriptionEntries: take(skip(nonHostStandaloneEntries, i * scanningBatchSize), scanningBatchSize)
       falconClientId: falconClientId
       falconClientSecret: falconClientSecret
       scanningPrincipalId: scanningPrincipalId
@@ -327,7 +332,10 @@ module scanningStandaloneBatch 'scanning-environment/scanningSubBatch.bicep' = [
       inputEnableDspm: inputEnableDspm
       inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
       inputAgentlessScanningLocations: inputAgentlessScanningLocations
-      inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
+      inputAgentlessScanningLocationsPerSubscription: filterLocationsPerSubscription(
+        inputAgentlessScanningLocationsPerSubscription,
+        take(skip(nonHostStandaloneEntries, i * scanningBatchSize), scanningBatchSize)
+      )
       inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
       resourceGroupName: resourceGroupName
       resourceNamePrefix: resourceNamePrefix

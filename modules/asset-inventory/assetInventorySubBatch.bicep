@@ -2,13 +2,17 @@ targetScope = 'subscription'
 
 /*
   This Bicep template handles batched Asset Inventory role assignment deployment
-  to overcome the 800 iteration limit for large numbers of subscriptions.
+  to stay under the 800 resource and 4 MB deployment size limits for large numbers of subscriptions.
   Copyright (c) 2026 CrowdStrike, Inc.
 */
 
+@export()
+@description('Maximum number of subscriptions per asset inventory batch, sized to stay within Azure Resource Manager deployment limits. Keep the @maxLength of subscriptionIds equal to it.')
+var maxAssetInventoryBatchSize = 450
+
 /* Parameters */
-@maxLength(800)
-@description('List of Azure subscription IDs to monitor. These subscriptions will be configured for CrowdStrike monitoring. (max: 800)')
+@maxLength(450)
+@description('List of Azure subscription IDs to monitor. These subscriptions will be configured for CrowdStrike monitoring. (max: 450)')
 param subscriptionIds array
 
 @description('Principal ID of the CrowdStrike application registered in Entra ID. This service principal will be granted necessary permissions.')

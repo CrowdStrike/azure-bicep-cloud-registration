@@ -1,8 +1,10 @@
+import { filterLocationsPerSubscription } from '../../models/scanning.bicep'
+
 targetScope = 'managementGroup'
 
 /*
   This Bicep template deploys scanning infrastructure for all subscriptions within a
-  single management group. It handles batching internally to overcome the 800 iteration limit.
+  single management group. It handles batching internally to stay under the 800 resource and 4 MB deployment size limits.
   Copyright (c) 2026 CrowdStrike, Inc.
 */
 
@@ -77,10 +79,9 @@ param resourceGroupAccessRoleId string = ''
 @description('Role definition ID for scanner resource group role from management group scope.')
 param resourceGroupScannerRoleId string = ''
 
-@description('Maximum number of subscriptions per batch for scanning deployment. Default is 750 to stay safely under the 800 limit.')
+@description('Maximum number of subscriptions per batch for scanning deployment.')
 @minValue(1)
-@maxValue(800)
-param batchSize int = 750
+param batchSize int
 
 /* Variables */
 var environment = length(env) > 0 ? '-${env}' : env
@@ -103,7 +104,10 @@ module scanningSub 'scanningSubBatch.bicep' = [
       inputEnableDspm: inputEnableDspm
       inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
       inputAgentlessScanningLocations: inputAgentlessScanningLocations
-      inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
+      inputAgentlessScanningLocationsPerSubscription: filterLocationsPerSubscription(
+        inputAgentlessScanningLocationsPerSubscription,
+        take(skip(subscriptionEntries, i * batchSize), batchSize)
+      )
       inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
       accessRoleId: accessRoleId
       scannerRoleId: scannerRoleId

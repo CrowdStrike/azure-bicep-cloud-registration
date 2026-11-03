@@ -96,3 +96,17 @@ jobs:
             mv "$file.backup" "$file"
           done
           exit $exit_code
+
+  template-limits:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+
+      - name: Install Azure CLI
+        run: curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
+      - name: Check ARM template limits (4 MB deployment size, 800 resources)
+        run: python3 -m unittest discover -s tools -v

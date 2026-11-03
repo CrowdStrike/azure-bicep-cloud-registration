@@ -1,14 +1,20 @@
+import { filterLocationsPerSubscription } from '../../models/scanning.bicep'
+
 targetScope = 'subscription'
 
 /*
   This Bicep template handles batched scanning subscription deployment
-  to overcome the 800 iteration limit for large numbers of subscriptions.
+  to stay under the 800 resource and 4 MB deployment size limits for large numbers of subscriptions.
   Copyright (c) 2026 CrowdStrike, Inc.
 */
 
+@export()
+@description('Maximum number of subscriptions per scanning batch, sized to stay within Azure Resource Manager deployment limits. Keep the @maxLength of subscriptionEntries here and in scanningRolesSubBatch.bicep equal to it.')
+var maxScanningBatchSize = 75
+
 /* Parameters */
-@maxLength(800)
-@description('Batched list of subscription entries with their scanning locations. Each entry contains subscriptionId and locations array. (max: 800)')
+@maxLength(75)
+@description('Batched list of subscription entries with their scanning locations. Each entry contains subscriptionId and locations array. (max: 75)')
 param subscriptionEntries array
 
 @description('Client ID for the Falcon API.')
@@ -57,7 +63,7 @@ param inputEnableVulnerabilityScanning bool = false
 @description('Azure locations (regions) where DSPM will be deployed.')
 param inputAgentlessScanningLocations array = []
 
-@description('Azure locations (regions) where DSPM will be deployed as subscription ID to locations map.')
+@description('Azure locations (regions) where DSPM will be deployed as subscription ID to locations map. Covers only the subscriptions in this batch.')
 param inputAgentlessScanningLocationsPerSubscription object = {}
 
 @description('Per-region custom VNet configuration for agentless scanning.')
@@ -83,20 +89,19 @@ var environment = length(env) > 0 ? '-${env}' : env
 var useExternalRoles = !empty(accessRoleId)
 
 /* Create per-subscription roles when no MG-scoped roles are provided */
-module subRoles 'scanningRolesForSub.bicep' = [
-  for sub in subscriptionEntries: if (!useExternalRoles) {
-    name: '${resourceNamePrefix}cs-scanning-roles-${uniqueString(sub.subscriptionId)}${environment}${resourceNameSuffix}'
-    scope: subscription(sub.subscriptionId)
-    params: {
-      resourceNamePrefix: resourceNamePrefix
-      resourceNameSuffix: resourceNameSuffix
-      agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
-      includeResourceGroupRoles: includeResourceGroupRoles
-      inputEnableDspm: inputEnableDspm
-      inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
-    }
+module subRoles 'scanningRolesSubBatch.bicep' = if (!useExternalRoles) {
+  name: '${resourceNamePrefix}cs-scanning-roles-batch-${uniqueString(deployment().name)}${environment}${resourceNameSuffix}'
+  params: {
+    subscriptionEntries: subscriptionEntries
+    resourceNamePrefix: resourceNamePrefix
+    resourceNameSuffix: resourceNameSuffix
+    env: env
+    agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
+    includeResourceGroupRoles: includeResourceGroupRoles
+    inputEnableDspm: inputEnableDspm
+    inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
   }
-]
+}
 
 /* Deploy scanning infrastructure for subscriptions in this batch */
 module scanningSub 'scanningForSub.bicep' = [
@@ -114,16 +119,19 @@ module scanningSub 'scanningForSub.bicep' = [
       inputEnableDspm: inputEnableDspm
       inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
       inputAgentlessScanningLocations: inputAgentlessScanningLocations
-      inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
+      inputAgentlessScanningLocationsPerSubscription: filterLocationsPerSubscription(
+        inputAgentlessScanningLocationsPerSubscription,
+        [sub]
+      )
       inputAgentlessScanningCustomVnetConfiguration: inputAgentlessScanningCustomVnetConfiguration
-      accessRoleId: useExternalRoles ? accessRoleId : subRoles[i]!.outputs.accessRoleId
-      scannerRoleId: useExternalRoles ? scannerRoleId : subRoles[i]!.outputs.scannerRoleId
+      accessRoleId: useExternalRoles ? accessRoleId : subRoles!.outputs.roles[i].accessRoleId
+      scannerRoleId: useExternalRoles ? scannerRoleId : subRoles!.outputs.roles[i].scannerRoleId
       resourceGroupAccessRoleId: useExternalRoles
         ? resourceGroupAccessRoleId
-        : subRoles[i]!.outputs.resourceGroupAccessRoleId
+        : subRoles!.outputs.roles[i].resourceGroupAccessRoleId
       resourceGroupScannerRoleId: useExternalRoles
         ? resourceGroupScannerRoleId
-        : subRoles[i]!.outputs.resourceGroupScannerRoleId
+        : subRoles!.outputs.roles[i].resourceGroupScannerRoleId
       resourceGroupName: resourceGroupName
       resourceNamePrefix: resourceNamePrefix
       resourceNameSuffix: resourceNameSuffix

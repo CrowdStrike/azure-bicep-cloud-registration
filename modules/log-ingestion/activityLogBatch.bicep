@@ -2,9 +2,13 @@ targetScope = 'subscription'
 
 /*
   This Bicep template handles batched Activity Log diagnostic settings deployment
-  to overcome the 800 iteration limit for large numbers of subscriptions.
+  to stay under the 800 resource and 4 MB deployment size limits for large numbers of subscriptions.
   Copyright (c) 2025 CrowdStrike, Inc.
 */
+
+@export()
+@description('Maximum number of subscriptions per Activity Log batch, sized to stay within Azure Resource Manager deployment limits. Keep the @maxLength of subscriptionIds equal to it.')
+var maxActivityLogBatchSize = 800
 
 /* Parameters */
 @maxLength(800)

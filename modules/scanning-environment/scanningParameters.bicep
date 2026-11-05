@@ -1,3 +1,5 @@
+import { DspmAccessScopes } from '../../models/scanning-roles.bicep'
+
 targetScope = 'subscription'
 
 /*
@@ -14,6 +16,9 @@ param inputFalconClientId string
 
 @description('Controls whether to enable DSPM.')
 param inputEnableDspm bool
+
+@description('DSPM datastores to apply permissions for, all false when DSPM is disabled.')
+param inputDspmAccessScopes DspmAccessScopes
 
 @description('Controls whether to enable vulnerability scanning.')
 param inputEnableVulnerabilityScanning bool
@@ -51,7 +56,7 @@ param inputTags object
 /* Variables */
 var environment = length(inputEnv) > 0 ? '-${inputEnv}' : inputEnv
 var policyDefinitionName = '${inputResourceNamePrefix}policy-csscanning-parameters${environment}${inputResourceNameSuffix}'
-var version = '1.4.0+bicep.1'
+var version = '1.5.0+bicep.1'
 
 /* Functions */
 func boolToJson(value bool) string => value ? 'true' : 'false'
@@ -65,6 +70,7 @@ var parameterDefinitions = {
   falconClientId: stringToJson(inputFalconClientId)
   enableDspm: boolToJson(inputEnableDspm)
   enableVulnerabilityScanning: boolToJson(inputEnableVulnerabilityScanning)
+  dspmAccessScopes: string(inputDspmAccessScopes)
   agentlessScanningLocations: string(inputAgentlessScanningLocations)
   agentlessScanningLocationsPerSubscription: string(inputAgentlessScanningLocationsPerSubscription)
   agentlessScanningDeployNatGateway: boolToJson(inputAgentlessScanningDeployNatGateway)

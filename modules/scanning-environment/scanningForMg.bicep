@@ -1,3 +1,5 @@
+import { DspmAccessScopes } from '../../models/scanning-roles.bicep'
+
 targetScope = 'managementGroup'
 
 /*
@@ -53,6 +55,9 @@ param agentlessScanningHostSubscriptionId string = ''
 @description('Controls whether to enable DSPM.')
 param inputEnableDspm bool = false
 
+@description('DSPM datastores to apply permissions for, all false when DSPM is disabled.')
+param inputDspmAccessScopes DspmAccessScopes
+
 @description('Controls whether to enable vulnerability scanning.')
 param inputEnableVulnerabilityScanning bool = false
 
@@ -101,6 +106,7 @@ module scanningSub 'scanningSubBatch.bicep' = [
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
       agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
       inputEnableDspm: inputEnableDspm
+      inputDspmAccessScopes: inputDspmAccessScopes
       inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
       inputAgentlessScanningLocations: inputAgentlessScanningLocations
       inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription

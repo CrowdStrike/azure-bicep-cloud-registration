@@ -1,4 +1,6 @@
 import {
+  DspmAccessScopes
+  needsScannerRole
   accessRolePermissions
   scannerRolePermissions
   resourceGroupAccessRolePermissions
@@ -32,8 +34,8 @@ param includeResourceGroupRoles bool = true
 @description('Whether custom VNet subnets are used. When true, creates the custom VNet subnet access role.')
 param useCustomSubnets bool = false
 
-@description('Controls whether to enable DSPM.')
-param inputEnableDspm bool = false
+@description('DSPM datastores to apply permissions for, all false when DSPM is disabled.')
+param inputDspmAccessScopes DspmAccessScopes
 
 @description('Controls whether to enable vulnerability scanning.')
 param inputEnableVulnerabilityScanning bool = false
@@ -56,9 +58,9 @@ resource accessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
       {
         actions: union(
           accessRolePermissions.baseActions,
-          inputEnableDspm ? accessRolePermissions.dspmBlobStorageActions : [],
-          inputEnableDspm ? accessRolePermissions.dspmAzureSqlActions : [],
-          (inputEnableDspm || inputEnableVulnerabilityScanning)
+          needsScannerRole(inputDspmAccessScopes) ? accessRolePermissions.dspmStorageAccountActions : [],
+          inputDspmAccessScopes.azureSql ? accessRolePermissions.dspmAzureSqlActions : [],
+          (inputDspmAccessScopes.virtualMachines || inputEnableVulnerabilityScanning)
             ? accessRolePermissions.virtualMachinesScanningActions
             : []
         )
@@ -73,7 +75,7 @@ resource accessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
   }
 }
 
-resource scannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (inputEnableDspm) {
+resource scannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (needsScannerRole(inputDspmAccessScopes)) {
   name: guid(subscription().id, scannerRoleName)
   properties: {
     roleName: scannerRoleName
@@ -81,9 +83,17 @@ resource scannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (
     type: 'CustomRole'
     permissions: [
       {
-        actions: scannerRolePermissions.dspmActions
+        actions: union(
+          inputDspmAccessScopes.blobStorage ? scannerRolePermissions.dspmBlobStorageActions : [],
+          inputDspmAccessScopes.tableStorage ? scannerRolePermissions.dspmTableStorageActions : [],
+          inputDspmAccessScopes.azureFiles ? scannerRolePermissions.dspmAzureFilesActions : []
+        )
         notActions: []
-        dataActions: scannerRolePermissions.dspmDataActions
+        dataActions: union(
+          inputDspmAccessScopes.blobStorage ? scannerRolePermissions.dspmBlobStorageDataActions : [],
+          inputDspmAccessScopes.tableStorage ? scannerRolePermissions.dspmTableStorageDataActions : [],
+          inputDspmAccessScopes.azureFiles ? scannerRolePermissions.dspmAzureFilesDataActions : []
+        )
         notDataActions: []
       }
     ]
@@ -104,8 +114,10 @@ resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-0
         actions: union(
           resourceGroupAccessRolePermissions.actions,
           !agentlessScanningDeployNatGateway ? resourceGroupAccessRolePermissions.conditionalPublicIPActions : [],
-          resourceGroupAccessRolePermissions.virtualMachinesScanningActions,
-          inputEnableDspm ? resourceGroupAccessRolePermissions.dspmAzureSqlActions : []
+          (inputDspmAccessScopes.virtualMachines || inputEnableVulnerabilityScanning)
+            ? resourceGroupAccessRolePermissions.virtualMachinesScanningActions
+            : [],
+          inputDspmAccessScopes.azureSql ? resourceGroupAccessRolePermissions.dspmAzureSqlActions : []
         )
         notActions: []
         dataActions: []
@@ -161,7 +173,7 @@ resource resourceGroupScannerRole 'Microsoft.Authorization/roleDefinitions@2022-
 
 /* Outputs */
 output accessRoleId string = accessRole.id
-output scannerRoleId string = inputEnableDspm ? scannerRole.id : ''
+output scannerRoleId string = needsScannerRole(inputDspmAccessScopes) ? scannerRole.id : ''
 output resourceGroupAccessRoleId string = includeResourceGroupRoles ? resourceGroupAccessRole.id : ''
 output customVnetSubnetRoleId string = useCustomSubnets ? customVnetSubnetRole.id : ''
 output resourceGroupScannerRoleId string = includeResourceGroupRoles ? resourceGroupScannerRole.id : ''

@@ -1,5 +1,6 @@
 import { LogIngestionSettings } from 'models/log-ingestion.bicep'
 import { DeploymentScriptSettings } from 'models/deployment-script.bicep'
+import { DspmAccessScopesInput, resolveDspmAccessScopes } from 'models/scanning-roles.bicep'
 
 targetScope = 'subscription'
 
@@ -99,6 +100,9 @@ param enableDspm bool = false
 
 @description('Controls whether to enable vulnerability scanning.')
 param enableVulnerabilityScanning bool = false
+
+@description('DSPM datastores to apply permissions for. Takes effect only when enableDspm is true. Omitted datastores default to true.')
+param dspmAccessScopes DspmAccessScopesInput = {}
 
 @description('Deprecated: Use agentlessScanningLocations instead. Azure locations (regions) where DSPM will be deployed.')
 param dspmLocations array = []
@@ -381,6 +385,7 @@ module scanningEnvironment 'modules/cs-scanning-sub.bicep' = if (shouldDeploySca
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
     agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
     inputEnableDspm: enableDspm
+    inputDspmAccessScopes: resolveDspmAccessScopes(enableDspm, dspmAccessScopes)
     inputEnableVulnerabilityScanning: enableVulnerabilityScanning
     inputAgentlessScanningLocations: validatedAgentlessScanningLocations
     inputAgentlessScanningLocationsPerSubscription: validatedAgentlessScanningLocationsPerSubscription

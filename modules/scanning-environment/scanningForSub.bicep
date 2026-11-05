@@ -1,3 +1,5 @@
+import { DspmAccessScopes, needsScannerRole } from '../../models/scanning-roles.bicep'
+
 targetScope = 'subscription'
 
 /*
@@ -50,6 +52,9 @@ param agentlessScanningHostSubscriptionId string = ''
 
 @description('Controls whether to enable DSPM.')
 param inputEnableDspm bool = false
+
+@description('DSPM datastores to apply permissions for, all false when DSPM is disabled.')
+param inputDspmAccessScopes DspmAccessScopes
 
 @description('Controls whether to enable vulnerability scanning.')
 param inputEnableVulnerabilityScanning bool = false
@@ -114,7 +119,7 @@ module scanningResourceGroupModule 'scanningResourceGroup.bicep' = if (shouldDep
   }
 }
 
-resource scannerRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (inputEnableDspm) {
+resource scannerRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (needsScannerRole(inputDspmAccessScopes)) {
   name: shouldDeployResources
     ? guid(subscription().id, 'scanningManagedIdentityPrincipalId', scannerRoleId)
     : guid(subscription().id, scanningManagedIdentityPrincipalId, scannerRoleId)
@@ -172,6 +177,7 @@ module scanningParametersModule 'scanningParameters.bicep' = {
     scanningPrincipalId: scanningPrincipalId
     inputFalconClientId: falconClientId
     inputEnableDspm: inputEnableDspm
+    inputDspmAccessScopes: inputDspmAccessScopes
     inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
     inputAgentlessScanningLocations: inputAgentlessScanningLocations
     inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription

@@ -145,7 +145,7 @@ You can use any of these methods to pass parameters:
 
 ## Scoping DSPM permissions
 
-Set a `dspmAccessScopes` property to `false` to leave that resource type's permissions out of the custom roles. Falcon Cloud Security then does not scan that resource type. The resolved scopes are written to the `dspmAccessScopes` parameter of the `policy-csscanning-parameters` policy definition in every registered subscription.
+Set a `dspmAccessScopes` property to `false` to leave that resource type's permissions out of the custom roles. Falcon Cloud Security then does not scan that resource type. The `dspmAccessScopes` value as you set it, without defaults filled in, is written to the `dspmAccessScopes` parameter of the `policy-csscanning-parameters` policy definition in every registered subscription.
 
 | Property         | Access role (subscription)                                                                                                             | Scanner role (subscription)                                       | Resource group access role (scanning resource group)                                                                                                                       |
 |------------------|----------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|

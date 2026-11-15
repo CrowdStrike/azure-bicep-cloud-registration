@@ -385,7 +385,8 @@ module scanningEnvironment 'modules/cs-scanning-sub.bicep' = if (shouldDeploySca
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
     agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
     inputEnableDspm: enableDspm
-    inputDspmAccessScopes: resolveDspmAccessScopes(enableDspm, dspmAccessScopes)
+    resolvedDspmAccessScopes: resolveDspmAccessScopes(enableDspm, dspmAccessScopes)
+    inputDspmAccessScopes: dspmAccessScopes
     inputEnableVulnerabilityScanning: enableVulnerabilityScanning
     inputAgentlessScanningLocations: validatedAgentlessScanningLocations
     inputAgentlessScanningLocationsPerSubscription: validatedAgentlessScanningLocationsPerSubscription

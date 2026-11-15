@@ -1,4 +1,4 @@
-import { DspmAccessScopes } from '../../models/scanning-roles.bicep'
+import { DspmAccessScopesInput } from '../../models/scanning-roles.bicep'
 
 targetScope = 'subscription'
 
@@ -17,8 +17,8 @@ param inputFalconClientId string
 @description('Controls whether to enable DSPM.')
 param inputEnableDspm bool
 
-@description('DSPM resource types to apply permissions for, all false when DSPM is disabled.')
-param inputDspmAccessScopes DspmAccessScopes
+@description('DSPM resource types as set in dspmAccessScopes, before defaults and enableDspm are applied.')
+param inputDspmAccessScopes DspmAccessScopesInput
 
 @description('Controls whether to enable vulnerability scanning.')
 param inputEnableVulnerabilityScanning bool

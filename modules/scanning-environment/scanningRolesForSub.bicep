@@ -35,7 +35,7 @@ param includeResourceGroupRoles bool = true
 param useCustomSubnets bool = false
 
 @description('DSPM resource types to apply permissions for, all false when DSPM is disabled.')
-param inputDspmAccessScopes DspmAccessScopes
+param resolvedDspmAccessScopes DspmAccessScopes
 
 @description('Controls whether to enable vulnerability scanning.')
 param inputEnableVulnerabilityScanning bool = false
@@ -58,11 +58,11 @@ resource accessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
       {
         actions: union(
           accessRolePermissions.baseActions,
-          (inputDspmAccessScopes.blobStorage || inputDspmAccessScopes.tableStorage || inputDspmAccessScopes.azureFiles)
+          (resolvedDspmAccessScopes.blobStorage || resolvedDspmAccessScopes.tableStorage || resolvedDspmAccessScopes.azureFiles)
             ? accessRolePermissions.dspmStorageAccountActions
             : [],
-          inputDspmAccessScopes.azureSql ? accessRolePermissions.dspmAzureSqlActions : [],
-          (inputDspmAccessScopes.virtualMachines || inputEnableVulnerabilityScanning)
+          resolvedDspmAccessScopes.azureSql ? accessRolePermissions.dspmAzureSqlActions : [],
+          (resolvedDspmAccessScopes.virtualMachines || inputEnableVulnerabilityScanning)
             ? accessRolePermissions.virtualMachinesScanningActions
             : []
         )
@@ -77,7 +77,7 @@ resource accessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
   }
 }
 
-resource scannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (needsScannerRole(inputDspmAccessScopes)) {
+resource scannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (needsScannerRole(resolvedDspmAccessScopes)) {
   name: guid(subscription().id, scannerRoleName)
   properties: {
     roleName: scannerRoleName
@@ -86,15 +86,15 @@ resource scannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (
     permissions: [
       {
         actions: union(
-          inputDspmAccessScopes.blobStorage ? scannerRolePermissions.dspmBlobStorageActions : [],
-          inputDspmAccessScopes.tableStorage ? scannerRolePermissions.dspmTableStorageActions : [],
-          inputDspmAccessScopes.azureFiles ? scannerRolePermissions.dspmAzureFilesActions : []
+          resolvedDspmAccessScopes.blobStorage ? scannerRolePermissions.dspmBlobStorageActions : [],
+          resolvedDspmAccessScopes.tableStorage ? scannerRolePermissions.dspmTableStorageActions : [],
+          resolvedDspmAccessScopes.azureFiles ? scannerRolePermissions.dspmAzureFilesActions : []
         )
         notActions: []
         dataActions: union(
-          inputDspmAccessScopes.blobStorage ? scannerRolePermissions.dspmBlobStorageDataActions : [],
-          inputDspmAccessScopes.tableStorage ? scannerRolePermissions.dspmTableStorageDataActions : [],
-          inputDspmAccessScopes.azureFiles ? scannerRolePermissions.dspmAzureFilesDataActions : []
+          resolvedDspmAccessScopes.blobStorage ? scannerRolePermissions.dspmBlobStorageDataActions : [],
+          resolvedDspmAccessScopes.tableStorage ? scannerRolePermissions.dspmTableStorageDataActions : [],
+          resolvedDspmAccessScopes.azureFiles ? scannerRolePermissions.dspmAzureFilesDataActions : []
         )
         notDataActions: []
       }
@@ -116,10 +116,10 @@ resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-0
         actions: union(
           resourceGroupAccessRolePermissions.actions,
           !agentlessScanningDeployNatGateway ? resourceGroupAccessRolePermissions.conditionalPublicIPActions : [],
-          (inputDspmAccessScopes.virtualMachines || inputEnableVulnerabilityScanning)
+          (resolvedDspmAccessScopes.virtualMachines || inputEnableVulnerabilityScanning)
             ? resourceGroupAccessRolePermissions.virtualMachinesScanningActions
             : [],
-          inputDspmAccessScopes.azureSql ? resourceGroupAccessRolePermissions.dspmAzureSqlActions : []
+          resolvedDspmAccessScopes.azureSql ? resourceGroupAccessRolePermissions.dspmAzureSqlActions : []
         )
         notActions: []
         dataActions: []
@@ -175,7 +175,7 @@ resource resourceGroupScannerRole 'Microsoft.Authorization/roleDefinitions@2022-
 
 /* Outputs */
 output accessRoleId string = accessRole.id
-output scannerRoleId string = needsScannerRole(inputDspmAccessScopes) ? scannerRole.id : ''
+output scannerRoleId string = needsScannerRole(resolvedDspmAccessScopes) ? scannerRole.id : ''
 output resourceGroupAccessRoleId string = includeResourceGroupRoles ? resourceGroupAccessRole.id : ''
 output customVnetSubnetRoleId string = useCustomSubnets ? customVnetSubnetRole.id : ''
 output resourceGroupScannerRoleId string = includeResourceGroupRoles ? resourceGroupScannerRole.id : ''

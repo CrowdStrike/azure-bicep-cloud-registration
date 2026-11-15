@@ -1,4 +1,4 @@
-import { DspmAccessScopes, needsScannerRole } from '../../models/scanning-roles.bicep'
+import { DspmAccessScopes, DspmAccessScopesInput, needsScannerRole } from '../../models/scanning-roles.bicep'
 
 targetScope = 'subscription'
 
@@ -54,7 +54,10 @@ param agentlessScanningHostSubscriptionId string = ''
 param inputEnableDspm bool = false
 
 @description('DSPM resource types to apply permissions for, all false when DSPM is disabled.')
-param inputDspmAccessScopes DspmAccessScopes
+param resolvedDspmAccessScopes DspmAccessScopes
+
+@description('DSPM resource types as set in dspmAccessScopes, before defaults and enableDspm are applied. Stored as is in the scanning parameters policy.')
+param inputDspmAccessScopes DspmAccessScopesInput
 
 @description('Controls whether to enable vulnerability scanning.')
 param inputEnableVulnerabilityScanning bool = false
@@ -119,7 +122,7 @@ module scanningResourceGroupModule 'scanningResourceGroup.bicep' = if (shouldDep
   }
 }
 
-resource scannerRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (needsScannerRole(inputDspmAccessScopes)) {
+resource scannerRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (needsScannerRole(resolvedDspmAccessScopes)) {
   name: shouldDeployResources
     ? guid(subscription().id, 'scanningManagedIdentityPrincipalId', scannerRoleId)
     : guid(subscription().id, scanningManagedIdentityPrincipalId, scannerRoleId)

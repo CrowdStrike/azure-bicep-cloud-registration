@@ -1,6 +1,5 @@
 import {
   DspmAccessScopes
-  needsScannerRole
   accessRolePermissions
   scannerRolePermissions
   resourceGroupAccessRolePermissions
@@ -33,6 +32,9 @@ param includeResourceGroupRoles bool = true
 
 @description('Whether custom VNet subnets are used. When true, creates the custom VNet subnet access role.')
 param useCustomSubnets bool = false
+
+@description('Controls whether to enable DSPM.')
+param inputEnableDspm bool = false
 
 @description('DSPM resource types to apply permissions for, all false when DSPM is disabled.')
 param resolvedDspmAccessScopes DspmAccessScopes
@@ -77,7 +79,7 @@ resource accessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
   }
 }
 
-resource scannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (needsScannerRole(resolvedDspmAccessScopes)) {
+resource scannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (inputEnableDspm) {
   name: guid(managementGroup().id, scannerRoleName)
   properties: {
     roleName: scannerRoleName
@@ -174,7 +176,7 @@ resource resourceGroupScannerRole 'Microsoft.Authorization/roleDefinitions@2022-
 
 /* Outputs */
 output accessRoleId string = accessRole.id
-output scannerRoleId string = needsScannerRole(resolvedDspmAccessScopes) ? scannerRole.id : ''
+output scannerRoleId string = inputEnableDspm ? scannerRole.id : ''
 output resourceGroupAccessRoleId string = includeResourceGroupRoles ? resourceGroupAccessRole.id : ''
 output customVnetSubnetRoleId string = useCustomSubnets ? customVnetSubnetRole.id : ''
 output resourceGroupScannerRoleId string = includeResourceGroupRoles ? resourceGroupScannerRole.id : ''

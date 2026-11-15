@@ -46,10 +46,6 @@ func resolveDspmAccessScopes(enableDspm bool, scopes DspmAccessScopesInput) Dspm
 }
 
 @export()
-@description('Whether the Scanner role is needed. The Scanner role holds only Storage Account permissions.')
-func needsScannerRole(scopes DspmAccessScopes) bool => scopes.blobStorage || scopes.tableStorage || scopes.azureFiles
-
-@export()
 @description('Permissions for the CrowdStrike Agentless Scanning Access Role.')
 var accessRolePermissions = {
   description: 'CrowdStrike Agentless Scanning Access Role'

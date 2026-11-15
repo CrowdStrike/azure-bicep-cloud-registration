@@ -101,6 +101,7 @@ module subRoles 'scanningRolesForSub.bicep' = [
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
       includeResourceGroupRoles: includeResourceGroupRoles
       resolvedDspmAccessScopes: resolvedDspmAccessScopes
+      inputEnableDspm: inputEnableDspm
       inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
     }
   }
@@ -120,7 +121,6 @@ module scanningSub 'scanningForSub.bicep' = [
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
       agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
       inputEnableDspm: inputEnableDspm
-      resolvedDspmAccessScopes: resolvedDspmAccessScopes
       inputDspmAccessScopes: inputDspmAccessScopes
       inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
       inputAgentlessScanningLocations: inputAgentlessScanningLocations

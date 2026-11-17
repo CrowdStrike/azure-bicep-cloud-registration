@@ -1,4 +1,5 @@
 import {
+  DspmAccessScopes
   accessRolePermissions
   scannerRolePermissions
   resourceGroupAccessRolePermissions
@@ -35,6 +36,9 @@ param useCustomSubnets bool = false
 @description('Controls whether to enable DSPM.')
 param inputEnableDspm bool = false
 
+@description('DSPM resource types to apply permissions for, all false when DSPM is disabled.')
+param resolvedDspmAccessScopes DspmAccessScopes
+
 @description('Controls whether to enable vulnerability scanning.')
 param inputEnableVulnerabilityScanning bool = false
 
@@ -56,8 +60,11 @@ resource accessRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
       {
         actions: union(
           accessRolePermissions.baseActions,
-          inputEnableDspm ? accessRolePermissions.dspmBlobStorageActions : [],
-          (inputEnableDspm || inputEnableVulnerabilityScanning)
+          (resolvedDspmAccessScopes.blobStorage || resolvedDspmAccessScopes.tableStorage || resolvedDspmAccessScopes.azureFiles)
+            ? accessRolePermissions.dspmStorageAccountActions
+            : [],
+          resolvedDspmAccessScopes.azureSql ? accessRolePermissions.dspmAzureSqlActions : [],
+          (resolvedDspmAccessScopes.virtualMachines || inputEnableVulnerabilityScanning)
             ? accessRolePermissions.virtualMachinesScanningActions
             : []
         )
@@ -80,9 +87,17 @@ resource scannerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (
     type: 'CustomRole'
     permissions: [
       {
-        actions: scannerRolePermissions.dspmActions
+        actions: union(
+          resolvedDspmAccessScopes.blobStorage ? scannerRolePermissions.dspmBlobStorageActions : [],
+          resolvedDspmAccessScopes.tableStorage ? scannerRolePermissions.dspmTableStorageActions : [],
+          resolvedDspmAccessScopes.azureFiles ? scannerRolePermissions.dspmAzureFilesActions : []
+        )
         notActions: []
-        dataActions: scannerRolePermissions.dspmDataActions
+        dataActions: union(
+          resolvedDspmAccessScopes.blobStorage ? scannerRolePermissions.dspmBlobStorageDataActions : [],
+          resolvedDspmAccessScopes.tableStorage ? scannerRolePermissions.dspmTableStorageDataActions : [],
+          resolvedDspmAccessScopes.azureFiles ? scannerRolePermissions.dspmAzureFilesDataActions : []
+        )
         notDataActions: []
       }
     ]
@@ -103,7 +118,10 @@ resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-0
         actions: union(
           resourceGroupAccessRolePermissions.actions,
           !agentlessScanningDeployNatGateway ? resourceGroupAccessRolePermissions.conditionalPublicIPActions : [],
-          resourceGroupAccessRolePermissions.virtualMachinesScanningActions
+          (resolvedDspmAccessScopes.virtualMachines || inputEnableVulnerabilityScanning)
+            ? resourceGroupAccessRolePermissions.virtualMachinesScanningActions
+            : [],
+          resolvedDspmAccessScopes.azureSql ? resourceGroupAccessRolePermissions.dspmAzureSqlActions : []
         )
         notActions: []
         dataActions: []

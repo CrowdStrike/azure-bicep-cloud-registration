@@ -1,3 +1,5 @@
+import { DspmAccessScopesInput } from '../../models/scanning-roles.bicep'
+
 targetScope = 'subscription'
 
 /*
@@ -50,6 +52,9 @@ param agentlessScanningHostSubscriptionId string = ''
 
 @description('Controls whether to enable DSPM.')
 param inputEnableDspm bool = false
+
+@description('DSPM resource types as set in dspmAccessScopes, before defaults and enableDspm are applied. Stored as is in the scanning parameters policy.')
+param inputDspmAccessScopes DspmAccessScopesInput
 
 @description('Controls whether to enable vulnerability scanning.')
 param inputEnableVulnerabilityScanning bool = false
@@ -172,6 +177,7 @@ module scanningParametersModule 'scanningParameters.bicep' = {
     scanningPrincipalId: scanningPrincipalId
     inputFalconClientId: falconClientId
     inputEnableDspm: inputEnableDspm
+    inputDspmAccessScopes: inputDspmAccessScopes
     inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
     inputAgentlessScanningLocations: inputAgentlessScanningLocations
     inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription

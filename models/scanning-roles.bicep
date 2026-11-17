@@ -6,6 +6,49 @@
 */
 
 @export()
+@sealed()
+@description('DSPM resource types to apply permissions for. Omitted resource types default to true.')
+type DspmAccessScopesInput = {
+  @description('Apply permissions for DSPM Blob Storage scanning.')
+  blobStorage: bool?
+
+  @description('Apply permissions for DSPM Table Storage scanning.')
+  tableStorage: bool?
+
+  @description('Apply permissions for DSPM Azure Files scanning.')
+  azureFiles: bool?
+
+  @description('Apply permissions for DSPM virtual machine scanning. Vulnerability scanning grants the same permissions on its own.')
+  virtualMachines: bool?
+
+  @description('Apply permissions for DSPM Azure SQL Database scanning.')
+  azureSql: bool?
+}
+
+@export()
+@description('DSPM resource types to apply permissions for, all false when DSPM is disabled.')
+type DspmAccessScopes = {
+  blobStorage: bool
+  tableStorage: bool
+  azureFiles: bool
+  virtualMachines: bool
+  azureSql: bool
+}
+
+@export()
+@description('Resolves which DSPM resource types get permissions: those not set to false, and none when DSPM is disabled. Fails when DSPM is enabled and every resource type is set to false.')
+func resolveDspmAccessScopes(enableDspm bool, scopes DspmAccessScopesInput) DspmAccessScopes =>
+  enableDspm && !((scopes.?blobStorage ?? true) || (scopes.?tableStorage ?? true) || (scopes.?azureFiles ?? true) || (scopes.?virtualMachines ?? true) || (scopes.?azureSql ?? true))
+    ? fail('DSPM is enabled but every "dspmAccessScopes" resource type is false. Set at least one resource type to true, or set "enableDspm" to false')
+    : {
+        blobStorage: enableDspm && (scopes.?blobStorage ?? true)
+        tableStorage: enableDspm && (scopes.?tableStorage ?? true)
+        azureFiles: enableDspm && (scopes.?azureFiles ?? true)
+        virtualMachines: enableDspm && (scopes.?virtualMachines ?? true)
+        azureSql: enableDspm && (scopes.?azureSql ?? true)
+      }
+
+@export()
 @description('Permissions for the CrowdStrike Agentless Scanning Access Role.')
 var accessRolePermissions = {
   description: 'CrowdStrike Agentless Scanning Access Role'
@@ -14,10 +57,14 @@ var accessRolePermissions = {
     'Microsoft.Authorization/roleAssignments/read'
     'Microsoft.Authorization/policyDefinitions/read'
   ]
-  dspmBlobStorageActions: [
-    // ============ Blob Storage ============
+  dspmStorageAccountActions: [
+    // ============ Storage Accounts ============
     'Microsoft.Storage/storageAccounts/read' // Check location and public access
     'Microsoft.Storage/storageAccounts/PrivateEndpointConnectionsApproval/action' // Approve private link connections
+  ]
+  dspmAzureSqlActions: [
+    // ============ Azure SQL ============
+    'Microsoft.Sql/servers/databases/write' // Copy a source database into the host scanning resource group
   ]
   virtualMachinesScanningActions: [
     // ============ Virtual Machines ============
@@ -33,14 +80,22 @@ var accessRolePermissions = {
 @description('Permissions for the CrowdStrike Agentless Scanning Scanner Role.')
 var scannerRolePermissions = {
   description: 'CrowdStrike Agentless Scanning Scanner Role'
-  dspmActions: [
+  dspmBlobStorageActions: [
     'Microsoft.Storage/storageAccounts/blobServices/containers/read'
+  ]
+  dspmBlobStorageDataActions: [
+    'Microsoft.Storage/storageAccounts/blobServices/containers/blobs/read'
+  ]
+  dspmTableStorageActions: [
     'Microsoft.Storage/storageAccounts/tableServices/tables/read'
+  ]
+  dspmTableStorageDataActions: [
+    'Microsoft.Storage/storageAccounts/tableServices/tables/entities/read'
+  ]
+  dspmAzureFilesActions: [
     'Microsoft.Storage/storageAccounts/fileServices/shares/read'
   ]
-  dspmDataActions: [
-    'Microsoft.Storage/storageAccounts/blobServices/containers/blobs/read'
-    'Microsoft.Storage/storageAccounts/tableServices/tables/entities/read'
+  dspmAzureFilesDataActions: [
     'Microsoft.Storage/storageAccounts/fileServices/fileshares/files/read'
     'Microsoft.Storage/storageAccounts/fileServices/readFileBackupSemantics/action'
   ]
@@ -100,6 +155,13 @@ var resourceGroupAccessRolePermissions = {
     'Microsoft.Compute/snapshots/delete'
     'Microsoft.Compute/disks/write'
     'Microsoft.Compute/disks/delete'
+  ]
+  dspmAzureSqlActions: [
+    // ============ Azure SQL ============
+    'Microsoft.Sql/servers/write'
+    'Microsoft.Sql/servers/privateEndpointConnectionsApproval/action'
+    'Microsoft.Sql/servers/delete'
+    'Microsoft.Sql/servers/databases/delete'
   ]
 }
 

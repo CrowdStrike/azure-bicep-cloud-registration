@@ -134,6 +134,7 @@ You can use any of these methods to pass parameters:
 | `logIngestionSettings.entraIdLogSettings.existingEventhub.consumerGroupName`  | no       | Consumer group name in the existing event hub instance to use.                                                                                                                                                                                                                                                                                         |
 | `enableDspm`                                                                  | no       | Main toggle for Data Security Posture Management (DSPM).                                                                                                                                                                                                                                                                                               |
 | `enableVulnerabilityScanning`                                                 | no       | Main toggle for agentless vulnerability scanning.                                                                                                                                                                                                                                                                                                      |
+| `dspmAccessScopes`                                                            | no       | DSPM resource types to grant permissions for: `blobStorage`, `tableStorage`, `azureFiles`, `virtualMachines`, `azureSql`. Each defaults to `true`. Takes effect only when `enableDspm` is `true`. See [Scoping DSPM permissions](#scoping-dspm-permissions).                                                                                             |
 | `agentlessScanningLocations`                                                  | no       | List of locations (regions) to deploy agentless scanning environment (DSPM/Vulnerability scanning).                                                                                                                                                                                                                                                    |
 | `agentlessScanningLocationsPerSubscription`                                   | no       | A map of subscriptions to list of locations where agentless scanning environment will be deployed (DSPM/Vulnerability scanning).                                                                                                                                                                                                                       |
 | `agentlessScanningDeployNatGateway`                                           | no       | Indicates Agentless Scanning environment will be deployed with NAT Gateway. Default is `true`.                                                                                                                                                                                                                                                         |
@@ -141,6 +142,30 @@ You can use any of these methods to pass parameters:
 | `deploymentScriptSettings.storageAccountId`                                  | no       | Resource ID of an existing storage account for deployment scripts to use instead of the auto-provisioned one. Required if the target tenant's Azure Policy disallows public network access on auto-created storage accounts. See [Storage account requirements](#storage-account-requirements-for-deploymentscriptsettings) for constraints this storage account must meet. When `deploymentScriptSettings` is set, the template automatically grants the `Storage File Data Privileged Contributor` role on this storage account to the script-runner managed identity - Azure requires this role for a deployment script to use an existing storage account, in addition to (or, when `deploymentScriptSettings.subnetId` is set, instead of) the storage account key. The deploying principal needs permission to create role assignments on the storage account (see [Required permissions](#required-permissions)). |
 | `deploymentScriptSettings.storageAccountKey`                                 | no       | Access key for the existing storage account referenced by `deploymentScriptSettings.storageAccountId`. Required unless `deploymentScriptSettings.subnetId` is also set - when the deployment script runs inside a virtual network, Azure Container Instances can mount the storage account using the script-runner identity's `Storage File Data Privileged Contributor` role (granted automatically) instead of a key.                                                                                                                                                                           |
 | `deploymentScriptSettings.subnetId`                                          | no       | Resource ID of a subnet, delegated to `Microsoft.ContainerInstance/containerGroups`, that the deployment script container will run in. Required only if the storage account referenced by `deploymentScriptSettings.storageAccountId` is not reachable from a public or service-endpoint-allowed network path. See [Storage account requirements](#storage-account-requirements-for-deploymentscriptsettings) for subnet subscription constraints. |
+
+## Scoping DSPM permissions
+
+Set a `dspmAccessScopes` property to `false` to leave that resource type's permissions out of the custom roles. Falcon Cloud Security then does not scan that resource type. The `dspmAccessScopes` value as you set it, without defaults filled in, is written to the `dspmAccessScopes` parameter of the `policy-csscanning-parameters` policy definition in every registered subscription.
+
+| Property         | Access role (subscription)                                                                                                             | Scanner role (subscription)                                       | Resource group access role (scanning resource group)                                                                                                                       |
+|------------------|----------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `blobStorage`    | `Microsoft.Storage/storageAccounts/read`, `Microsoft.Storage/storageAccounts/PrivateEndpointConnectionsApproval/action` (shared by the three storage properties) | Blob container read, blob data read                               | —                                                                                                                                                                          |
+| `tableStorage`   | as above                                                                                                                               | Table read, table entity data read                                | —                                                                                                                                                                          |
+| `azureFiles`     | as above                                                                                                                               | File share read, file data read, `readFileBackupSemantics/action` | —                                                                                                                                                                          |
+| `virtualMachines` | Disk `beginGetAccess/action` and read, virtual machine and scale set read                                                              | —                                                                 | Snapshot read, write and delete; disk write and delete                                                                                                                     |
+| `azureSql`       | `Microsoft.Sql/servers/databases/write`                                                                                                | —                                                                 | `Microsoft.Sql/servers/write`, `Microsoft.Sql/servers/privateEndpointConnectionsApproval/action`, `Microsoft.Sql/servers/delete`, `Microsoft.Sql/servers/databases/delete` |
+
+`enableVulnerabilityScanning` grants the `virtualMachines` permissions on its own. Changing a property updates the role definitions in place; no role definition or assignment is created or deleted. With `blobStorage`, `tableStorage` and `azureFiles` all `false`, the Scanner role has no actions. With `enableDspm = true`, at least one property must be `true`; the deployment fails otherwise.
+
+Example that skips Azure SQL and Azure Files:
+
+```bicep
+param enableDspm = true
+param dspmAccessScopes = {
+  azureSql: false
+  azureFiles: false
+}
+```
 
 ## Bicep parameter file example
 ```bicep
@@ -374,6 +399,22 @@ To delete the deployment stack successfully, follow these steps:
    ```
    az stack mg delete --name <deployment-stack-name> --management-group-id <management-group-id> --action-on-unmanage detachAll
    ```
+
+### Redeploying an older template version fails with `InvalidPolicyParameterUpdate`
+
+Redeploying an older template version over a newer one can fail with:
+
+```
+InvalidPolicyParameterUpdate: The existing policy has '15' parameter(s) which is greater than the count of parameter(s) '14' in the policy being added. Policy parameters cannot be removed during policy update.
+```
+
+Newer template versions add parameters to the `policy-csscanning-parameters` policy definition, and Azure does not allow removing parameters from an existing policy definition. Resources updated before the failure, such as the custom roles, are already on the older version.
+
+To downgrade, delete the policy definition in every registered subscription, then redeploy the older template. The deployment recreates the policy definition.
+
+```sh
+az policy definition delete --subscription <subscription-id> --name <resource-name-prefix>policy-csscanning-parameters[-<env>]<resource-name-suffix>
+```
 
 ### Deployment fails because the auto-created deployment script storage account violates policy
 

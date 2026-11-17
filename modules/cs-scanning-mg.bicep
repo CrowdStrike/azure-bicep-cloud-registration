@@ -1,3 +1,5 @@
+import { DspmAccessScopes, DspmAccessScopesInput } from '../models/scanning-roles.bicep'
+
 targetScope = 'managementGroup'
 
 /*
@@ -51,6 +53,12 @@ param agentlessScanningHostSubscriptionId string = ''
 
 @description('Controls whether to enable DSPM.')
 param inputEnableDspm bool = false
+
+@description('DSPM resource types to apply permissions for, all false when DSPM is disabled.')
+param resolvedDspmAccessScopes DspmAccessScopes
+
+@description('DSPM resource types as set in dspmAccessScopes, before defaults and enableDspm are applied. Stored as is in the scanning parameters policy.')
+param inputDspmAccessScopes DspmAccessScopesInput
 
 @description('Controls whether to enable vulnerability scanning.')
 param inputEnableVulnerabilityScanning bool = false
@@ -153,6 +161,7 @@ module scanningHostMgRoles 'scanning-environment/scanningRolesForMg.bicep' = if 
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
     includeResourceGroupRoles: true
     useCustomSubnets: hostSubUseCustomSubnets
+    resolvedDspmAccessScopes: resolvedDspmAccessScopes
     inputEnableDspm: inputEnableDspm
     inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
   }
@@ -168,6 +177,7 @@ module scanningRoles 'scanning-environment/scanningRolesForMg.bicep' = [
       resourceNameSuffix: resourceNameSuffix
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
       includeResourceGroupRoles: !isCrossSubscriptionDeployment
+      resolvedDspmAccessScopes: resolvedDspmAccessScopes
       inputEnableDspm: inputEnableDspm
       inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
     }
@@ -186,6 +196,7 @@ module scanningHostRoles 'scanning-environment/scanningRolesForSub.bicep' = if (
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
     includeResourceGroupRoles: true
     useCustomSubnets: hostSubUseCustomSubnets
+    resolvedDspmAccessScopes: resolvedDspmAccessScopes
     inputEnableDspm: inputEnableDspm
     inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
   }
@@ -208,6 +219,7 @@ module scanningHostSub 'scanning-environment/scanningForSub.bicep' = if (isCross
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
     agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
     inputEnableDspm: inputEnableDspm
+    inputDspmAccessScopes: inputDspmAccessScopes
     inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
     inputAgentlessScanningLocations: inputAgentlessScanningLocations
     inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
@@ -253,6 +265,8 @@ module scanningHostPerMg 'scanning-environment/scanningForMg.bicep' = if (isHost
     agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
     agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
     inputEnableDspm: inputEnableDspm
+    resolvedDspmAccessScopes: resolvedDspmAccessScopes
+    inputDspmAccessScopes: inputDspmAccessScopes
     inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
     inputAgentlessScanningLocations: inputAgentlessScanningLocations
     inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
@@ -287,6 +301,8 @@ module scanningPerMg 'scanning-environment/scanningForMg.bicep' = [
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
       agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
       inputEnableDspm: inputEnableDspm
+      resolvedDspmAccessScopes: resolvedDspmAccessScopes
+      inputDspmAccessScopes: inputDspmAccessScopes
       inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
       inputAgentlessScanningLocations: inputAgentlessScanningLocations
       inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription
@@ -325,6 +341,8 @@ module scanningStandaloneBatch 'scanning-environment/scanningSubBatch.bicep' = [
       agentlessScanningDeployNatGateway: agentlessScanningDeployNatGateway
       agentlessScanningHostSubscriptionId: agentlessScanningHostSubscriptionId
       inputEnableDspm: inputEnableDspm
+      resolvedDspmAccessScopes: resolvedDspmAccessScopes
+      inputDspmAccessScopes: inputDspmAccessScopes
       inputEnableVulnerabilityScanning: inputEnableVulnerabilityScanning
       inputAgentlessScanningLocations: inputAgentlessScanningLocations
       inputAgentlessScanningLocationsPerSubscription: inputAgentlessScanningLocationsPerSubscription

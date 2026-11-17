@@ -45,7 +45,7 @@ The Bicep templates perform the following actions:
       - Create a resource group with Key vault and Managed Identity in global resources location.
       - Create and assign a custom Scanning access role at subscription scope.
       - Create and assign a custom Scanning access role at resource group scope.
-      - When `enableDspm` is set to true and `dspmAccessScopes` includes `blobStorage`, `tableStorage` or `azureFiles`, create and assign a custom Scanner role at a subscription scope.
+      - When `enableDspm` is set to true, create and assign a custom Scanner role at a subscription scope.
       - When `enableVulnerabilityScanning` is set to true, create and assign a custom Scanner role at a resource group scope.
       - Assign built-in "Reader" role at resource group scope to the Scanner Managed Identity.
       - Assign built-in "Key Vault Secrets User" role at created Key vault scope to the Scanner Managed Identity for key access.
@@ -155,7 +155,7 @@ Set a `dspmAccessScopes` property to `false` to leave that resource type's permi
 | `virtualMachines` | Disk `beginGetAccess/action` and read, virtual machine and scale set read                                                              | —                                                                 | Snapshot read, write and delete; disk write and delete                                                                                                                     |
 | `azureSql`       | `Microsoft.Sql/servers/databases/write`                                                                                                | —                                                                 | `Microsoft.Sql/servers/write`, `Microsoft.Sql/servers/privateEndpointConnectionsApproval/action`, `Microsoft.Sql/servers/delete`, `Microsoft.Sql/servers/databases/delete` |
 
-`enableVulnerabilityScanning` grants the `virtualMachines` permissions on its own.
+`enableVulnerabilityScanning` grants the `virtualMachines` permissions on its own. Changing a property updates the role definitions in place; no role definition or assignment is created or deleted. With `blobStorage`, `tableStorage` and `azureFiles` all `false`, the Scanner role has no actions. With `enableDspm = true`, at least one property must be `true`; the deployment fails otherwise.
 
 Example that skips Azure SQL and Azure Files:
 
@@ -413,7 +413,7 @@ Newer template versions add parameters to the `policy-csscanning-parameters` pol
 To downgrade, delete the policy definition in every registered subscription, then redeploy the older template. The deployment recreates the policy definition.
 
 ```sh
-az policy definition delete --subscription <subscription-id> --name <resource-name-prefix>policy-csscanning-parameters-<env><resource-name-suffix>
+az policy definition delete --subscription <subscription-id> --name <resource-name-prefix>policy-csscanning-parameters[-<env>]<resource-name-suffix>
 ```
 
 ### Deployment fails because the auto-created deployment script storage account violates policy

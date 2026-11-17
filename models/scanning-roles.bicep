@@ -36,14 +36,17 @@ type DspmAccessScopes = {
 }
 
 @export()
-@description('Resolves which DSPM resource types get permissions: those not set to false, and none when DSPM is disabled.')
-func resolveDspmAccessScopes(enableDspm bool, scopes DspmAccessScopesInput) DspmAccessScopes => {
-  blobStorage: enableDspm && (scopes.?blobStorage ?? true)
-  tableStorage: enableDspm && (scopes.?tableStorage ?? true)
-  azureFiles: enableDspm && (scopes.?azureFiles ?? true)
-  virtualMachines: enableDspm && (scopes.?virtualMachines ?? true)
-  azureSql: enableDspm && (scopes.?azureSql ?? true)
-}
+@description('Resolves which DSPM resource types get permissions: those not set to false, and none when DSPM is disabled. Fails when DSPM is enabled and every resource type is set to false.')
+func resolveDspmAccessScopes(enableDspm bool, scopes DspmAccessScopesInput) DspmAccessScopes =>
+  enableDspm && !((scopes.?blobStorage ?? true) || (scopes.?tableStorage ?? true) || (scopes.?azureFiles ?? true) || (scopes.?virtualMachines ?? true) || (scopes.?azureSql ?? true))
+    ? fail('DSPM is enabled but every "dspmAccessScopes" resource type is false. Set at least one resource type to true, or set "enableDspm" to false')
+    : {
+        blobStorage: enableDspm && (scopes.?blobStorage ?? true)
+        tableStorage: enableDspm && (scopes.?tableStorage ?? true)
+        azureFiles: enableDspm && (scopes.?azureFiles ?? true)
+        virtualMachines: enableDspm && (scopes.?virtualMachines ?? true)
+        azureSql: enableDspm && (scopes.?azureSql ?? true)
+      }
 
 @export()
 @description('Permissions for the CrowdStrike Agentless Scanning Access Role.')

@@ -46,7 +46,7 @@ param inputEnableVulnerabilityScanning bool = false
 var accessRoleName = '${resourceNamePrefix}role-csscanning-access-${managementGroup().name}${resourceNameSuffix}'
 var scannerRoleName = '${resourceNamePrefix}role-csscanning-scanner-${managementGroup().name}${resourceNameSuffix}'
 var resourceGroupAccessRoleName = '${resourceNamePrefix}role-csscanning-rg-access-${managementGroup().name}${resourceNameSuffix}'
-var customVnetRoleName = '${resourceNamePrefix}role-csscanning-custom-vnet-${managementGroup().name}${resourceNameSuffix}'
+var customVnetRoleName = '${resourceNamePrefix}role-csscanning-custom-vnet-subnet-${managementGroup().name}${resourceNameSuffix}'
 var resourceGroupScannerRoleName = '${resourceNamePrefix}role-csscanning-rg-scanner-${managementGroup().name}${resourceNameSuffix}'
 
 /* Role Definitions */
@@ -135,7 +135,7 @@ resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-0
 }
 
 resource customVnetSubnetRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (useCustomSubnets) {
-  name: guid(managementGroup().id, 'customVnetSubnetAccess')
+  name: guid(managementGroup().id, customVnetRoleName)
   properties: {
     roleName: customVnetRoleName
     description: customVnetSubnetRolePermissions.description

@@ -46,7 +46,7 @@ param inputEnableVulnerabilityScanning bool = false
 var accessRoleName = '${resourceNamePrefix}role-csscanning-access-${subscription().subscriptionId}${resourceNameSuffix}'
 var scannerRoleName = '${resourceNamePrefix}role-csscanning-scanner-${subscription().subscriptionId}${resourceNameSuffix}'
 var resourceGroupAccessRoleName = '${resourceNamePrefix}role-csscanning-rg-access-${subscription().subscriptionId}${resourceNameSuffix}'
-var customVnetRoleName = '${resourceNamePrefix}role-csscanning-custom-vnet-${subscription().subscriptionId}${resourceNameSuffix}'
+var customVnetRoleName = '${resourceNamePrefix}role-csscanning-custom-vnet-subnet-${subscription().subscriptionId}${resourceNameSuffix}'
 var resourceGroupScannerRoleName = '${resourceNamePrefix}role-csscanning-rg-scanner-${subscription().subscriptionId}${resourceNameSuffix}'
 
 /* Role Definitions */
@@ -136,7 +136,7 @@ resource resourceGroupAccessRole 'Microsoft.Authorization/roleDefinitions@2022-0
 
 // Custom VNet role applies only to the host subscription (single sub) — no need for MG-scoped definition
 resource customVnetSubnetRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' = if (useCustomSubnets) {
-  name: guid(subscription().id, 'customVnetSubnetAccess')
+  name: guid(subscription().id, customVnetRoleName)
   properties: {
     roleName: customVnetRoleName
     description: customVnetSubnetRolePermissions.description

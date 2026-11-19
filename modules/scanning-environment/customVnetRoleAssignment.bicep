@@ -27,7 +27,7 @@ resource existingSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-07-01' e
 
 // Create role assignment using the custom role, scoped to the specific subnet
 resource customVnetRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(subnetResourceId, 'customVnetAccess', scanningPrincipalId)
+  name: guid(subnetResourceId, 'customVnetAccess', scanningPrincipalId, customVnetSubnetRoleId)
   scope: existingSubnet
   properties: {
     roleDefinitionId: customVnetSubnetRoleId
